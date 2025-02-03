@@ -72,7 +72,6 @@ public class SubscriptionPersistenceService {
                 WHERE customer_id = ?
                 ORDER BY current_period_start DESC
                 """,
-                // RowMapper to convert database rows to SubscriptionEntity
                 (rs, rowNum) -> new SubscriptionEntity(
                     rs.getString("subscription_id"),
                     rs.getString("customer_id"),
