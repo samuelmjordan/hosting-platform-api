@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: api
+  config:
+    import: optional:file:.env[.yaml]
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mydatabase
+    username: default
+    password: password
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+server:
+  port: 8081
+
+stripe:
+  key: ${STRIPE_KEY}
+  signing-key: ${STRIPE_SIGNING_KEY}
+  acceptable-events:
+    - checkout.session.completed
+    - customer.subscription.created
+    - customer.subscription.updated
+    - customer.subscription.deleted
+    - customer.subscription.paused
+    - customer.subscription.resumed
+    - customer.subscription.pending_update_applied
+    - customer.subscription.pending_update_expired
+    - invoice.paid
+    - invoice.payment_failed
+    - invoice.payment_action_required
+    - invoice.upcoming
+    - invoice.marked_uncollectible
+    - invoice.payment_succeeded
+    - payment_intent.succeeded
+    - payment_intent.payment_failed
+    - payment_intent.canceled
+  

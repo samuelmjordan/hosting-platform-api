@@ -1,0 +1,43 @@
+package com.mc_host.api.configuration;
+
+import java.util.List;
+import java.util.function.Predicate;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ConfigurationProperties(prefix = "stripe")
+public class StripeConfiguration {
+    private String key;
+    private String signingKey;
+    private List<String> acceptableEvents;
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getSigningKey() {
+        return signingKey;
+    }
+
+    public void setSigningKey(String webhookSigning) {
+        this.signingKey = webhookSigning;
+    }
+
+    public List<String> getAcceptableEvents() {
+        return acceptableEvents;
+    }
+
+    public void setAcceptableEvents(List<String> webhookEvents) {
+        this.acceptableEvents = webhookEvents;
+    }
+
+    public Predicate<String> isAcceptibleEvent() {
+        return (eventType) -> acceptableEvents.contains(eventType);
+    }
+}
