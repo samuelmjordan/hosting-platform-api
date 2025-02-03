@@ -43,7 +43,10 @@ public class StripeEventProcessor {
                 ));
             return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, String.format("Error processing event %s", event.getId()), e);
+            LOGGER.log(Level.SEVERE, String.format(
+                "Error processing event %s", 
+                event.getId()), 
+                e);
             return CompletableFuture.failedFuture(e);
         }
     }
