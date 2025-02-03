@@ -1,5 +1,7 @@
 package com.mc_host.api.persistence;
 
+import java.util.List;
+
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,41 @@ public class SubscriptionPersistenceService {
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to save subscription to database: " + e.getMessage(), e);
+        }
+    }
+
+    public List<SubscriptionEntity> selectSubscriptionsByCustomerId(String customerId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT 
+                    subscription_id,
+                    customer_id,
+                    status,
+                    price_id,
+                    current_period_end,
+                    current_period_start,
+                    cancel_at_period_end,
+                    payment_method
+                FROM subscriptions 
+                WHERE customer_id = ?
+                ORDER BY current_period_start DESC
+                """,
+                // RowMapper to convert database rows to SubscriptionEntity
+                (rs, rowNum) -> new SubscriptionEntity(
+                    rs.getString("subscription_id"),
+                    rs.getString("customer_id"),
+                    rs.getString("status"),
+                    rs.getString("price_id"),
+                    rs.getTimestamp("current_period_end").toInstant(),
+                    rs.getTimestamp("current_period_start").toInstant(),
+                    rs.getBoolean("cancel_at_period_end"),
+                    rs.getString("payment_method")
+                ),
+                customerId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch subscriptions for customer: " + e.getMessage(), e);
         }
     }
     
