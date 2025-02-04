@@ -13,15 +13,15 @@ CREATE TABLE subscriptions (
     current_period_end TIMESTAMP NOT NULL,
     cancel_at_period_end BOOLEAN NOT NULL,
     
-    -- Payment information
-    payment_method TEXT NOT NULL,
-    
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- Constraints
-    CONSTRAINT subscriptions_subscription_id_unique UNIQUE (subscription_id)
+    CONSTRAINT subscriptions_subscription_id_unique UNIQUE (subscription_id),
+    CONSTRAINT fk_subscriptions_users FOREIGN KEY (customer_id)
+        REFERENCES users (customer_id)
+        ON DELETE RESTRICT
 );
 
 -- Indexes for performance

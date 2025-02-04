@@ -9,6 +9,5 @@ public record SubscriptionEntity(
     String priceId,
     Instant currentPeriodEnd,
     Instant currentPeriodStart,
-    Boolean cancelAtPeriodEnd,
-    String paymentMethod) {
+    Boolean cancelAtPeriodEnd) {
 }
