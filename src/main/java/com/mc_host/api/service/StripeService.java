@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.clerk.backend_api.Clerk;
 import com.clerk.backend_api.models.components.EmailAddress;
 import com.clerk.backend_api.models.components.User;
 import com.clerk.backend_api.models.operations.GetUserResponse;
@@ -21,7 +20,6 @@ import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.model.UserEntity;
 import com.mc_host.api.persistence.UserPersistenceService;
-import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Customer;
 import com.stripe.model.Event;
@@ -79,18 +77,14 @@ public class StripeService implements StripeResource{
         Optional<String> stripeCustomerId = userPersistenceService.selectCustomerIdByClerkId(userId);
 
         if (stripeCustomerId.isPresent()) {
-            LOGGER.log(Level.INFO, String.format("Completed fetching details for clerk userId %s", userId));
+            LOGGER.log(Level.INFO, String.format("Completed fetching details - clerkId: %s", userId));
             return ResponseEntity.ok().body(stripeCustomerId.get());
         }
 
         // Create a new stripe customer
         try {
             // Use the clerk api to get the users primary email
-            Clerk clerkSdk = Clerk.builder()
-                .bearerAuth(clerkConfiguration.getKey())
-                .build();
-
-            GetUserResponse userResponse = clerkSdk.users().get()
+            GetUserResponse userResponse = clerkConfiguration.getClient().users().get()
                 .userId(userId)
                 .call();
 
@@ -117,7 +111,6 @@ public class StripeService implements StripeResource{
                 .orElseThrow(() -> new RuntimeException("Primary email address not found in list of user emails"));
 
             // Use the stripe api to create the new customer
-            Stripe.apiKey = stripeConfiguration.getApiKey();
             Map<String, Object> customerParams = Map.of(
                 "email", primaryEmail,
                 "metadata", Collections.singletonMap("clerk_id", userId)
@@ -125,10 +118,10 @@ public class StripeService implements StripeResource{
             Customer stripeCustomer = Customer.create(customerParams);
             userPersistenceService.insertUser(new UserEntity(userId, stripeCustomer.getId()));
     
-            LOGGER.log(Level.INFO, String.format("Created new stripe customerId for clerk userId %s", userId));
+            LOGGER.log(Level.INFO, String.format("Created new stripe customerId - clerkId: %s", userId));
             return ResponseEntity.ok().body(stripeCustomer.getId());
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, String.format("Error fetching details for clerk userId %s", userId), e);
+            LOGGER.log(Level.SEVERE, String.format("Error fetching details - clerkId: %s", userId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Request failed");
         }
     }

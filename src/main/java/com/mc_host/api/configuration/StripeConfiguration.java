@@ -6,12 +6,21 @@ import java.util.function.Predicate;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import com.stripe.Stripe;
+
+import jakarta.annotation.PostConstruct;
+
 @Configuration
 @ConfigurationProperties(prefix = "stripe")
 public class StripeConfiguration {
     private String apiKey;
     private String signingKey;
     private List<String> acceptableEvents;
+
+    @PostConstruct
+    public void setStripeApiKey() {
+        Stripe.apiKey = this.getApiKey();
+    }
 
     public String getApiKey() {
         return apiKey;
