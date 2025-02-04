@@ -15,9 +15,12 @@ spring:
 server:
   port: 8081
 
+clerk:
+  key: ${CLERK_SECRET_KEY}
+
 stripe:
-  key: ${STRIPE_KEY}
-  signing-key: ${STRIPE_SIGNING_KEY}
+  api-key: ${STRIPE_SECRET_KEY}
+  signing-key: ${STRIPE_SECRET_SIGNING_KEY}
   acceptable-events:
     - checkout.session.completed
     - customer.subscription.created

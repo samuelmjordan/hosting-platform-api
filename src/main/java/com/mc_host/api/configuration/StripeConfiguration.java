@@ -9,16 +9,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "stripe")
 public class StripeConfiguration {
-    private String key;
+    private String apiKey;
     private String signingKey;
     private List<String> acceptableEvents;
 
-    public String getKey() {
-        return key;
+    public String getApiKey() {
+        return apiKey;
     }
 
-    public void setKey(String key) {
-        this.key = key;
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
     }
 
     public String getSigningKey() {
