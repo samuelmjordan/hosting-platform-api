@@ -1,18 +1,20 @@
 package com.mc_host.api.service;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.clerk.backend_api.Clerk;
 import com.clerk.backend_api.models.components.EmailAddress;
+import com.clerk.backend_api.models.components.User;
 import com.clerk.backend_api.models.operations.GetUserResponse;
 import com.mc_host.api.configuration.ClerkConfiguration;
 import com.mc_host.api.configuration.StripeConfiguration;
@@ -81,29 +83,45 @@ public class StripeService implements StripeResource{
             return ResponseEntity.ok().body(stripeCustomerId.get());
         }
 
+        // Create a new stripe customer
         try {
+            // Use the clerk api to get the users primary email
             Clerk clerkSdk = Clerk.builder()
                 .bearerAuth(clerkConfiguration.getKey())
                 .build();
 
             GetUserResponse userResponse = clerkSdk.users().get()
-                    .userId(userId)
-                    .call();
+                .userId(userId)
+                .call();
 
-            String primaryEmail = userResponse.user()
-                .flatMap(user -> user.emailAddresses())
-                .flatMap(emails -> emails.stream().findFirst())
-                .map(EmailAddress::emailAddress)
-                .orElseThrow(() -> new IllegalStateException(
-                    String.format("No email address found for clerk userId %s", userId)
-                ));
+            Optional<User> userOptional = userResponse.user();
+            if (!userOptional.isPresent()) {
+                throw new RuntimeException("User not found");
+            }
+            User user = userOptional.get();
 
+            JsonNullable<String> primaryEmailIdNullable = user.primaryEmailAddressId(); 
+            if (!primaryEmailIdNullable.isPresent()) {
+                throw new RuntimeException("No primary email ID set");
+            }
+            String primaryEmailId = user.primaryEmailAddressId().get();
+
+            Optional<List<EmailAddress>> emailAddressesOptional = user.emailAddresses();
+            if (!emailAddressesOptional.isPresent()) {
+                throw new RuntimeException("No email addresses found");
+            }
+            String primaryEmail = emailAddressesOptional.get().stream()
+                .filter(email -> email.id().isPresent() && email.id().get().equals(primaryEmailId))
+                .map(email -> email.emailAddress())
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Primary email address not found in list of user emails"));
+
+            // Use the stripe api to create the new customer
+            Stripe.apiKey = stripeConfiguration.getApiKey();
             Map<String, Object> customerParams = Map.of(
                 "email", primaryEmail,
                 "metadata", Collections.singletonMap("clerk_id", userId)
             );
-    
-            Stripe.apiKey = stripeConfiguration.getApiKey();
             Customer stripeCustomer = Customer.create(customerParams);
             userPersistenceService.insertUser(new UserEntity(userId, stripeCustomer.getId()));
     
