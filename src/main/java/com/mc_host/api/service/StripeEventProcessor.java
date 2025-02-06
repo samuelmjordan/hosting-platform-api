@@ -1,7 +1,7 @@
 package com.mc_host.api.service;
 
-import java.lang.reflect.Method;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,12 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
-import com.mc_host.api.model.SubscriptionEntity;
+import com.mc_host.api.model.Currency;
+import com.mc_host.api.model.entity.PriceEntity;
+import com.mc_host.api.model.entity.SubscriptionEntity;
+import com.mc_host.api.persistence.PricePersistenceService;
 import com.mc_host.api.persistence.SubscriptionPersistenceService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.Price;
 import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
+import com.stripe.model.Price.CurrencyOption;
+import com.stripe.param.PriceListParams;
 
 @Service
 public class StripeEventProcessor {
@@ -31,19 +37,22 @@ public class StripeEventProcessor {
 
     private final StripeConfiguration stripeConfiguration;
     private final SubscriptionPersistenceService subscriptionPersistenceService;
+    private final PricePersistenceService pricePersistenceService;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
-        SubscriptionPersistenceService subscriptionPersistenceService
+        SubscriptionPersistenceService subscriptionPersistenceService,
+        PricePersistenceService pricePersistenceService
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.subscriptionPersistenceService = subscriptionPersistenceService;
+        this.pricePersistenceService = pricePersistenceService;
     }
     
     @Async("webhookTaskExecutor")
     public CompletableFuture<Void> processEvent(Event event) {
         try {
-            if (!stripeConfiguration.isAcceptibleEvent().test(event.getType())) {
+            if (!stripeConfiguration.isAcceptableEvent().test(event.getType())) {
                 LOGGER.log(Level.WARNING, String.format(
                     "[Thread: %s] Not processing event %s, type %s is unsupported",
                     Thread.currentThread().getName(),
@@ -53,9 +62,18 @@ public class StripeEventProcessor {
                 return CompletableFuture.completedFuture(null);
             }
 
-            String customerId = extractCustomerId(event)
-                .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-            syncSubscriptionData(customerId);
+            if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
+                String customerId = extractValueFromEvent(event, "customer")
+                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
+                syncSubscriptionData(customerId);
+            }
+
+            if (stripeConfiguration.isPriceEvent().test(event.getType())) {
+                String productId = extractValueFromEvent(event, "product")
+                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get productId - eventType: %s", event.getType())));
+                syncPriceData(productId);
+            }
+
             LOGGER.log(Level.INFO, String.format(
                 "[Thread: %s] Completed processing event %s, type %s",
                 Thread.currentThread().getName(),
@@ -72,36 +90,19 @@ public class StripeEventProcessor {
         }
     }
 
-    public static Optional<String> extractCustomerId(Event event) {
+    public static Optional<String> extractValueFromEvent(Event event, String valueName) {
         if (event == null || event.getData() == null || event.getData().getObject() == null) {
             return Optional.empty();
         }
 
         StripeObject eventObject = event.getData().getObject();
         
-        // First try the direct approach (most common case)
         try {
-            // Most Stripe objects have this method
-            Method getCustomerMethod = eventObject.getClass().getMethod("getCustomer");
-            Object result = getCustomerMethod.invoke(eventObject);
-            if (result != null) {
-                return Optional.of(result.toString());
-            }
-        } catch (Exception ignored) {
-            // If this fails, we'll try the fallback below
-        }
-        
-        // Fallback: convert to JSON and then to Map
-        try {
-            // Get the raw JSON representation
             String jsonString = eventObject.toJson();
-            
-            // Convert to Map
+
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> rawData = mapper.readValue(jsonString, new TypeReference<Map<String, Object>>() {});
-            
-            // Try to get customer ID from the map
-            Object customerId = rawData.get("customer");
+            Object customerId = rawData.get(valueName);
             return customerId != null ? Optional.of(customerId.toString()) : Optional.empty();
         } catch (Exception e) {
             return Optional.empty();
@@ -126,15 +127,15 @@ public class StripeEventProcessor {
             }
 
             stripeSubscriptions.stream()
-            .map(subscription -> stripeToEntity(subscription, customerId))
-            .forEach(subsription -> subscriptionPersistenceService.insertSubscription(subsription));
+            .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
+            .forEach(subscription -> subscriptionPersistenceService.insertSubscription(subscription));
 
         } catch (StripeException e) {
             e.printStackTrace();
         }
     }
 
-    private SubscriptionEntity stripeToEntity(Subscription subscription, String customerId) {
+    private SubscriptionEntity stripeSubscriptionToEntity(Subscription subscription, String customerId) {
         return new SubscriptionEntity(
             subscription.getId(), 
             customerId, 
@@ -143,6 +144,46 @@ public class StripeEventProcessor {
             Instant.ofEpochMilli(subscription.getCurrentPeriodEnd()), 
             Instant.ofEpochMilli(subscription.getCurrentPeriodStart()), 
             subscription.getCancelAtPeriodEnd()
+        );
+    }
+
+    @Transactional
+    private void syncPriceData(String productId) {
+        try {
+            List<PriceEntity> dbPrices = pricePersistenceService.selectPricesByProductId(productId);
+
+            PriceListParams priceListParams = PriceListParams.builder()
+                .setProduct(productId)
+                .build();
+            List<Price> stripePrices = Price.list(priceListParams).getData();
+            Set<String> stripePriceIds = stripePrices.stream().map(Price::getId).collect(Collectors.toSet());
+
+            Set<String> dbPricesToDelete = dbPrices.stream()
+                .map(PriceEntity::priceId)
+                .filter(id -> !stripePriceIds.contains(id))
+                .collect(Collectors.toSet());
+
+            if (!dbPricesToDelete.isEmpty())  {
+                pricePersistenceService.deleteProductPrices(dbPricesToDelete, productId);
+            }
+
+            stripePrices.stream()
+                .map(price -> stripePriceToEntity(price, productId))
+                .forEach(price -> pricePersistenceService.insertPrice(price));
+
+        } catch (StripeException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private PriceEntity stripePriceToEntity(Price price, String productId) {
+        return new PriceEntity(
+            price.getId(), 
+            productId, 
+            price.getMetadata().get("spec_id"),
+            price.getActive(),
+            Currency.fromCode(price.getCurrency()),
+            price.getUnitAmount()
         );
     }
 }

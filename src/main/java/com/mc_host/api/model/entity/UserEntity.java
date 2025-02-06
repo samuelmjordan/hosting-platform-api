@@ -1,4 +1,4 @@
-package com.mc_host.api.model;
+package com.mc_host.api.model.entity;
 
 public record UserEntity(
     String clerkId,

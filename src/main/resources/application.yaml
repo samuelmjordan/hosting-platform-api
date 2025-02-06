@@ -1,8 +1,6 @@
 spring:
   application:
     name: api
-  config:
-    import: optional:file:.env[.yaml]
   datasource:
     url: jdbc:postgresql://localhost:5432/mydatabase
     username: default
@@ -21,16 +19,19 @@ clerk:
 stripe:
   api-key: ${STRIPE_SECRET_KEY}
   signing-key: ${STRIPE_SECRET_SIGNING_KEY}
-  acceptable-events:
+  subscription-events:
     - checkout.session.completed
     - customer.subscription.created
     - customer.subscription.updated
     - customer.subscription.deleted
     - customer.subscription.paused
     - customer.subscription.resumed
+    - customer.subscription.trial_will_end
+    - customer.subscription.pending_update
     - customer.subscription.pending_update_applied
     - customer.subscription.pending_update_expired
     - invoice.paid
+    - invoice.updated
     - invoice.payment_failed
     - invoice.payment_action_required
     - invoice.upcoming
@@ -39,4 +40,9 @@ stripe:
     - payment_intent.succeeded
     - payment_intent.payment_failed
     - payment_intent.canceled
+  price-events:
+    - price.created
+    - price.deleted
+    - price.updated
+  active-java-product-id: prod_RiiVxhDuwyX0qD
   

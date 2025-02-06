@@ -14,3 +14,4 @@ CREATE TABLE users (
 
 -- Index for efficient lookups by clerk_id
 CREATE INDEX idx_users_clerk_id ON users (clerk_id);
+CREATE INDEX idx_users_customer_id ON users (customer_id);

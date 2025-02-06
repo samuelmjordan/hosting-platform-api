@@ -2,6 +2,8 @@ CREATE TABLE subscriptions (
     -- Primary identifiers
     id BIGSERIAL PRIMARY KEY,
     subscription_id TEXT NOT NULL,
+
+    -- Customer details
     customer_id TEXT NOT NULL,
     
     -- Subscription details
@@ -21,6 +23,9 @@ CREATE TABLE subscriptions (
     CONSTRAINT subscriptions_subscription_id_unique UNIQUE (subscription_id),
     CONSTRAINT fk_subscriptions_users FOREIGN KEY (customer_id)
         REFERENCES users (customer_id)
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_subscriptions_prices FOREIGN KEY (price_id)
+        REFERENCES prices (price_id)
         ON DELETE RESTRICT
 );
 
@@ -28,14 +33,6 @@ CREATE TABLE subscriptions (
 CREATE INDEX idx_subscriptions_customer_id ON subscriptions (customer_id);
 
 -- Trigger to automatically update last_updated timestamp
-CREATE OR REPLACE FUNCTION update_last_updated_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.last_updated = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
 CREATE TRIGGER update_subscriptions_last_updated
     BEFORE UPDATE ON subscriptions
     FOR EACH ROW

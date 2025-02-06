@@ -9,44 +9,32 @@ import org.springframework.context.annotation.Configuration;
 import com.stripe.Stripe;
 
 import jakarta.annotation.PostConstruct;
+import lombok.Data;
 
+@Data
 @Configuration
 @ConfigurationProperties(prefix = "stripe")
 public class StripeConfiguration {
     private String apiKey;
     private String signingKey;
-    private List<String> acceptableEvents;
+    private List<String> subscriptionEvents;
+    private List<String> priceEvents;
+    private String activeJavaProductId;
 
     @PostConstruct
-    public void setStripeApiKey() {
+    public void init() {
         Stripe.apiKey = this.getApiKey();
     }
 
-    public String getApiKey() {
-        return apiKey;
+    public Predicate<String> isSubscriptionEvent() {
+        return (eventType) -> subscriptionEvents.contains(eventType);
     }
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
+    public Predicate<String> isPriceEvent() {
+        return (eventType) -> priceEvents.contains(eventType);
     }
 
-    public String getSigningKey() {
-        return signingKey;
-    }
-
-    public void setSigningKey(String webhookSigning) {
-        this.signingKey = webhookSigning;
-    }
-
-    public List<String> getAcceptableEvents() {
-        return acceptableEvents;
-    }
-
-    public void setAcceptableEvents(List<String> webhookEvents) {
-        this.acceptableEvents = webhookEvents;
-    }
-
-    public Predicate<String> isAcceptibleEvent() {
-        return (eventType) -> acceptableEvents.contains(eventType);
+    public Predicate<String> isAcceptableEvent() {
+        return (eventType) -> isSubscriptionEvent().or(isPriceEvent()).test(eventType);
     }
 }
