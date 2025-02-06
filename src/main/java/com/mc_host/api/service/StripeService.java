@@ -18,7 +18,8 @@ import com.clerk.backend_api.models.operations.GetUserResponse;
 import com.mc_host.api.configuration.ClerkConfiguration;
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
-import com.mc_host.api.model.UserEntity;
+import com.mc_host.api.model.entity.UserEntity;
+import com.mc_host.api.model.request.CheckoutRequest;
 import com.mc_host.api.persistence.UserPersistenceService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Customer;
@@ -124,5 +125,11 @@ public class StripeService implements StripeResource{
             LOGGER.log(Level.SEVERE, String.format("Error fetching details - clerkId: %s", userId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Request failed");
         }
+    }
+
+    @Override
+    public ResponseEntity<String> startCheckout(CheckoutRequest request) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'startCheckout'");
     }
 }

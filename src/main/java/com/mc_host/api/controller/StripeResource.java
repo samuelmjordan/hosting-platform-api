@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mc_host.api.model.request.CheckoutRequest;
+
 @RestController
 @RequestMapping("/api/stripe")
 public interface StripeResource {
@@ -21,4 +23,8 @@ public interface StripeResource {
     @GetMapping("/customerId/{userId}")
     public ResponseEntity<String> getCustomerId(
         @PathVariable String userId);
+
+    @GetMapping("/checkout")
+    public ResponseEntity<String> startCheckout(
+        @RequestBody CheckoutRequest request);
 }
