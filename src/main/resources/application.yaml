@@ -11,7 +11,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 server:
-  port: 8081
+  port: 8080
 
 clerk:
   key: ${CLERK_SECRET_KEY}
