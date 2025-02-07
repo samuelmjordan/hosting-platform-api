@@ -2,9 +2,9 @@ spring:
   application:
     name: api
   datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
-    username: default
-    password: password
+    url: ${DATABASE_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   flyway:
     enabled: true
