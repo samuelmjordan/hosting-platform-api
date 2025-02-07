@@ -20,10 +20,6 @@ public interface StripeResource {
         @RequestBody String payload, 
         @RequestHeader("Stripe-Signature") String sigHeader);
 
-    @GetMapping("/customerId/{userId}")
-    public ResponseEntity<String> getCustomerId(
-        @PathVariable String userId);
-
     @GetMapping("/checkout")
     public ResponseEntity<String> startCheckout(
         @RequestBody CheckoutRequest request);

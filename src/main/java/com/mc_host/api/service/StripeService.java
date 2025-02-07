@@ -1,7 +1,6 @@
 package com.mc_host.api.service;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -12,19 +11,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.clerk.backend_api.models.components.EmailAddress;
 import com.clerk.backend_api.models.components.User;
 import com.clerk.backend_api.models.operations.GetUserResponse;
 import com.mc_host.api.configuration.ClerkConfiguration;
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
+import com.mc_host.api.exceptions.ClerkException;
+import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.entity.UserEntity;
 import com.mc_host.api.model.request.CheckoutRequest;
 import com.mc_host.api.persistence.UserPersistenceService;
 import com.stripe.exception.SignatureVerificationException;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.Event;
+import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import com.stripe.param.checkout.SessionCreateParams;
 
 @Service
 public class StripeService implements StripeResource{
@@ -32,6 +35,7 @@ public class StripeService implements StripeResource{
     
     private final StripeConfiguration stripeConfiguration;
     private final ClerkConfiguration clerkConfiguration;
+    
     private final StripeEventProcessor stripeEventProcessor;
     private final UserPersistenceService userPersistenceService;
 
@@ -63,73 +67,97 @@ public class StripeService implements StripeResource{
             LOGGER.log(Level.SEVERE, "Invalid signature", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE,"Error processing webhook", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook processing failed");
-        }
-    }
-
-    @Override
-    public ResponseEntity<String> getCustomerId(String userId) {
-        LOGGER.log(Level.INFO, String.format(
-            "getCustomerID Request Received - clerkId: %s",
-            userId
-        ));
-
-        Optional<String> stripeCustomerId = userPersistenceService.selectCustomerIdByClerkId(userId);
-
-        if (stripeCustomerId.isPresent()) {
-            LOGGER.log(Level.INFO, String.format("Completed fetching details - clerkId: %s", userId));
-            return ResponseEntity.ok().body(stripeCustomerId.get());
-        }
-
-        // Create a new stripe customer
-        try {
-            // Use the clerk api to get the users primary email
-            GetUserResponse userResponse = clerkConfiguration.getClient().users().get()
-                .userId(userId)
-                .call();
-
-            Optional<User> userOptional = userResponse.user();
-            if (!userOptional.isPresent()) {
-                throw new RuntimeException("User not found");
-            }
-            User user = userOptional.get();
-
-            JsonNullable<String> primaryEmailIdNullable = user.primaryEmailAddressId(); 
-            if (!primaryEmailIdNullable.isPresent()) {
-                throw new RuntimeException("No primary email ID set");
-            }
-            String primaryEmailId = user.primaryEmailAddressId().get();
-
-            Optional<List<EmailAddress>> emailAddressesOptional = user.emailAddresses();
-            if (!emailAddressesOptional.isPresent()) {
-                throw new RuntimeException("No email addresses found");
-            }
-            String primaryEmail = emailAddressesOptional.get().stream()
-                .filter(email -> email.id().isPresent() && email.id().get().equals(primaryEmailId))
-                .map(email -> email.emailAddress())
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Primary email address not found in list of user emails"));
-
-            // Use the stripe api to create the new customer
-            Map<String, Object> customerParams = Map.of(
-                "email", primaryEmail,
-                "metadata", Collections.singletonMap("clerk_id", userId)
-            );
-            Customer stripeCustomer = Customer.create(customerParams);
-            userPersistenceService.insertUser(new UserEntity(userId, stripeCustomer.getId()));
-    
-            LOGGER.log(Level.INFO, String.format("Created new stripe customerId - clerkId: %s", userId));
-            return ResponseEntity.ok().body(stripeCustomer.getId());
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, String.format("Error fetching details - clerkId: %s", userId), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Request failed");
+            LOGGER.log(Level.SEVERE,"Unexpected error processing webhook", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
         }
     }
 
     @Override
     public ResponseEntity<String> startCheckout(CheckoutRequest request) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'startCheckout'");
+        try {
+            String customerId = getCustomerId(request.userId());
+    
+            SessionCreateParams checkoutParams = SessionCreateParams.builder()
+                .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
+                .setCustomer(customerId)
+                .setSuccessUrl(request.success())
+                .setCancelUrl(request.cancel())
+                .addLineItem(SessionCreateParams.LineItem.builder()
+                    .setPrice(request.priceId())
+                    .setQuantity(1L)
+                    .build())
+                .build();
+    
+            Session session = Session.create(checkoutParams);
+            return ResponseEntity.ok(session.getUrl());
+    
+        } catch (CustomerNotFoundException e) {
+            LOGGER.log(Level.SEVERE, "Failed to find or create customer", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body("Unable to find or create customer profile");
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error during checkout creation", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Unable to create checkout session");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Unexpected error during checkout creation", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("An unexpected error occurred");
+        }
+    }
+
+    public String getCustomerId(String userId) throws CustomerNotFoundException {
+        Optional<String> stripeCustomerId = userPersistenceService.selectCustomerIdByClerkId(userId);
+        if (stripeCustomerId.isPresent()) {
+            LOGGER.log(Level.INFO, "Completed fetching details - clerkId: {}", userId);
+            return stripeCustomerId.get();
+        }
+
+        try {
+            return createNewStripeCustomer(userId);
+        } catch (ClerkException e) {
+            LOGGER.log(Level.SEVERE, "Clerk API error for clerkId: " + userId, e);
+            throw new CustomerNotFoundException("Failed to create customer due to Clerk API error", e);
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error for clerkId: " + userId, e);
+            throw new CustomerNotFoundException("Failed to create customer due to Stripe API error", e);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Unexpected error for clerkId: " + userId, e);
+            throw new CustomerNotFoundException("Failed to create customer due to unexpected error", e);
+        }
+    }
+
+    private String createNewStripeCustomer(String userId) throws ClerkException, StripeException, Exception {
+        GetUserResponse userResponse = clerkConfiguration.getClient().users().get()
+            .userId(userId)
+            .call();
+
+        User user = userResponse.user()
+            .orElseThrow(() -> new ClerkException("User not found"));
+
+        JsonNullable<String> primaryEmailIdNullable = user.primaryEmailAddressId();
+        if (!primaryEmailIdNullable.isPresent()) {
+            throw new ClerkException("No primary email ID set");
+        }
+        String primaryEmailId = primaryEmailIdNullable.get();
+
+        String primaryEmail = user.emailAddresses()
+            .orElseThrow(() -> new ClerkException("No email addresses found"))
+            .stream()
+            .filter(email -> email.id().isPresent() && email.id().get().equals(primaryEmailId))
+            .map(email -> email.emailAddress())
+            .findFirst()
+            .orElseThrow(() -> new ClerkException("Primary email address not found in list of user emails"));
+
+        Map<String, Object> customerParams = Map.of(
+            "email", primaryEmail,
+            "metadata", Collections.singletonMap("clerk_id", userId)
+        );
+        
+        Customer stripeCustomer = Customer.create(customerParams);
+        userPersistenceService.insertUser(new UserEntity(userId, stripeCustomer.getId()));
+
+        LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: {}", userId);
+        return stripeCustomer.getId();
     }
 }
