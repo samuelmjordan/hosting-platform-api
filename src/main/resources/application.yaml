@@ -13,6 +13,11 @@ spring:
 server:
   port: 8080
 
+cors:
+  allowed-origins:
+    - https://mc-host-web-production.up.railway.app
+    - http://localhost:3000
+
 clerk:
   key: ${CLERK_SECRET_KEY}
 
