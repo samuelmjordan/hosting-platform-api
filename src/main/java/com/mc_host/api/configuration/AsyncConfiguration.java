@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 public class AsyncConfiguration {
@@ -15,6 +16,9 @@ public class AsyncConfiguration {
         executor.setMaxPoolSize(100);
         executor.setQueueCapacity(5000);
         executor.setThreadNamePrefix("WebhookAsync-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setKeepAliveSeconds(60);
+        executor.setAllowCoreThreadTimeOut(true);
         executor.initialize();
         return executor;
     }

@@ -1,6 +1,7 @@
 package com.mc_host.api.persistence;
 
 import java.sql.Array;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
@@ -114,10 +115,8 @@ public class SubscriptionPersistenceService {
     }
 
     private Array createArrayOf(String typeName, Object[] elements) {
-        try {
-            return jdbcTemplate.getDataSource()
-                .getConnection()
-                .createArrayOf(typeName, elements);
+        try (Connection conn = jdbcTemplate.getDataSource().getConnection()) {
+            return conn.createArrayOf(typeName, elements);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to create SQL array: " + e.getMessage(), e);
         }
