@@ -1,15 +1,18 @@
 package com.mc_host.api.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,15 +39,18 @@ public class StripeEventProcessor {
     private final StripeConfiguration stripeConfiguration;
     private final SubscriptionPersistenceService subscriptionPersistenceService;
     private final PricePersistenceService pricePersistenceService;
+    private final StringRedisTemplate redisTemplate;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
         SubscriptionPersistenceService subscriptionPersistenceService,
-        PricePersistenceService pricePersistenceService
+        PricePersistenceService pricePersistenceService,
+        StringRedisTemplate redisTemplate
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.subscriptionPersistenceService = subscriptionPersistenceService;
         this.pricePersistenceService = pricePersistenceService;
+        this.redisTemplate = redisTemplate;
     }
     
     @Async("webhookTaskExecutor")
@@ -63,7 +69,10 @@ public class StripeEventProcessor {
             if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
                 String customerId = extractValueFromEvent(event, "customer")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-                syncSubscriptionData(customerId);
+                if (redisTemplate.opsForValue().setIfAbsent(customerId, "", Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
+                    CompletableFuture.delayedExecutor(stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS)
+                        .execute(() -> syncSubscriptionData(customerId));   
+                }
             }
 
             if (stripeConfiguration.isPriceEvent().test(event.getType())) {
@@ -100,8 +109,8 @@ public class StripeEventProcessor {
 
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> rawData = mapper.readValue(jsonString, new TypeReference<Map<String, Object>>() {});
-            Object customerId = rawData.get(valueName);
-            return customerId != null ? Optional.of(customerId.toString()) : Optional.empty();
+            Object value = rawData.get(valueName);
+            return value != null ? Optional.of(value.toString()) : Optional.empty();
         } catch (Exception e) {
             return Optional.empty();
         }
@@ -127,9 +136,11 @@ public class StripeEventProcessor {
             stripeSubscriptions.stream()
             .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
             .forEach(subscription -> subscriptionPersistenceService.insertSubscription(subscription));
+            LOGGER.log(Level.INFO, "Executed subscription sync for customer: " + customerId); 
 
         } catch (StripeException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
+            throw new RuntimeException("Failed to sync subscription data", e);
         }
     }
 
@@ -170,7 +181,8 @@ public class StripeEventProcessor {
                 .forEach(price -> pricePersistenceService.insertPrice(price));
 
         } catch (StripeException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to sync price data for product: " + productId, e);
+            throw new RuntimeException("Failed to sync subscription data", e);
         }
     }
 

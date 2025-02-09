@@ -6,6 +6,9 @@ import org.springframework.context.annotation.Configuration;
 
 import com.clerk.backend_api.Clerk;
 
+import lombok.Data;
+
+@Data
 @Configuration
 @ConfigurationProperties(prefix = "clerk")
 public class ClerkConfiguration {
@@ -17,13 +20,4 @@ public class ClerkConfiguration {
             .bearerAuth(this.getKey())
             .build();
     }
-
-    public String getKey() {
-        return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
-    }
-    
 }

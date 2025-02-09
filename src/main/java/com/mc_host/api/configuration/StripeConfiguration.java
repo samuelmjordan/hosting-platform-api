@@ -17,9 +17,10 @@ import lombok.Data;
 public class StripeConfiguration {
     private String apiKey;
     private String signingKey;
+    private String activeJavaProductId;
+    private Long eventDebounceTtlMs;
     private List<String> subscriptionEvents;
     private List<String> priceEvents;
-    private String activeJavaProductId;
 
     @PostConstruct
     public void init() {

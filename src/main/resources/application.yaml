@@ -1,8 +1,14 @@
 spring:
   application:
     name: api
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password:
+      timeout: 2000
   datasource:
-    url: ${DATABASE_URL}
+    url: "jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}"
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -24,6 +30,8 @@ clerk:
 stripe:
   api-key: ${STRIPE_SECRET_KEY}
   signing-key: ${STRIPE_SECRET_SIGNING_KEY}
+  active-java-product-id: prod_RiiVxhDuwyX0qD
+  event-debounce-ttl-ms: 5000
   subscription-events:
     - checkout.session.completed
     - customer.subscription.created
@@ -49,5 +57,4 @@ stripe:
     - price.created
     - price.deleted
     - price.updated
-  active-java-product-id: prod_RiiVxhDuwyX0qD
   

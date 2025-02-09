@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.clerk.backend_api.models.components.User;
+import com.clerk.backend_api.models.errors.ClerkErrors;
 import com.clerk.backend_api.models.operations.GetUserResponse;
 import com.mc_host.api.configuration.ClerkConfiguration;
 import com.mc_host.api.configuration.StripeConfiguration;
@@ -75,6 +76,8 @@ public class StripeService implements StripeResource{
     @Override
     public ResponseEntity<String> startCheckout(CheckoutRequest request) {
         try {
+            LOGGER.log(Level.INFO, "Starting checkout creation for clerkId: " + request.userId());
+
             String customerId = getCustomerId(request.userId());
     
             SessionCreateParams checkoutParams = SessionCreateParams.builder()
@@ -89,6 +92,8 @@ public class StripeService implements StripeResource{
                 .build();
     
             Session session = Session.create(checkoutParams);
+
+            LOGGER.log(Level.INFO, "Complete checkout creation for clerkId: " + request.userId());
             return ResponseEntity.ok(session.getUrl());
     
         } catch (CustomerNotFoundException e) {
@@ -109,13 +114,16 @@ public class StripeService implements StripeResource{
     public String getCustomerId(String userId) throws CustomerNotFoundException {
         Optional<String> stripeCustomerId = userPersistenceService.selectCustomerIdByClerkId(userId);
         if (stripeCustomerId.isPresent()) {
-            LOGGER.log(Level.INFO, "Completed fetching details - clerkId: {}", userId);
+            LOGGER.log(Level.INFO, "Completed fetching details - clerkId:  " + userId);
             return stripeCustomerId.get();
         }
 
         try {
-            return createNewStripeCustomer(userId);
-        } catch (ClerkException e) {
+            LOGGER.log(Level.INFO, "Creating new customer - clerkId: " + userId);
+            String customerId = createNewStripeCustomer(userId);
+            LOGGER.log(Level.INFO, "Completed creating new customer - clerkId: " + userId);
+            return customerId;
+        } catch (ClerkErrors | ClerkException e) {
             LOGGER.log(Level.SEVERE, "Clerk API error for clerkId: " + userId, e);
             throw new CustomerNotFoundException("Failed to create customer due to Clerk API error", e);
         } catch (StripeException e) {
@@ -127,7 +135,7 @@ public class StripeService implements StripeResource{
         }
     }
 
-    private String createNewStripeCustomer(String userId) throws ClerkException, StripeException, Exception {
+    private String createNewStripeCustomer(String userId) throws ClerkErrors, ClerkException, StripeException, Exception {
         GetUserResponse userResponse = clerkConfiguration.getClient().users().get()
             .userId(userId)
             .call();
@@ -157,7 +165,7 @@ public class StripeService implements StripeResource{
         Customer stripeCustomer = Customer.create(customerParams);
         userPersistenceService.insertUser(new UserEntity(userId, stripeCustomer.getId()));
 
-        LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: {}", userId);
+        LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: " + userId);
         return stripeCustomer.getId();
     }
 }

@@ -14,7 +14,7 @@ try {
                 # Remove surrounding quotes if they exist
                 $value = $value -replace '^[''"]|[''"]$'
                 [Environment]::SetEnvironmentVariable($name, $value, "Process")
-                Write-Host "Loaded: $name" -ForegroundColor Gray
+                Write-Host "Loaded: $name=$value" -ForegroundColor Gray
             }
         }
     } else {
