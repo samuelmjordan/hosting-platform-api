@@ -5,6 +5,7 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+      username: 
       password: ${REDIS_PASSWORD}
       timeout: 2000
   datasource:
