@@ -5,7 +5,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +14,7 @@ import com.mc_host.api.persistence.PricePersistenceService;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {
-    private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final PricePersistenceService pricePersistenceService;
 
@@ -29,7 +28,7 @@ public class DataFetchingService implements DataFetchingResource  {
     public ResponseEntity<List<PriceEntity>> getProductPrices(String productId) {
         try {
             LOGGER.log(Level.INFO, String.format("Fetching prices for product %s", productId));
-            List<PriceEntity> prices = pricePersistenceService.selectPricesByProductId(productId);
+            List<PriceEntity> prices = fetchProductPrices(productId);
             if (prices.isEmpty()) {
                 throw new RuntimeException(String.format("ProductId %s had no prices.  Is this the correct Id?", productId));
             }
@@ -38,6 +37,11 @@ public class DataFetchingService implements DataFetchingResource  {
             LOGGER.log(Level.SEVERE, String.format("Failed to fetch prices for product %s: %s", productId, e.getMessage()), e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @Cacheable(value = "product-prices", key = "#productId", unless = "#result.isEmpty()")
+    protected List<PriceEntity> fetchProductPrices(String productId) {
+        return pricePersistenceService.selectPricesByProductId(productId);
     }
     
 }

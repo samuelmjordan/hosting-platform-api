@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
@@ -159,8 +160,7 @@ public class StripeEventProcessor {
     }
 
     @Transactional
-    @CachePut(value = "product-prices", key = "#productId")
-    private List<PriceEntity> syncPriceData(String productId) {
+    public List<PriceEntity> syncPriceData(String productId) {
         try {
             List<PriceEntity> dbPrices = pricePersistenceService.selectPricesByProductId(productId);
     
@@ -179,9 +179,7 @@ public class StripeEventProcessor {
                 pricePersistenceService.deleteProductPrices(dbPricesToDelete, productId);
             }
     
-            List<PriceEntity> stripePriceEntities = stripePrices.stream()
-                .map(price -> stripePriceToEntity(price, productId))
-                .toList();
+            List<PriceEntity> stripePriceEntities = fetchCachedPrices(stripePrices, productId);
     
             stripePriceEntities.stream()
                 .forEach(price-> pricePersistenceService.insertPrice(price));
@@ -191,6 +189,13 @@ public class StripeEventProcessor {
             LOGGER.log(Level.SEVERE, "Failed to sync price data for product: " + productId, e);
             throw new RuntimeException("Failed to sync subscription data", e);
         }
+    }
+
+    @CachePut(value = "product-prices", key = "#productId")
+    protected List<PriceEntity> fetchCachedPrices(List<Price> stripePrices, String productId) {
+        return stripePrices.stream()
+            .map(price -> stripePriceToEntity(price, productId))
+            .toList();
     }
 
     private PriceEntity stripePriceToEntity(Price price, String productId) {

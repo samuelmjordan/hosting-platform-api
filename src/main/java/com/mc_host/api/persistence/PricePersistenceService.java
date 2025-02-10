@@ -23,7 +23,6 @@ public class PricePersistenceService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @Cacheable(value = "product-prices", key = "#priceEntity.productId()", unless = "#result.isEmpty()")
     public void insertPrice(PriceEntity priceEntity) {
         try {
             jdbcTemplate.update(connection -> {
