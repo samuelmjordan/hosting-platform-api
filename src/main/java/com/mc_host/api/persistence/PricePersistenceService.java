@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -72,6 +73,7 @@ public class PricePersistenceService {
         }
     }
 
+    @Cacheable(value = "product-prices", key = "#productId", unless = "#result.isEmpty()")
     public List<PriceEntity> selectPricesByProductId(String productId) {
         try {
             return jdbcTemplate.query(

@@ -12,7 +12,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -157,29 +159,34 @@ public class StripeEventProcessor {
     }
 
     @Transactional
-    private void syncPriceData(String productId) {
+    @CachePut(value = "product-prices", key = "#productId")
+    private List<PriceEntity> syncPriceData(String productId) {
         try {
             List<PriceEntity> dbPrices = pricePersistenceService.selectPricesByProductId(productId);
-
+    
             PriceListParams priceListParams = PriceListParams.builder()
                 .setProduct(productId)
                 .build();
             List<Price> stripePrices = Price.list(priceListParams).getData();
             Set<String> stripePriceIds = stripePrices.stream().map(Price::getId).collect(Collectors.toSet());
-
+    
             Set<String> dbPricesToDelete = dbPrices.stream()
                 .map(PriceEntity::priceId)
                 .filter(id -> !stripePriceIds.contains(id))
                 .collect(Collectors.toSet());
-
+    
             if (!dbPricesToDelete.isEmpty())  {
                 pricePersistenceService.deleteProductPrices(dbPricesToDelete, productId);
             }
-
-            stripePrices.stream()
+    
+            List<PriceEntity> stripePriceEntities = stripePrices.stream()
                 .map(price -> stripePriceToEntity(price, productId))
-                .forEach(price -> pricePersistenceService.insertPrice(price));
-
+                .toList();
+    
+            stripePriceEntities.stream()
+                .forEach(price-> pricePersistenceService.insertPrice(price));
+    
+            return stripePriceEntities;
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync price data for product: " + productId, e);
             throw new RuntimeException("Failed to sync subscription data", e);

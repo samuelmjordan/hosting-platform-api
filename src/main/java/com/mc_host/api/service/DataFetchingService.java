@@ -18,19 +18,17 @@ public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
 
     private final PricePersistenceService pricePersistenceService;
-    private final StringRedisTemplate redisTemplate;
 
     public DataFetchingService(
-        PricePersistenceService pricePersistenceService,
-        StringRedisTemplate redisTemplate
+        PricePersistenceService pricePersistenceService
     ) {
         this.pricePersistenceService = pricePersistenceService;
-        this.redisTemplate =  redisTemplate;
     }
 
     @Override
     public ResponseEntity<List<PriceEntity>> getProductPrices(String productId) {
         try {
+            LOGGER.log(Level.INFO, String.format("Fetching prices for product %s", productId));
             List<PriceEntity> prices = pricePersistenceService.selectPricesByProductId(productId);
             if (prices.isEmpty()) {
                 throw new RuntimeException(String.format("ProductId %s had no prices.  Is this the correct Id?", productId));
