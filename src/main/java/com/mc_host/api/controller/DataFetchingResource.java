@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,5 +19,11 @@ public interface DataFetchingResource {
 
     @GetMapping("/product/{productId}/prices")
     public ResponseEntity<List<PriceEntity>> getProductPrices(
-        @PathVariable String productId);
+        @PathVariable String productId
+    );
+
+    @GetMapping("/user/{userId}/currency")
+    public ResponseEntity<Currency> getCurrency(
+        @PathVariable String userId
+    );
 }

@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -13,6 +14,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 
 @Service
@@ -111,6 +113,26 @@ public class SubscriptionPersistenceService {
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to fetch subscriptions for customer: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<Currency> selectUserCurrency(String userId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT 
+                    prices.currency
+                FROM subscriptions
+                JOIN users ON users.customer_id = subscriptions.customer_id
+                JOIN prices ON prices.price_id = subscriptions.price_id
+                WHERE users.clerk_id = ?
+                LIMIT 1
+                """,
+                (rs, rowNum) -> Currency.fromCode(rs.getString("currency")),
+                userId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch currency for customer ID: " + e.getMessage(), e);
         }
     }
 

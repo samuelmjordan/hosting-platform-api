@@ -177,7 +177,9 @@ public class StripeEventProcessor {
                 pricePersistenceService.deleteProductPrices(dbPricesToDelete, productId);
             }
     
-            List<PriceEntity> stripePriceEntities = fetchCachedPrices(stripePrices, productId);
+            List<PriceEntity> stripePriceEntities = stripePrices.stream()
+                .map(price -> stripePriceToEntity(price, productId))
+                .toList();
     
             stripePriceEntities.stream()
                 .forEach(price-> pricePersistenceService.insertPrice(price));
@@ -187,13 +189,6 @@ public class StripeEventProcessor {
             LOGGER.log(Level.SEVERE, "Failed to sync price data for product: " + productId, e);
             throw new RuntimeException("Failed to sync subscription data", e);
         }
-    }
-
-    @CachePut(value = "product-prices", key = "#productId")
-    protected List<PriceEntity> fetchCachedPrices(List<Price> stripePrices, String productId) {
-        return stripePrices.stream()
-            .map(price -> stripePriceToEntity(price, productId))
-            .toList();
     }
 
     private PriceEntity stripePriceToEntity(Price price, String productId) {
