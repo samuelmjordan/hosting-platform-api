@@ -1,10 +1,11 @@
 package com.mc_host.api.service;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -50,9 +51,20 @@ public class DataFetchingService implements DataFetchingResource  {
     @Override
     public ResponseEntity<Currency> getCurrency(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching currency for user %s", userId));
-        Currency currency = subscriptionPersistenceService.selectUserCurrency(userId)
-            .orElse(Currency.XXX);
-        return ResponseEntity.ok(currency);
+
+        Optional<Currency> cachedCurrency = cachingService.retrieveCache("user-currency::" + userId, Currency.class);
+        if (cachedCurrency.isPresent()) {
+            return ResponseEntity.ok(cachedCurrency.get());
+        }
+
+        Optional<Currency> currency = subscriptionPersistenceService.selectUserCurrency(userId);
+        if (currency.isPresent()) {
+            cachingService.cache("user-currency::" + userId, currency.get());
+            return ResponseEntity.ok(currency.get());
+        }
+
+        cachingService.cache("user-currency::" + userId, Currency.XXX, Duration.ofSeconds(60));
+        return ResponseEntity.ok(Currency.XXX);
     }
     
 }
