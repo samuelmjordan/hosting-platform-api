@@ -37,17 +37,20 @@ public class StripeEventProcessor {
     private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
 
     private final StripeConfiguration stripeConfiguration;
+    private final CachingService cachingService;
     private final SubscriptionPersistenceService subscriptionPersistenceService;
     private final PricePersistenceService pricePersistenceService;
     private final StringRedisTemplate redisTemplate;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
+        CachingService cachingService,
         SubscriptionPersistenceService subscriptionPersistenceService,
         PricePersistenceService pricePersistenceService,
         StringRedisTemplate redisTemplate
     ) {
         this.stripeConfiguration = stripeConfiguration;
+        this.cachingService = cachingService;
         this.subscriptionPersistenceService = subscriptionPersistenceService;
         this.pricePersistenceService = pricePersistenceService;
         this.redisTemplate = redisTemplate;
@@ -179,6 +182,7 @@ public class StripeEventProcessor {
             List<PriceEntity> stripePriceEntities = stripePrices.stream()
                 .map(price -> stripePriceToEntity(price, productId))
                 .toList();
+            cachingService.cache("product-prices::" + productId, stripePriceEntities);
     
             stripePriceEntities.stream()
                 .forEach(price-> pricePersistenceService.insertPrice(price));

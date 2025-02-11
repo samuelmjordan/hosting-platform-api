@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
@@ -35,12 +36,26 @@ public class DataFetchingService implements DataFetchingResource  {
 
     @Override
     public ResponseEntity<List<PriceEntity>> getProductPrices(String productId) {
+        LOGGER.log(Level.INFO, String.format("Fetching prices for product %s", productId));
+    
         try {
-            LOGGER.log(Level.INFO, String.format("Fetching prices for product %s", productId));
-            List<PriceEntity> prices = pricePersistenceService.selectPricesByProductId(productId);
-            if (prices.isEmpty()) {
-                throw new RuntimeException(String.format("ProductId %s had no prices.  Is this the correct Id?", productId));
+            String cacheKey = "product-prices::" + productId;
+            Optional<List<PriceEntity>> cachedPrices = cachingService.retrieveCache(
+                cacheKey,
+                new TypeReference<List<PriceEntity>>() {}
+            );
+            if (cachedPrices.isPresent() && !cachedPrices.get().isEmpty()) {
+                return ResponseEntity.ok(cachedPrices.get());
             }
+    
+            List<PriceEntity> prices = pricePersistenceService.selectPricesByProductId(productId);
+            
+            if (prices.isEmpty()) {
+                LOGGER.log(Level.WARNING, String.format("ProductId %s had no prices. Is this the correct Id?", productId));
+                throw new RuntimeException(String.format("ProductId %s had no prices. Is this the correct Id?", productId));
+            }
+            cachingService.cache(cacheKey, prices);
+            
             return ResponseEntity.ok(prices);
         } catch (RuntimeException e) {
             LOGGER.log(Level.SEVERE, String.format("Failed to fetch prices for product %s: %s", productId, e.getMessage()), e);
@@ -52,18 +67,19 @@ public class DataFetchingService implements DataFetchingResource  {
     public ResponseEntity<Currency> getCurrency(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching currency for user %s", userId));
 
-        Optional<Currency> cachedCurrency = cachingService.retrieveCache("user-currency::" + userId, Currency.class);
+        String cacheKey = "user-currency::" + userId;
+        Optional<Currency> cachedCurrency = cachingService.retrieveCache(cacheKey, Currency.class);
         if (cachedCurrency.isPresent()) {
             return ResponseEntity.ok(cachedCurrency.get());
         }
 
         Optional<Currency> currency = subscriptionPersistenceService.selectUserCurrency(userId);
         if (currency.isPresent()) {
-            cachingService.cache("user-currency::" + userId, currency.get());
+            cachingService.cache(cacheKey, currency.get());
             return ResponseEntity.ok(currency.get());
         }
 
-        cachingService.cache("user-currency::" + userId, Currency.XXX, Duration.ofSeconds(60));
+        cachingService.cache(cacheKey, Currency.XXX, Duration.ofSeconds(60));
         return ResponseEntity.ok(Currency.XXX);
     }
     
