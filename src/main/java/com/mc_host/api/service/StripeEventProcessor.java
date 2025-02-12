@@ -72,7 +72,7 @@ public class StripeEventProcessor {
             if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
                 String customerId = extractValueFromEvent(event, "customer")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-                if (redisTemplate.opsForValue().setIfAbsent(customerId, "", Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
+                if (cachingService.flagIfAbsent(customerId, Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
                     CompletableFuture.delayedExecutor(stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS)
                         .execute(() -> syncSubscriptionData(customerId));   
                 }

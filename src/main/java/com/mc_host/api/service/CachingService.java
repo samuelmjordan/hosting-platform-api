@@ -44,6 +44,10 @@ public class CachingService {
         }
     }
 
+    public <T> Boolean flagIfAbsent(String flag, Duration ttl) {
+        return redisTemplate.opsForValue().setIfAbsent(flag, ", ttl");
+    }
+
     public void evictCache(String key) {
         redisTemplate.delete(key);
     }
