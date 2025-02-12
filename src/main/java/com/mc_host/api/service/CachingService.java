@@ -28,18 +28,17 @@ public class CachingService {
     }
 
     public <T> void cache(String key, T value) {
-        try {
-            String serializedValue = objectMapper.writeValueAsString(value);
-            redisTemplate.opsForValue().set(key, serializedValue);
-        } catch (JsonProcessingException e) {
-            LOGGER.log(Level.WARNING, String.format("Failed to serialize value for key %s", key), e);
-        }
+        cache(key, value, null);
     }
 
     public <T> void cache(String key, T value, Duration ttl) {
         try {
             String serializedValue = objectMapper.writeValueAsString(value);
-            redisTemplate.opsForValue().set(key, serializedValue, ttl);
+            Optional.ofNullable(ttl)
+                .ifPresentOrElse(
+                    t -> redisTemplate.opsForValue().set(key, serializedValue, t),
+                    () -> redisTemplate.opsForValue().set(key, serializedValue)
+                );
         } catch (JsonProcessingException e) {
             LOGGER.log(Level.WARNING, String.format("Failed to serialize value for key %s", key), e);
         }
