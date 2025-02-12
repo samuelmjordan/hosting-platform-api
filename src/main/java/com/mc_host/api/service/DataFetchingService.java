@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.mc_host.api.controller.DataFetchingResource;
+import com.mc_host.api.model.CacheNamespace;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.persistence.PricePersistenceService;
@@ -39,10 +40,9 @@ public class DataFetchingService implements DataFetchingResource  {
         LOGGER.log(Level.INFO, String.format("Fetching prices for product %s", productId));
     
         try {
-            String cacheKey = "product-prices::" + productId;
-            Optional<List<PriceEntity>> cachedPrices = cachingService.retrieveCache(
-                cacheKey,
-                new TypeReference<List<PriceEntity>>() {}
+            CacheNamespace cacheNamespace = CacheNamespace.PRODUCT_PRICES;
+            Optional<List<PriceEntity>> cachedPrices = cachingService.retrieve(
+                cacheNamespace, productId, new TypeReference<List<PriceEntity>>() {}
             );
             if (cachedPrices.isPresent() && !cachedPrices.get().isEmpty()) {
                 return ResponseEntity.ok(cachedPrices.get());
@@ -54,7 +54,7 @@ public class DataFetchingService implements DataFetchingResource  {
                 LOGGER.log(Level.WARNING, String.format("ProductId %s had no prices. Is this the correct Id?", productId));
                 throw new RuntimeException(String.format("ProductId %s had no prices. Is this the correct Id?", productId));
             }
-            cachingService.cache(cacheKey, prices);
+            cachingService.set(cacheNamespace, productId, prices);
             
             return ResponseEntity.ok(prices);
         } catch (RuntimeException e) {
@@ -67,19 +67,19 @@ public class DataFetchingService implements DataFetchingResource  {
     public ResponseEntity<Currency> getCurrency(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching currency for user %s", userId));
 
-        String cacheKey = "user-currency::" + userId;
-        Optional<Currency> cachedCurrency = cachingService.retrieveCache(cacheKey, Currency.class);
+        CacheNamespace cacheNamespace = CacheNamespace.USER_CURRENCY;
+        Optional<Currency> cachedCurrency = cachingService.retrieve(cacheNamespace, userId, Currency.class);
         if (cachedCurrency.isPresent()) {
             return ResponseEntity.ok(cachedCurrency.get());
         }
 
         Optional<Currency> currency = userPersistenceService.selectUserCurrency(userId);
         if (currency.isPresent()) {
-            cachingService.cache(cacheKey, currency.get());
+            cachingService.set(cacheNamespace, userId, currency.get());
             return ResponseEntity.ok(currency.get());
         }
 
-        cachingService.cache(cacheKey, Currency.XXX, Duration.ofSeconds(60));
+        cachingService.set(cacheNamespace, userId, Currency.XXX, Duration.ofSeconds(60));
         return ResponseEntity.ok(Currency.XXX);
     }
     

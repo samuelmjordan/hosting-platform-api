@@ -12,7 +12,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
+import com.mc_host.api.model.CacheNamespace;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.model.entity.SubscriptionEntity;
@@ -40,20 +40,17 @@ public class StripeEventProcessor {
     private final CachingService cachingService;
     private final SubscriptionPersistenceService subscriptionPersistenceService;
     private final PricePersistenceService pricePersistenceService;
-    private final StringRedisTemplate redisTemplate;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
         CachingService cachingService,
         SubscriptionPersistenceService subscriptionPersistenceService,
-        PricePersistenceService pricePersistenceService,
-        StringRedisTemplate redisTemplate
+        PricePersistenceService pricePersistenceService
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.cachingService = cachingService;
         this.subscriptionPersistenceService = subscriptionPersistenceService;
         this.pricePersistenceService = pricePersistenceService;
-        this.redisTemplate = redisTemplate;
     }
     
     @Async("webhookTaskExecutor")
@@ -72,7 +69,7 @@ public class StripeEventProcessor {
             if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
                 String customerId = extractValueFromEvent(event, "customer")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-                if (cachingService.flagIfAbsent(customerId, Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
+                if (cachingService.flagIfAbsent(CacheNamespace.SUBSCRIPTION_SYNC, customerId, Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
                     CompletableFuture.delayedExecutor(stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS)
                         .execute(() -> syncSubscriptionData(customerId));   
                 }
@@ -184,7 +181,7 @@ public class StripeEventProcessor {
             List<PriceEntity> stripePriceEntities = stripePrices.stream()
                 .map(price -> stripePriceToEntity(price, productId))
                 .toList();
-            cachingService.cache("product-prices::" + productId, stripePriceEntities);
+            cachingService.set(CacheNamespace.PRODUCT_PRICES, productId, stripePriceEntities);
     
             stripePriceEntities.stream()
                 .forEach(price-> pricePersistenceService.insertPrice(price));

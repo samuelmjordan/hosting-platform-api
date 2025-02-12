@@ -2,8 +2,10 @@ package com.mc_host.api.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mc_host.api.model.CacheNamespace;
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class CachingService {
     private static final Logger LOGGER = Logger.getLogger(CachingService.class.getName());
+    private static final CacheNamespace API_NAMESPACE = CacheNamespace.API;
+    private static final String DELIMITER = "::";
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -27,47 +31,47 @@ public class CachingService {
         this.objectMapper = objectMapper;
     }
 
-    public <T> void cache(String key, T value) {
-        cache(key, value, null);
+    private String composeKey(CacheNamespace namespace, String key) {
+        return String.join(DELIMITER, API_NAMESPACE.name(), namespace.name(), key);
     }
 
-    public <T> void cache(String key, T value, Duration ttl) {
+    public <T> void set(CacheNamespace namespace, String key, T value) {
+        set(namespace, key, value, null);
+    }
+
+    public <T> void set(CacheNamespace namespace, String key, T value, Duration ttl) {
         try {
             String serializedValue = objectMapper.writeValueAsString(value);
+            String composedKey = composeKey(namespace, key);
             Optional.ofNullable(ttl)
                 .ifPresentOrElse(
-                    t -> redisTemplate.opsForValue().set(key, serializedValue, t),
-                    () -> redisTemplate.opsForValue().set(key, serializedValue)
+                    t -> redisTemplate.opsForValue().set(composedKey, serializedValue, t),
+                    () -> redisTemplate.opsForValue().set(composedKey, serializedValue)
                 );
         } catch (JsonProcessingException e) {
             LOGGER.log(Level.WARNING, String.format("Failed to serialize value for key %s", key), e);
         }
     }
 
-    public <T> Boolean flagIfAbsent(String flag, Duration ttl) {
-        return redisTemplate.opsForValue().setIfAbsent(flag, ", ttl");
+    public <T> Boolean flagIfAbsent(CacheNamespace namespace, String flag, Duration ttl) {
+        return redisTemplate.opsForValue().setIfAbsent(composeKey(namespace, flag), "", ttl);
     }
 
-    public void evictCache(String key) {
-        redisTemplate.delete(key);
+    public void evict(CacheNamespace namespace, String key) {
+        redisTemplate.delete(composeKey(namespace, key));
     }
 
-    public <T> Optional<T> retrieveCache(String key, Class<T> valueType) {
-        String serializedValue = redisTemplate.opsForValue().get(key);
-        if (serializedValue == null) {
-            return Optional.empty();
-        }
-
-        try {
-            return Optional.of(objectMapper.readValue(serializedValue, valueType));
-        } catch (JsonProcessingException e) {
-            LOGGER.log(Level.WARNING, String.format("Failed to deserialize value for key %s with type %s", key, valueType), e);
-            return Optional.empty();
-        }
+    public <T> Optional<T> retrieve(CacheNamespace namespace, String key, Class<T> valueType) {
+        return retrieve(namespace, key, new TypeReference<T>() {
+            @Override
+            public Type getType() {
+                return valueType;
+            }
+        });
     }
 
-    public <T> Optional<T> retrieveCache(String key, TypeReference<T> typeReference) {
-        String serializedValue = redisTemplate.opsForValue().get(key);
+    public <T> Optional<T> retrieve(CacheNamespace namespace, String key, TypeReference<T> typeReference) {
+        String serializedValue = redisTemplate.opsForValue().get(composeKey(namespace, key));
         if (serializedValue == null) {
             return Optional.empty();
         }
