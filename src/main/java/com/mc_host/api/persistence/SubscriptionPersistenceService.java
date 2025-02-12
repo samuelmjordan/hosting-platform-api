@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -14,7 +13,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 
 @Service
@@ -116,25 +114,29 @@ public class SubscriptionPersistenceService {
         }
     }
 
-    public Optional<Currency> selectUserCurrency(String userId) {
+    public int updateUserCurrencyFromSubscription(String customerId) {
         try {
-            return jdbcTemplate.query(
+            return jdbcTemplate.update(
                 """
-                SELECT 
-                    prices.currency
-                FROM subscriptions
-                JOIN users ON users.customer_id = subscriptions.customer_id
-                JOIN prices ON prices.price_id = subscriptions.price_id
-                WHERE users.clerk_id = ?
-                LIMIT 1
+                UPDATE users u
+                SET currency = COALESCE(
+                    (SELECT p.currency
+                    FROM subscriptions s
+                    JOIN prices p ON s.price_id = p.price_id
+                    WHERE s.customer_id = ?
+                    AND s.status = 'active'
+                    LIMIT 1),
+                    'XXX'
+                )
+                WHERE customer_id = ?
                 """,
-                (rs, rowNum) -> Currency.fromCode(rs.getString("currency")),
-                userId
-            ).stream().findFirst();
+                customerId,
+                customerId
+            );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch currency for customer ID: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to update currency for customer ID: " + customerId, e);
         }
-    }
+     }
 
     private Array createArrayOf(String typeName, Object[] elements) {
         try (Connection conn = jdbcTemplate.getDataSource().getConnection()) {

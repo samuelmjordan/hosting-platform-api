@@ -100,6 +100,7 @@ public class StripeEventProcessor {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static Optional<String> extractValueFromEvent(Event event, String valueName) {
         if (event == null || event.getData() == null || event.getData().getObject() == null) {
             return Optional.empty();
@@ -137,9 +138,10 @@ public class StripeEventProcessor {
             }
 
             stripeSubscriptions.stream()
-            .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
-            .forEach(subscription -> subscriptionPersistenceService.insertSubscription(subscription));
+                .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
+                .forEach(subscription -> subscriptionPersistenceService.insertSubscription(subscription));
             LOGGER.log(Level.INFO, "Executed subscription sync for customer: " + customerId); 
+            subscriptionPersistenceService.updateUserCurrencyFromSubscription(customerId);
 
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);

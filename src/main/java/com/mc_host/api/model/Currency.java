@@ -6,10 +6,6 @@ public enum Currency {
     EUR,
     GBP;
 
-    public String toCode() {
-        return this.name().toLowerCase();
-    }
-
     public static Currency fromCode(String code) {
         return Currency.valueOf(code.toUpperCase());
     }

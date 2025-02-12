@@ -14,7 +14,7 @@ import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.persistence.PricePersistenceService;
-import com.mc_host.api.persistence.SubscriptionPersistenceService;
+import com.mc_host.api.persistence.UserPersistenceService;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {
@@ -22,16 +22,16 @@ public class DataFetchingService implements DataFetchingResource  {
 
     private final CachingService cachingService;
     private final PricePersistenceService pricePersistenceService;
-    private final SubscriptionPersistenceService subscriptionPersistenceService;
+    private final UserPersistenceService userPersistenceService;
 
     public DataFetchingService(
         CachingService cachingService,
         PricePersistenceService pricePersistenceService,
-        SubscriptionPersistenceService subscriptionPersistenceService
+        UserPersistenceService userPersistenceService
     ) {
         this.cachingService = cachingService;
         this.pricePersistenceService = pricePersistenceService;
-        this.subscriptionPersistenceService = subscriptionPersistenceService;
+        this.userPersistenceService = userPersistenceService;
     }
 
     @Override
@@ -73,7 +73,7 @@ public class DataFetchingService implements DataFetchingResource  {
             return ResponseEntity.ok(cachedCurrency.get());
         }
 
-        Optional<Currency> currency = subscriptionPersistenceService.selectUserCurrency(userId);
+        Optional<Currency> currency = userPersistenceService.selectUserCurrency(userId);
         if (currency.isPresent()) {
             cachingService.cache(cacheKey, currency.get());
             return ResponseEntity.ok(currency.get());

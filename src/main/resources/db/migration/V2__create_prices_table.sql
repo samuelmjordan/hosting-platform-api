@@ -27,15 +27,6 @@ CREATE TABLE prices (
 CREATE INDEX idx_prices_price_id ON prices (price_id);
 CREATE INDEX idx_prices_spec_id ON prices (spec_id);
 
--- Trigger to automatically update last_updated timestamp
-CREATE OR REPLACE FUNCTION update_last_updated_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.last_updated = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
 CREATE TRIGGER update_prices_last_updated
     BEFORE UPDATE ON prices
     FOR EACH ROW

@@ -6,6 +6,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.UserEntity;
 
 @Service
@@ -17,9 +18,9 @@ public class UserPersistenceService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void insertUser(UserEntity userEntity) {
+    public int insertUser(UserEntity userEntity) {
         try {
-            jdbcTemplate.update(
+            return jdbcTemplate.update(
                 """
                 INSERT INTO users (
                     clerk_id, 
@@ -48,6 +49,22 @@ public class UserPersistenceService {
             ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to fetch customer ID for clerk ID: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<Currency> selectUserCurrency(String userId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT currency
+                FROM users
+                WHERE users.clerk_id = ?
+                """,
+                (rs, rowNum) -> Currency.fromCode(rs.getString("currency")),
+                userId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch currency for user ID: " + userId, e);
         }
     }
 }
