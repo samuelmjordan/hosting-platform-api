@@ -64,8 +64,8 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     @Override
-    public ResponseEntity<Currency> getCurrency(String userId) {
-        LOGGER.log(Level.INFO, String.format("Fetching currency for user %s", userId));
+    public ResponseEntity<Currency> getUserCurrency(String userId) {
+        LOGGER.log(Level.INFO, String.format("Fetching currency for clerkId %s", userId));
 
         CacheNamespace cacheNamespace = CacheNamespace.USER_CURRENCY;
         Optional<Currency> cachedCurrency = cachingService.retrieve(cacheNamespace, userId, Currency.class);

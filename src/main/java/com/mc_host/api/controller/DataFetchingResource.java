@@ -23,7 +23,7 @@ public interface DataFetchingResource {
     );
 
     @GetMapping("/user/{userId}/currency")
-    public ResponseEntity<Currency> getCurrency(
+    public ResponseEntity<Currency> getUserCurrency(
         @PathVariable String userId
     );
 }

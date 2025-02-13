@@ -19,8 +19,11 @@ import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.exceptions.ClerkException;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
+import com.mc_host.api.model.Currency;
+import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.model.entity.UserEntity;
 import com.mc_host.api.model.request.CheckoutRequest;
+import com.mc_host.api.persistence.PricePersistenceService;
 import com.mc_host.api.persistence.UserPersistenceService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
@@ -39,17 +42,23 @@ public class StripeService implements StripeResource{
     
     private final StripeEventProcessor stripeEventProcessor;
     private final UserPersistenceService userPersistenceService;
+    private final PricePersistenceService pricePersistenceService;
+    private final DataFetchingService dataFetchingService;
 
     public StripeService(
         StripeConfiguration stripeConfiguration,
         ClerkConfiguration clerkConfiguration,
         StripeEventProcessor eventProcessor,
-        UserPersistenceService userPersistenceService
+        UserPersistenceService userPersistenceService,
+        PricePersistenceService pricePersistenceService,
+        DataFetchingService dataFetchingService
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.clerkConfiguration = clerkConfiguration;
         this.stripeEventProcessor = eventProcessor;
         this.userPersistenceService = userPersistenceService;
+        this.pricePersistenceService = pricePersistenceService;
+        this.dataFetchingService  = dataFetchingService;
     }
 
     @Override
@@ -78,6 +87,13 @@ public class StripeService implements StripeResource{
         try {
             LOGGER.log(Level.INFO, "Starting checkout creation for clerkId: " + request.userId());
 
+            String priceId = getPriceInCorrectCurrency(request.priceId(), request.userId());
+            if (!priceId.equals(request.priceId())) {
+                LOGGER.log(Level.WARNING, 
+                String.format("User attempted checkout with wrong currency. userId: %s  priceID: %s ",
+                request.userId(), request.priceId()));
+            }
+
             String customerId = getCustomerId(request.userId());
     
             SessionCreateParams checkoutParams = SessionCreateParams.builder()
@@ -86,11 +102,11 @@ public class StripeService implements StripeResource{
                 .setSuccessUrl(request.success())
                 .setCancelUrl(request.cancel())
                 .addLineItem(SessionCreateParams.LineItem.builder()
-                    .setPrice(request.priceId())
+                    .setPrice(priceId)
                     .setQuantity(1L)
                     .build())
                 .build();
-    
+
             Session session = Session.create(checkoutParams);
 
             LOGGER.log(Level.INFO, "Complete checkout creation for clerkId: " + request.userId());
@@ -111,7 +127,16 @@ public class StripeService implements StripeResource{
         }
     }
 
-    public String getCustomerId(String userId) throws CustomerNotFoundException {
+    private String getPriceInCorrectCurrency(String priceId, String userId) {
+        Currency currency = dataFetchingService.getUserCurrency(userId).getBody();
+        String specId = pricePersistenceService.selectSpecIdByPriceId(priceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("No price for priceId: %s", priceId)));
+        String realPriceId = pricePersistenceService.selectPricebySpecAndCurrency(specId, currency)
+            .orElseThrow(() -> new IllegalStateException(String.format("No price for specId %s and currency %s", specId, currency)));
+        return realPriceId;
+    }
+
+    private String getCustomerId(String userId) throws CustomerNotFoundException {
         Optional<String> stripeCustomerId = userPersistenceService.selectCustomerIdByClerkId(userId);
         if (stripeCustomerId.isPresent()) {
             LOGGER.log(Level.INFO, "Completed fetching details - clerkId:  " + userId);
