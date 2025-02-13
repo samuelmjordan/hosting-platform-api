@@ -20,7 +20,6 @@ import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.exceptions.ClerkException;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.Currency;
-import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.model.entity.UserEntity;
 import com.mc_host.api.model.request.CheckoutRequest;
 import com.mc_host.api.persistence.PricePersistenceService;
@@ -87,14 +86,14 @@ public class StripeService implements StripeResource{
         try {
             LOGGER.log(Level.INFO, "Starting checkout creation for clerkId: " + request.userId());
 
+            String customerId = getCustomerId(request.userId());
+
             String priceId = getPriceInCorrectCurrency(request.priceId(), request.userId());
             if (!priceId.equals(request.priceId())) {
                 LOGGER.log(Level.WARNING, 
-                String.format("User attempted checkout with wrong currency. userId: %s  priceID: %s ",
+                String.format("User attempted checkout with wrong currency. userId: %s  priceID: %s",
                 request.userId(), request.priceId()));
             }
-
-            String customerId = getCustomerId(request.userId());
     
             SessionCreateParams checkoutParams = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
@@ -129,11 +128,11 @@ public class StripeService implements StripeResource{
 
     private String getPriceInCorrectCurrency(String priceId, String userId) {
         Currency currency = dataFetchingService.getUserCurrency(userId).getBody();
-        String specId = pricePersistenceService.selectSpecIdByPriceId(priceId)
-            .orElseThrow(() -> new IllegalStateException(String.format("No price for priceId: %s", priceId)));
-        String realPriceId = pricePersistenceService.selectPricebySpecAndCurrency(specId, currency)
-            .orElseThrow(() -> new IllegalStateException(String.format("No price for specId %s and currency %s", specId, currency)));
-        return realPriceId;
+        if (currency.equals(Currency.XXX)) {
+            return priceId;
+        }
+        return pricePersistenceService.validatePriceCurrency(priceId, currency)
+            .orElseThrow(() -> new IllegalStateException(String.format("No alternative for priceId %s in %s", priceId, currency)));
     }
 
     private String getCustomerId(String userId) throws CustomerNotFoundException {

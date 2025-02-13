@@ -139,6 +139,30 @@ public class PricePersistenceService {
         }
     }
 
+    public Optional<String> validatePriceCurrency(String priceId, Currency currency) {
+        try {
+            return jdbcTemplate.query(
+                """
+                WITH spec AS (
+                    SELECT spec_id 
+                    FROM prices 
+                    WHERE price_id = ?
+                )
+                SELECT prices.price_id
+                FROM prices
+                JOIN spec ON spec.spec_id = prices.spec_id
+                WHERE prices.currency = ?
+                """,
+                (rs, rowNum) -> rs.getString("price_id"),
+                priceId,
+                currency.name()
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to validate currency for price %s and currency %s", priceId, currency), e);
+        }
+    }
+
+
     private Array createArrayOf(String typeName, Object[] elements) {
         try (Connection conn = jdbcTemplate.getDataSource().getConnection()) {
             return conn.createArrayOf(typeName, elements);
