@@ -126,9 +126,9 @@ public class StripeEventProcessor {
             Set<String> stripeSubscriptionIds = stripeSubscriptions.stream().map(Subscription::getId).collect(Collectors.toSet());
 
             Set<String> dbSubscriptionsToDelete = dbSubscriptions.stream()
-            .map(SubscriptionEntity::subscriptionId)
-            .filter(id -> !stripeSubscriptionIds.contains(id))
-            .collect(Collectors.toSet());
+                .map(SubscriptionEntity::subscriptionId)
+                .filter(id -> !stripeSubscriptionIds.contains(id))
+                .collect(Collectors.toSet());
 
             if (!dbSubscriptionsToDelete.isEmpty())  {
                 subscriptionPersistenceService.deleteCustomerSubscriptions(dbSubscriptionsToDelete, customerId);
@@ -137,8 +137,9 @@ public class StripeEventProcessor {
             stripeSubscriptions.stream()
                 .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
                 .forEach(subscription -> subscriptionPersistenceService.insertSubscription(subscription));
-            LOGGER.log(Level.INFO, "Executed subscription sync for customer: " + customerId); 
+                
             subscriptionPersistenceService.updateUserCurrencyFromSubscription(customerId);
+            LOGGER.log(Level.INFO, "Executed subscription sync for customer: " + customerId); 
 
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);

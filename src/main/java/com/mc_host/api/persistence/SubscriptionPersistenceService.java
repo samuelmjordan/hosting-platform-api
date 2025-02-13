@@ -118,13 +118,13 @@ public class SubscriptionPersistenceService {
         try {
             return jdbcTemplate.update(
                 """
-                UPDATE users u
+                UPDATE users
                 SET currency = COALESCE(
-                    (SELECT p.currency
-                    FROM subscriptions s
-                    JOIN prices p ON s.price_id = p.price_id
-                    WHERE s.customer_id = ?
-                    AND s.status = 'active'
+                    (SELECT prices.currency
+                    FROM subscriptions
+                    JOIN prices ON subscriptions.price_id = prices.price_id
+                    WHERE subscriptions.customer_id = ?
+                    AND subscriptions.status = 'active'
                     LIMIT 1),
                     'XXX'
                 )
