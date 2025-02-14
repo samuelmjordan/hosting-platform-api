@@ -31,7 +31,7 @@ public class SubscriptionPersistenceService {
                     INSERT INTO subscription_ (
                         subscription_id, 
                         customer_id, 
-                        status, 
+                        status_, 
                         price_id, 
                         current_period_end, 
                         current_period_start, 
@@ -40,7 +40,7 @@ public class SubscriptionPersistenceService {
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (subscription_id) DO UPDATE SET
                         customer_id = EXCLUDED.customer_id,
-                        status = EXCLUDED.status,
+                        status_ = EXCLUDED.status_,
                         price_id = EXCLUDED.price_id,
                         current_period_end = EXCLUDED.current_period_end,
                         current_period_start = EXCLUDED.current_period_start,
@@ -87,19 +87,19 @@ public class SubscriptionPersistenceService {
                 SELECT 
                     subscription_id,
                     customer_id,
-                    status,
+                    status_,
                     price_id,
                     current_period_end,
                     current_period_start,
                     cancel_at_period_end
                 FROM subscription_
                 WHERE customer_id = ?
-                ORDER BY status, current_period_start DESC
+                ORDER BY status_, current_period_start DESC
                 """,
                 (rs, rowNum) -> new SubscriptionEntity(
                     rs.getString("subscription_id"),
                     rs.getString("customer_id"),
-                    rs.getString("status"),
+                    rs.getString("status_"),
                     rs.getString("price_id"),
                     rs.getTimestamp("current_period_end", 
                         java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC))).toInstant(),
@@ -124,7 +124,7 @@ public class SubscriptionPersistenceService {
                     FROM subscription_
                     JOIN price_ ON subscription_.price_id = price_.price_id
                     WHERE subscription_.customer_id = ?
-                    AND subscription_.status = 'active'
+                    AND subscription_.status_ = 'active'
                     LIMIT 1),
                     'XXX'
                 )
