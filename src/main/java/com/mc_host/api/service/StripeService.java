@@ -22,7 +22,7 @@ import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.UserEntity;
 import com.mc_host.api.model.request.CheckoutRequest;
-import com.mc_host.api.persistence.PricePersistenceService;
+import com.mc_host.api.persistence.JavaServerSpecPersistenceService;
 import com.mc_host.api.persistence.UserPersistenceService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
@@ -41,7 +41,7 @@ public class StripeService implements StripeResource{
     
     private final StripeEventProcessor stripeEventProcessor;
     private final UserPersistenceService userPersistenceService;
-    private final PricePersistenceService pricePersistenceService;
+    private final JavaServerSpecPersistenceService javaServerSpecPersistenceService;
     private final DataFetchingService dataFetchingService;
 
     public StripeService(
@@ -49,14 +49,14 @@ public class StripeService implements StripeResource{
         ClerkConfiguration clerkConfiguration,
         StripeEventProcessor eventProcessor,
         UserPersistenceService userPersistenceService,
-        PricePersistenceService pricePersistenceService,
+        JavaServerSpecPersistenceService javaServerSpecPersistenceService,
         DataFetchingService dataFetchingService
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.clerkConfiguration = clerkConfiguration;
         this.stripeEventProcessor = eventProcessor;
         this.userPersistenceService = userPersistenceService;
-        this.pricePersistenceService = pricePersistenceService;
+        this.javaServerSpecPersistenceService = javaServerSpecPersistenceService;
         this.dataFetchingService  = dataFetchingService;
     }
 
@@ -131,7 +131,7 @@ public class StripeService implements StripeResource{
         if (currency.equals(Currency.XXX)) {
             return priceId;
         }
-        return pricePersistenceService.validatePriceCurrency(priceId, currency)
+        return javaServerSpecPersistenceService.validatePriceCurrency(priceId, currency)
             .orElseThrow(() -> new IllegalStateException(String.format("No alternative for priceId %s in %s", priceId, currency)));
     }
 

@@ -198,7 +198,6 @@ public class StripeEventProcessor {
         return new PriceEntity(
             price.getId(), 
             productId, 
-            price.getMetadata().get("spec_id"),
             price.getActive(),
             Currency.fromCode(price.getCurrency()),
             price.getUnitAmount()
