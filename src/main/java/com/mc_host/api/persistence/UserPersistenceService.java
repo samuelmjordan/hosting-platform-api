@@ -22,7 +22,7 @@ public class UserPersistenceService {
         try {
             return jdbcTemplate.update(
                 """
-                INSERT INTO users (
+                INSERT INTO user_ (
                     clerk_id, 
                     customer_id
                 )
@@ -41,7 +41,7 @@ public class UserPersistenceService {
             return jdbcTemplate.query(
                 """
                 SELECT customer_id
-                FROM users 
+                FROM user_
                 WHERE clerk_id = ?
                 """,
                 (rs, rowNum) -> rs.getString("customer_id"),
@@ -57,8 +57,8 @@ public class UserPersistenceService {
             return jdbcTemplate.query(
                 """
                 SELECT currency
-                FROM users
-                WHERE users.clerk_id = ?
+                FROM user_
+                WHERE clerk_id = ?
                 """,
                 (rs, rowNum) -> Currency.fromCode(rs.getString("currency")),
                 userId

@@ -4,7 +4,6 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.dao.DataAccessException;
@@ -27,29 +26,26 @@ public class PricePersistenceService {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
-                    INSERT INTO prices (
+                    INSERT INTO price_ (
                         price_id, 
                         product_id,
-                        spec_id,
                         active, 
                         currency, 
                         minor_amount
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?)
                     ON CONFLICT (price_id) DO UPDATE SET
                         price_id = EXCLUDED.price_id,
                         product_id = EXCLUDED.product_id,
-                        spec_id = EXCLUDED.spec_id,
                         active = EXCLUDED.active,
                         currency = EXCLUDED.currency,
                         minor_amount = EXCLUDED.minor_amount
                     """);
                 ps.setString(1, priceEntity.priceId());
                 ps.setString(2, priceEntity.productId());
-                ps.setString(3, priceEntity.specId());
-                ps.setBoolean(4, priceEntity.active());
-                ps.setString(5, priceEntity.currency().name());
-                ps.setLong(6, priceEntity.minorAmount());
+                ps.setBoolean(3, priceEntity.active());
+                ps.setString(4, priceEntity.currency().name());
+                ps.setLong(5, priceEntity.minorAmount());
                 return ps;
             });
         } catch (DataAccessException e) {
@@ -61,7 +57,7 @@ public class PricePersistenceService {
         try {
             jdbcTemplate.update(
                 """
-                DELETE FROM prices 
+                DELETE FROM price_
                 WHERE product_id = ? 
                 AND price_id = ANY(?)
                 """,
@@ -80,18 +76,16 @@ public class PricePersistenceService {
                 SELECT 
                     price_id, 
                     product_id,
-                    spec_id,
                     active, 
                     currency, 
                     minor_amount
-                FROM prices 
+                FROM price_
                 WHERE product_id = ?
-                ORDER BY spec_id, currency DESC
+                ORDER BY active, currency, minor_amount DESC
                 """,
                 (rs, rowNum) -> new PriceEntity(
                     rs.getString("price_id"),
                     rs.getString("product_id"),
-                    rs.getString("spec_id"),
                     rs.getBoolean("active"),
                     Currency.fromCode(rs.getString("currency")),
                     rs.getLong("minor_amount")
@@ -100,65 +94,6 @@ public class PricePersistenceService {
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
-        }
-    }
-
-    public Optional<String> selectSpecIdByPriceId(String priceId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT 
-                    spec_id
-                FROM prices 
-                WHERE price_id = ?
-                """,
-                (rs, rowNum) -> rs.getString("spec_id"),
-                priceId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
-        }
-    }
-
-    public Optional<String> selectPricebySpecAndCurrency(String specId, Currency currency) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT 
-                    price_id
-                FROM prices 
-                WHERE spec_id = ?
-                AND currency = ?
-                """,
-                (rs, rowNum) -> rs.getString("price_id"),
-                specId,
-                currency.name()
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch price for specId %s and currency %s", specId, currency), e);
-        }
-    }
-
-    public Optional<String> validatePriceCurrency(String priceId, Currency currency) {
-        try {
-            return jdbcTemplate.query(
-                """
-                WITH spec AS (
-                    SELECT spec_id 
-                    FROM prices 
-                    WHERE price_id = ?
-                )
-                SELECT prices.price_id
-                FROM prices
-                JOIN spec ON spec.spec_id = prices.spec_id
-                WHERE prices.currency = ?
-                """,
-                (rs, rowNum) -> rs.getString("price_id"),
-                priceId,
-                currency.name()
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to validate currency for price %s and currency %s", priceId, currency), e);
         }
     }
 

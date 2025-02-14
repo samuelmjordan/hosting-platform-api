@@ -28,7 +28,7 @@ public class SubscriptionPersistenceService {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
-                    INSERT INTO subscriptions (
+                    INSERT INTO subscription_ (
                         subscription_id, 
                         customer_id, 
                         status, 
@@ -68,7 +68,7 @@ public class SubscriptionPersistenceService {
         try {
             jdbcTemplate.update(
                 """
-                DELETE FROM subscriptions 
+                DELETE FROM subscription_
                 WHERE customer_id = ? 
                 AND subscription_id = ANY(?)
                 """,
@@ -92,9 +92,9 @@ public class SubscriptionPersistenceService {
                     current_period_end,
                     current_period_start,
                     cancel_at_period_end
-                FROM subscriptions 
+                FROM subscription_
                 WHERE customer_id = ?
-                ORDER BY current_period_start DESC
+                ORDER BY status, current_period_start DESC
                 """,
                 (rs, rowNum) -> new SubscriptionEntity(
                     rs.getString("subscription_id"),
@@ -118,13 +118,13 @@ public class SubscriptionPersistenceService {
         try {
             return jdbcTemplate.update(
                 """
-                UPDATE users
+                UPDATE user_
                 SET currency = COALESCE(
-                    (SELECT prices.currency
-                    FROM subscriptions
-                    JOIN prices ON subscriptions.price_id = prices.price_id
-                    WHERE subscriptions.customer_id = ?
-                    AND subscriptions.status = 'active'
+                    (SELECT price_.currency
+                    FROM subscription_
+                    JOIN price_ ON subscription_.price_id = price_.price_id
+                    WHERE subscription_.customer_id = ?
+                    AND subscription_.status = 'active'
                     LIMIT 1),
                     'XXX'
                 )
