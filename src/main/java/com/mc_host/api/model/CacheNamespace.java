@@ -4,5 +4,6 @@ public enum CacheNamespace {
     API,
     SUBSCRIPTION_SYNC,
     PRODUCT_PRICES,
+    SPECIFICATION_PLANS,
     USER_CURRENCY
 }

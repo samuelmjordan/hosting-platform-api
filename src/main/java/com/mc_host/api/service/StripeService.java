@@ -127,7 +127,7 @@ public class StripeService implements StripeResource{
     }
 
     private String getPriceInCorrectCurrency(String priceId, String userId) {
-        Currency currency = dataFetchingService.getUserCurrency(userId).getBody();
+        Currency currency = dataFetchingService.getUserCurrencyInner(userId);
         if (currency.equals(Currency.XXX)) {
             return priceId;
         }

@@ -13,8 +13,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.CacheNamespace;
 import com.mc_host.api.model.Currency;
-import com.mc_host.api.model.entity.PriceEntity;
-import com.mc_host.api.persistence.PricePersistenceService;
+import com.mc_host.api.model.Plan;
+import com.mc_host.api.model.specification.SpecificationType;
+import com.mc_host.api.persistence.PlanPersistenceService;
 import com.mc_host.api.persistence.UserPersistenceService;
 
 @Service
@@ -22,65 +23,79 @@ public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final CachingService cachingService;
-    private final PricePersistenceService pricePersistenceService;
+    private final PlanPersistenceService planPersistenceService;
     private final UserPersistenceService userPersistenceService;
 
     public DataFetchingService(
         CachingService cachingService,
-        PricePersistenceService pricePersistenceService,
+        PlanPersistenceService planPersistenceService,
         UserPersistenceService userPersistenceService
     ) {
         this.cachingService = cachingService;
-        this.pricePersistenceService = pricePersistenceService;
+        this.planPersistenceService = planPersistenceService;
         this.userPersistenceService = userPersistenceService;
     }
 
     @Override
-    public ResponseEntity<List<PriceEntity>> getProductPrices(String productId) {
-        LOGGER.log(Level.INFO, String.format("Fetching prices for product %s", productId));
-    
-        try {
-            CacheNamespace cacheNamespace = CacheNamespace.PRODUCT_PRICES;
-            Optional<List<PriceEntity>> cachedPrices = cachingService.retrieve(
-                cacheNamespace, productId, new TypeReference<List<PriceEntity>>() {}
-            );
-            if (cachedPrices.isPresent() && !cachedPrices.get().isEmpty()) {
-                return ResponseEntity.ok(cachedPrices.get());
-            }
-    
-            List<PriceEntity> prices = pricePersistenceService.selectPricesByProductId(productId);
-            
-            if (prices.isEmpty()) {
-                LOGGER.log(Level.WARNING, String.format("ProductId %s had no prices. Is this the correct Id?", productId));
-                throw new RuntimeException(String.format("ProductId %s had no prices. Is this the correct Id?", productId));
-            }
-            cachingService.set(cacheNamespace, productId, prices);
-            
-            return ResponseEntity.ok(prices);
-        } catch (RuntimeException e) {
-            LOGGER.log(Level.SEVERE, String.format("Failed to fetch prices for product %s: %s", productId, e.getMessage()), e);
-            return ResponseEntity.internalServerError().build();
-        }
+    public ResponseEntity<Currency> getUserCurrency(String userId) {
+        return ResponseEntity.ok(getUserCurrencyInner(userId));
     }
 
-    @Override
-    public ResponseEntity<Currency> getUserCurrency(String userId) {
+    public Currency getUserCurrencyInner(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching currency for clerkId %s", userId));
 
         CacheNamespace cacheNamespace = CacheNamespace.USER_CURRENCY;
         Optional<Currency> cachedCurrency = cachingService.retrieve(cacheNamespace, userId, Currency.class);
         if (cachedCurrency.isPresent()) {
-            return ResponseEntity.ok(cachedCurrency.get());
+            return cachedCurrency.get();
         }
 
         Optional<Currency> currency = userPersistenceService.selectUserCurrency(userId);
         if (currency.isPresent()) {
             cachingService.set(cacheNamespace, userId, currency.get());
-            return ResponseEntity.ok(currency.get());
+            return cachedCurrency.get();
         }
 
         cachingService.set(cacheNamespace, userId, Currency.XXX, Duration.ofSeconds(60));
-        return ResponseEntity.ok(Currency.XXX);
+        return Currency.XXX;
+    }
+
+    @Override
+    public ResponseEntity<List<Plan>> getPlansForSpecType(SpecificationType specType) {
+        LOGGER.log(Level.INFO, String.format(String.format("Fetching plans for specType %s", specType)));
+        if (specType == null) {
+            return ResponseEntity.badRequest().build();
+        }
+    
+        try {
+            CacheNamespace cacheNamespace = CacheNamespace.SPECIFICATION_PLANS;
+            Optional<List<Plan>> cachedPlans = cachingService.retrieve(
+                cacheNamespace, specType.name(), new TypeReference<List<Plan>>() {}
+            );
+            if (cachedPlans.isPresent() && !cachedPlans.get().isEmpty()) {
+                return ResponseEntity.ok(cachedPlans.get());
+            }
+    
+            List<Plan> plans;
+            switch(specType)  {
+                case SpecificationType.JAVA_SERVER:
+                    plans = planPersistenceService.selectJavaServerPlans();
+                    break;
+                default:
+                    throw new IllegalStateException(String.format("specType %s is unhandled", specType));
+            }
+            
+            if (plans.isEmpty()) {
+                LOGGER.log(Level.WARNING, String.format("specType %s had no plans. Is this the correct Id?", specType));
+                throw new RuntimeException(String.format("specType %s had no plans. Is this the correct Id?", specType));
+            }
+            cachingService.set(cacheNamespace, specType.name(), plans);
+            
+            return ResponseEntity.ok(plans);
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.SEVERE, String.format("Failed to fetch plans for specType %s", specType), e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
     
 }
