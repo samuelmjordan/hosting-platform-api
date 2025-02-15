@@ -18,7 +18,8 @@ public class JavaServerSpecPersistenceService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public Optional<String> validatePriceCurrency(String priceId, Currency currency) {
+    // Fetch an equivalent price id, in a given currency
+    public Optional<String> convertPrice(String priceId, Currency currency) {
         try {
             return jdbcTemplate.query(
                 """

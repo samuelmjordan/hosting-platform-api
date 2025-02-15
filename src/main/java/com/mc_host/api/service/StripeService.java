@@ -131,7 +131,7 @@ public class StripeService implements StripeResource{
         if (currency.equals(Currency.XXX)) {
             return priceId;
         }
-        return javaServerSpecPersistenceService.validatePriceCurrency(priceId, currency)
+        return javaServerSpecPersistenceService.convertPrice(priceId, currency)
             .orElseThrow(() -> new IllegalStateException(String.format("No alternative for priceId %s in %s", priceId, currency)));
     }
 
