@@ -22,16 +22,12 @@ public class JavaServerSpecPersistenceService {
         try {
             return jdbcTemplate.query(
                 """
-                SELECT my_java_server_specification_ AS (
-                    SELECT plan_.specification_id
-                    FROM plan_
-                    WHERE plan_.price_id = ?
-                )
-                SELECT plan_.price_id
-                FROM plan_
-                JOIN price_ ON price_.price_id = plan_.price_id
-                JOIN my_java_server_specification_ ON my_java_server_specification_.specification_id = plan_.specification_id
-                WHERE price_.currency = ?
+                SELECT plan2_.price_id
+                FROM plan_ plan1_
+                JOIN plan_ plan2_ ON plan1_.specification_id = plan2_.specification_id
+                JOIN price_ ON plan2_.price_id = price_.price_id
+                WHERE plan1_.price_id = ?
+                AND price_.currency = ?
                 """,
                 (rs, rowNum) -> rs.getString("price_id"),
                 priceId,
