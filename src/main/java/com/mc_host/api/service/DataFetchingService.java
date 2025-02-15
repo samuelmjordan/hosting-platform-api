@@ -53,7 +53,7 @@ public class DataFetchingService implements DataFetchingResource  {
         Optional<Currency> currency = userPersistenceService.selectUserCurrency(userId);
         if (currency.isPresent()) {
             cachingService.set(cacheNamespace, userId, currency.get());
-            return cachedCurrency.get();
+            return currency.get();
         }
 
         cachingService.set(cacheNamespace, userId, Currency.XXX, Duration.ofSeconds(60));
