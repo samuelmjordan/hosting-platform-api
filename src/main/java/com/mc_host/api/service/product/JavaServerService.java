@@ -53,11 +53,12 @@ public class JavaServerService implements ProductService  {
     public void create(SubscriptionEntity subscription) {
         LOGGER.log(Level.INFO, String.format("Creating java server from subscription %s", subscription.subscriptionId()));
 
+        JavaServer javaServer = null;
         try {        
             String planId = planPersistenceService.selectPlanIdFromPriceId(subscription.priceId())
                 .orElseThrow(() -> new IllegalStateException("No spec associated with price " + subscription.priceId()));
 
-            JavaServer javaServer = JavaServer.builder()
+            javaServer = JavaServer.builder()
                 .serverId(UUID.randomUUID().toString())
                 .subscriptionId(subscription.subscriptionId())
                 .planId(planId)
@@ -79,7 +80,18 @@ public class JavaServerService implements ProductService  {
 
             LOGGER.log(Level.INFO, String.format("Java server %s %s", javaServer.getServerId(), javaServer.getProvisioningState()));
         } catch(Exception e) {
-            // recovery logic
+            if (javaServer == null) {
+                throw e;
+            }
+
+            javaServer.incrementRetryCount();
+            if (javaServer.getRetryCount() >= 3) {
+                LOGGER.log(Level.SEVERE, String.format("Java server %s has attempted maximum retries. CRITICAL FAILURE. %s", javaServer.getServerId(), javaServer), e);
+                throw e;
+            }
+
+            LOGGER.log(Level.SEVERE, String.format("Java server %s has failed. Attempt: %s", javaServer.getServerId(), javaServer.getRetryCount()), e);
+            javaServerPersistenceService.updateJavaServerRetryCount(javaServer.getServerId(), javaServer.getRetryCount());
             throw e;
         }
     }

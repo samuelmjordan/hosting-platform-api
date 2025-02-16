@@ -26,7 +26,7 @@ public class JavaServer implements ProvisionableServer {
     private String hetznerId;
     private String pterodactylId;
     @Builder.Default private ProvisioningState provisioningState = ProvisioningState.NEW;
-    @Builder.Default private ProvisioningStatus provisioningStatus = ProvisioningStatus.OK;
+    @Builder.Default private Integer retryCount = 0;
     
     public JavaServer(
         String serverId,
@@ -35,7 +35,7 @@ public class JavaServer implements ProvisionableServer {
         String hetznerId,
         String pterodactylId,
         ProvisioningState provisioningState,
-        ProvisioningStatus provisioningStatus
+        Integer retryCount
     ) {
         this.serverId = serverId;
         this.hetznerId = hetznerId;
@@ -43,7 +43,7 @@ public class JavaServer implements ProvisionableServer {
         this.subscriptionId = subscriptionId;
         this.planId = planId;
         this.provisioningState = provisioningState;
-        this.provisioningStatus = provisioningStatus;
+        this.retryCount = retryCount;
 
         if (serverId == null || subscriptionId == null || planId == null) {
             LOGGER.log(Level.SEVERE, String.format("Invalid java server object %s", this.toString()));

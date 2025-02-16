@@ -13,7 +13,7 @@ CREATE TABLE java_server_ (
 
     -- Server states
     provisioning_state TEXT NOT NULL,
-    provisioning_status TEXT NOT NULL,
+    retry_count SMALLINT NOT NULL,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
