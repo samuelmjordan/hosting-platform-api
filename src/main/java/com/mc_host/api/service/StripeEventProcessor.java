@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.persistence.PricePersistenceService;
 import com.mc_host.api.persistence.SubscriptionPersistenceService;
+import com.mc_host.api.service.product.ProductServiceSupplier;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Price;
@@ -37,17 +39,20 @@ public class StripeEventProcessor {
     private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
 
     private final StripeConfiguration stripeConfiguration;
+    private final ProductServiceSupplier productServiceSupplier;
     private final CachingService cachingService;
     private final SubscriptionPersistenceService subscriptionPersistenceService;
     private final PricePersistenceService pricePersistenceService;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
+        ProductServiceSupplier productServiceSupplier,
         CachingService cachingService,
         SubscriptionPersistenceService subscriptionPersistenceService,
         PricePersistenceService pricePersistenceService
     ) {
         this.stripeConfiguration = stripeConfiguration;
+        this.productServiceSupplier = productServiceSupplier;
         this.cachingService = cachingService;
         this.subscriptionPersistenceService = subscriptionPersistenceService;
         this.pricePersistenceService = pricePersistenceService;
@@ -136,11 +141,17 @@ public class StripeEventProcessor {
 
             stripeSubscriptions.stream()
                 .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
-                .forEach(subscription -> subscriptionPersistenceService.insertSubscription(subscription));
+                .forEach(subscription -> {
+                    try {
+                        subscriptionPersistenceService.insertSubscription(subscription);
+                        productServiceSupplier.supplyAndHandle(subscription);
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Sync failed for sunscription id " + subscription.subscriptionId(), e);
+                    }
+                });
                 
             subscriptionPersistenceService.updateUserCurrencyFromSubscription(customerId);
-            LOGGER.log(Level.INFO, "Executed subscription sync for customer: " + customerId); 
-
+            LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
             throw new RuntimeException("Failed to sync subscription data", e);

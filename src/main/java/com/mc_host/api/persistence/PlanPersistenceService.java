@@ -1,6 +1,7 @@
 package com.mc_host.api.persistence;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -59,7 +60,23 @@ public class PlanPersistenceService {
                 )
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch java server plans", e);
+        }
+    }
+
+    public Optional<String> selectSpecificationId(String priceId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT specification_id
+                FROM plan_
+                WHERE price_id = ?
+                """,
+                (rs, rowNum) -> rs.getString("specification_id"),
+                priceId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch spec id for price id: " + priceId, e);
         }
     }
     

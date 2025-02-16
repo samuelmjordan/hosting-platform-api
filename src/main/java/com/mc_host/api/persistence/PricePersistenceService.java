@@ -4,6 +4,7 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.dao.DataAccessException;
@@ -92,6 +93,22 @@ public class PricePersistenceService {
                 ),
                 productId
             );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<String> selectProductId(String priceId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT product_id
+                FROM price_
+                WHERE price_id = ?
+                """,
+                (rs, rowNum) -> rs.getString("product_id"),
+                priceId
+            ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
         }
