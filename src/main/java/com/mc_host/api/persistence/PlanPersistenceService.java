@@ -79,5 +79,21 @@ public class PlanPersistenceService {
             throw new RuntimeException("Failed to fetch spec id for price id: " + priceId, e);
         }
     }
+
+    public Optional<String> selectPlanIdFromPriceId(String priceId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT plan_id
+                FROM plan_
+                WHERE price_id = ?
+                """,
+                (rs, rowNum) -> rs.getString("plan_id"),
+                priceId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch plan id for price id: " + priceId, e);
+        }
+    }
     
 }
