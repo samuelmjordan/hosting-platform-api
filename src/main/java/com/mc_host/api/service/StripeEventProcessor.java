@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -24,6 +23,7 @@ import com.mc_host.api.model.CacheNamespace;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.model.entity.SubscriptionEntity;
+import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PricePersistenceService;
 import com.mc_host.api.persistence.SubscriptionPersistenceService;
 import com.mc_host.api.service.product.ProductServiceSupplier;
@@ -193,7 +193,7 @@ public class StripeEventProcessor {
             List<PriceEntity> stripePriceEntities = stripePrices.stream()
                 .map(price -> stripePriceToEntity(price, productId))
                 .toList();
-            cachingService.set(CacheNamespace.PRODUCT_PRICES, productId, stripePriceEntities);
+            cachingService.evict(CacheNamespace.SPECIFICATION_PLANS, SpecificationType.fromProductId(productId).name());
     
             stripePriceEntities.stream()
                 .forEach(price-> pricePersistenceService.insertPrice(price));
