@@ -10,8 +10,6 @@ import com.mc_host.api.configuration.HetznerConfiguration;
 import com.mc_host.api.model.hetzner.HetznerServerResponse;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
