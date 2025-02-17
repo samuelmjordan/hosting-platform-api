@@ -43,6 +43,39 @@ public class JavaServerPersistenceService {
         }
     }
 
+    public int updateJavaServer(JavaServer javaServer) {
+        try {
+            int rowsAffected = jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE java_server_
+                    SET subscription_id = ?,
+                        plan_id = ?,
+                        hetzner_id = ?,
+                        pterodactyl_id = ?,
+                        provisioning_state = ?,
+                        retry_count = ?
+                    WHERE server_id = ?
+                    """);
+                ps.setString(1, javaServer.getSubscriptionId());
+                ps.setString(2, javaServer.getPlanId());
+                ps.setString(3, javaServer.getPlanId());
+                ps.setString(4, javaServer.getPlanId());
+                ps.setString(5, javaServer.getProvisioningState().name());
+                ps.setInt(6, javaServer.getRetryCount());
+                ps.setString(7, javaServer.getServerId());
+                return ps;
+            });
+            
+            if (rowsAffected == 0) {
+                throw new RuntimeException("No existing java server found with id: " + javaServer.getServerId());
+            }
+            
+            return rowsAffected;
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update java server: " + e.getMessage(), e);
+        }
+    }
+
     public Optional<JavaServer> selectJavaServerFromSubscription(String subscriptionId) {
         try {
             return jdbcTemplate.query(
@@ -53,7 +86,7 @@ public class JavaServerPersistenceService {
                     pterodactyl_id,
                     subscription_id,
                     plan_id,
-                    provisioning_state
+                    provisioning_state,
                     retry_count
                 FROM java_server_
                 WHERE subscription_id = ?
@@ -70,38 +103,6 @@ public class JavaServerPersistenceService {
             ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException(String.format("Failed to fetch java server for subscription id %s", subscriptionId), e);
-        }
-    }
-
-    public int updateJavaServerProvisioningState(String serverId, ProvisioningState provisioningState) {
-        try {
-            return jdbcTemplate.update(
-                """
-                UPDATE java_server_
-                SET provisioning_state = ?
-                WHERE server_id = ?
-                """,
-                provisioningState.name(),
-                serverId
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to update java server provisioning status %s", serverId), e);
-        }
-    }
-
-    public int updateJavaServerRetryCount(String serverId, Integer retryCount) {
-        try {
-            return jdbcTemplate.update(
-                """
-                UPDATE java_server_
-                SET retry_count = ?
-                WHERE server_id = ?
-                """,
-                retryCount,
-                serverId
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to update java server provisioning status %s", serverId), e);
         }
     }
 }

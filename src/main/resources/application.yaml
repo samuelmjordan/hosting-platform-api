@@ -25,6 +25,10 @@ cors:
     - https://mc-host-web-production.up.railway.app
     - http://localhost:3000
 
+hetzner:
+  api-base: "https://api.hetzner.cloud/v1"
+  api-token: ${HETZNER_SECRET_KEY}
+
 clerk:
   key: ${CLERK_SECRET_KEY}
 

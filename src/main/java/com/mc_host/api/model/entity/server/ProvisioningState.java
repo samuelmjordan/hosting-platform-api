@@ -4,6 +4,7 @@ import java.util.Set;
 
 public enum ProvisioningState {
     NEW,
+    METAL_INITIALISING,
     METAL_PROVISIONED,
     NODE_PROVISIONED,
     

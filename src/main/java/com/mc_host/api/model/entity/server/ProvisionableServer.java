@@ -16,7 +16,7 @@ public interface ProvisionableServer {
         setRetryCount(getRetryCount() + 1);
     }
 
-    default void resetIncrementCount() {
+    default void resetRetryCount() {
         setRetryCount(0);
     }
 }
