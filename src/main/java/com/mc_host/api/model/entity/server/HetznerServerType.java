@@ -1,0 +1,10 @@
+package com.mc_host.api.model.entity.server;
+
+public enum HetznerServerType {
+    CAX11;
+
+    @Override
+    public String toString() {
+        return this.name().toLowerCase();
+    }
+}

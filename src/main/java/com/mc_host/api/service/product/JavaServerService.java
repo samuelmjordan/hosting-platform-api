@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.HetznerClient;
 import com.mc_host.api.model.entity.SubscriptionEntity;
+import com.mc_host.api.model.entity.server.HetznerRegion;
+import com.mc_host.api.model.entity.server.HetznerServerType;
 import com.mc_host.api.model.entity.server.JavaServer;
 import com.mc_host.api.model.entity.server.ProvisioningState;
 import com.mc_host.api.model.specification.SpecificationType;
@@ -72,7 +74,12 @@ public class JavaServerService implements ProductService {
 
             // Start metal
             javaServer.getProvisioningState().validateTransition(ProvisioningState.METAL_PROVISIONED);
-            String hetznerId = String.valueOf(hetznerClient.createServer(javaServer.getServerId(), "cax11", "nbg1", "ubuntu-24.04").server.id);
+            String hetznerId = String.valueOf(hetznerClient.createServer(
+                javaServer.getServerId(),
+                HetznerServerType.CAX11.toString(),
+                HetznerRegion.NBG1.toString(),
+                "ubuntu-24.04"
+            ).server.id);
             javaServer.setHetznerId(hetznerId);
             if (!hetznerClient.waitForServerStatus(javaServer.getHetznerId(), "running")) {
                 hetznerClient.deleteServer(Long.parseLong(javaServer.getHetznerId()));
