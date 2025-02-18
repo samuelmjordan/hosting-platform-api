@@ -8,11 +8,13 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.HetznerClient;
+import com.mc_host.api.client.SshClient;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.model.entity.server.HetznerRegion;
 import com.mc_host.api.model.entity.server.HetznerServerType;
 import com.mc_host.api.model.entity.server.JavaServer;
 import com.mc_host.api.model.entity.server.ProvisioningState;
+import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.JavaServerPersistenceService;
 import com.mc_host.api.persistence.PlanPersistenceService;
@@ -23,16 +25,19 @@ public class JavaServerService implements ProductService {
 
     private final JavaServerPersistenceService javaServerPersistenceService;
     private final PlanPersistenceService planPersistenceService;
+    private final SshClient sshClient;
     private final HetznerClient hetznerClient;
 
     JavaServerService(
         JavaServerPersistenceService javaServerPersistenceService,
         PlanPersistenceService planPersistenceService,
+        SshClient sshClient,
         HetznerClient hetznerClient
     ) {
         this.javaServerPersistenceService = javaServerPersistenceService;
         this.planPersistenceService = planPersistenceService;
         this.hetznerClient = hetznerClient;
+        this.sshClient = sshClient;
     }
 
     @Override
@@ -63,24 +68,21 @@ public class JavaServerService implements ProductService {
         try {        
             String planId = planPersistenceService.selectPlanIdFromPriceId(subscription.priceId())
                 .orElseThrow(() -> new IllegalStateException("No spec associated with price " + subscription.priceId()));
-
             javaServer = JavaServer.builder()
                 .serverId(UUID.randomUUID().toString())
                 .subscriptionId(subscription.subscriptionId())
                 .planId(planId)
                 .build();
-
             javaServerPersistenceService.insertNewJavaServer(javaServer);
 
-            // Start metal
             javaServer.getProvisioningState().validateTransition(ProvisioningState.METAL_PROVISIONED);
-            String hetznerId = String.valueOf(hetznerClient.createServer(
+            Server hetznerServer = hetznerClient.createServer(
                 javaServer.getServerId(),
                 HetznerServerType.CAX11.toString(),
                 HetznerRegion.NBG1.toString(),
                 "ubuntu-24.04"
-            ).server.id);
-            javaServer.setHetznerId(hetznerId);
+            ).server;
+            javaServer.setHetznerId(String.valueOf(hetznerServer.id));
             if (!hetznerClient.waitForServerStatus(javaServer.getHetznerId(), "running")) {
                 hetznerClient.deleteServer(Long.parseLong(javaServer.getHetznerId()));
                 javaServer.setHetznerId(null);
@@ -91,9 +93,8 @@ public class JavaServerService implements ProductService {
             javaServer.transitionState(ProvisioningState.METAL_PROVISIONED);
             javaServerPersistenceService.updateJavaServer(javaServer);
 
-            // Start pterodactyl server
             javaServer.getProvisioningState().validateTransition(ProvisioningState.NODE_PROVISIONED);
-            //
+            sshClient.setupWings(hetznerServer.public_net.ipv4.ip);
             javaServer.transitionState(ProvisioningState.NODE_PROVISIONED);
             javaServerPersistenceService.updateJavaServer(javaServer);
 

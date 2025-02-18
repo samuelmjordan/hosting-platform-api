@@ -17,7 +17,7 @@ public class AsyncConfiguration {
         executor.setQueueCapacity(5000);
         executor.setThreadNamePrefix("WebhookAsync-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        executor.setKeepAliveSeconds(60);
+        executor.setKeepAliveSeconds(120);
         executor.setAllowCoreThreadTimeOut(true);
         executor.initialize();
         return executor;

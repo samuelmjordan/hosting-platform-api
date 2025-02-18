@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerConfiguration;
 import com.mc_host.api.model.hetzner.HetznerServerResponse;
 
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,7 +42,8 @@ public class HetznerClient {
             "name", name,
             "server_type", serverType,
             "location", location,
-            "image", image
+            "image", image,
+            "ssh_keys", List.of("dev")
         );
 
         var response = sendRequest("POST", "/servers", requestBody);

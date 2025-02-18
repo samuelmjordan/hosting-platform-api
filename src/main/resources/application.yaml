@@ -28,6 +28,7 @@ cors:
 hetzner:
   api-base: "https://api.hetzner.cloud/v1"
   api-token: ${HETZNER_SECRET_KEY}
+  ssh-key: ${SSH_KEY}
 
 clerk:
   key: ${CLERK_SECRET_KEY}
