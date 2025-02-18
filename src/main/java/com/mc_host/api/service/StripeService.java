@@ -3,6 +3,7 @@ package com.mc_host.api.service;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,11 +39,11 @@ public class StripeService implements StripeResource{
     
     private final StripeConfiguration stripeConfiguration;
     private final ClerkConfiguration clerkConfiguration;
-    
     private final StripeEventProcessor stripeEventProcessor;
     private final UserPersistenceService userPersistenceService;
     private final JavaServerSpecPersistenceService javaServerSpecPersistenceService;
     private final DataFetchingService dataFetchingService;
+    private final Executor virtualThreadExecutor;
 
     public StripeService(
         StripeConfiguration stripeConfiguration,
@@ -50,7 +51,8 @@ public class StripeService implements StripeResource{
         StripeEventProcessor eventProcessor,
         UserPersistenceService userPersistenceService,
         JavaServerSpecPersistenceService javaServerSpecPersistenceService,
-        DataFetchingService dataFetchingService
+        DataFetchingService dataFetchingService,
+        Executor virtualThreadExecutor
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.clerkConfiguration = clerkConfiguration;
@@ -58,6 +60,7 @@ public class StripeService implements StripeResource{
         this.userPersistenceService = userPersistenceService;
         this.javaServerSpecPersistenceService = javaServerSpecPersistenceService;
         this.dataFetchingService  = dataFetchingService;
+        this.virtualThreadExecutor = virtualThreadExecutor;
     }
 
     @Override
@@ -70,7 +73,7 @@ public class StripeService implements StripeResource{
                 event.getType(),
                 event.getId()
             ));
-            stripeEventProcessor.processEvent(event);
+            virtualThreadExecutor.execute(() -> stripeEventProcessor.processEvent(event));
             return ResponseEntity.ok().body("Webhook Received");
         } catch (SignatureVerificationException e) {
             LOGGER.log(Level.SEVERE, "Invalid signature", e);

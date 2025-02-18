@@ -7,12 +7,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,23 +44,28 @@ public class StripeEventProcessor {
     private final CachingService cachingService;
     private final SubscriptionPersistenceService subscriptionPersistenceService;
     private final PricePersistenceService pricePersistenceService;
+    private final Executor virtualThreadExecutor;
+    private final ScheduledExecutorService delayedTaskScheduler;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
         ProductServiceSupplier productServiceSupplier,
         CachingService cachingService,
         SubscriptionPersistenceService subscriptionPersistenceService,
-        PricePersistenceService pricePersistenceService
+        PricePersistenceService pricePersistenceService,
+        Executor virtualThreadExecutor,
+        ScheduledExecutorService delayedTaskScheduler
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.productServiceSupplier = productServiceSupplier;
         this.cachingService = cachingService;
         this.subscriptionPersistenceService = subscriptionPersistenceService;
         this.pricePersistenceService = pricePersistenceService;
+        this.virtualThreadExecutor = virtualThreadExecutor;
+        this. delayedTaskScheduler = delayedTaskScheduler;
     }
     
-    @Async("webhookTaskExecutor")
-    public CompletableFuture<Void> processEvent(Event event) {
+    public void processEvent(Event event) {
         try {
             if (!stripeConfiguration.isAcceptableEvent().test(event.getType())) {
                 LOGGER.log(Level.WARNING, String.format(
@@ -68,15 +74,14 @@ public class StripeEventProcessor {
                     event.getId(),
                     event.getType()
                 ));
-                return CompletableFuture.completedFuture(null);
+                return;
             }
 
             if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
                 String customerId = extractValueFromEvent(event, "customer")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
                 if (cachingService.flagIfAbsent(CacheNamespace.SUBSCRIPTION_SYNC, customerId, Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
-                    CompletableFuture.delayedExecutor(stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS)
-                        .execute(() -> syncSubscriptionData(customerId));   
+                    delayedTaskScheduler.schedule(() -> syncSubscriptionData(customerId), stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS); 
                 }
             }
 
@@ -92,13 +97,12 @@ public class StripeEventProcessor {
                 event.getId(),
                 event.getType()
             ));
-            return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, String.format(
                 "Error processing event %s", 
                 event.getId()), 
                 e);
-            return CompletableFuture.failedFuture(e);
+            throw e;
         }
     }
 
@@ -139,16 +143,19 @@ public class StripeEventProcessor {
                 subscriptionPersistenceService.deleteCustomerSubscriptions(dbSubscriptionsToDelete, customerId);
             }
 
-            stripeSubscriptions.stream()
+            List<CompletableFuture<Void>> futures = stripeSubscriptions.stream()
                 .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
-                .forEach(subscription -> {
+                .map(subscription -> CompletableFuture.runAsync(() -> {
                     try {
                         subscriptionPersistenceService.insertSubscription(subscription);
                         productServiceSupplier.supplyAndHandle(subscription);
                     } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Sync failed for sunscription id " + subscription.subscriptionId(), e);
+                        LOGGER.log(Level.SEVERE, "Sync failed for subscription id " + subscription.subscriptionId(), e);
+                        throw e;
                     }
-                });
+                }, virtualThreadExecutor))
+                .toList();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
                 
             subscriptionPersistenceService.updateUserCurrencyFromSubscription(customerId);
             LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
