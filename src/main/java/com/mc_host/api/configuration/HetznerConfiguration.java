@@ -18,7 +18,8 @@ import lombok.Data;
 public class HetznerConfiguration {
     private String apiBase;
     private String apiToken;
-    private String sshKey;
+    private String sshPrivateKey;
+    private String sshPublicKey;
 
     @Bean
     public HttpClient httpClient() {

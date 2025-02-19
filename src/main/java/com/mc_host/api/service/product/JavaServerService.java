@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.HetznerClient;
-import com.mc_host.api.client.SshClient;
+import com.mc_host.api.client.ServerConfigService;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.model.entity.server.HetznerRegion;
 import com.mc_host.api.model.entity.server.HetznerServerType;
@@ -25,13 +25,13 @@ public class JavaServerService implements ProductService {
 
     private final JavaServerPersistenceService javaServerPersistenceService;
     private final PlanPersistenceService planPersistenceService;
-    private final SshClient sshClient;
+    private final ServerConfigService sshClient;
     private final HetznerClient hetznerClient;
 
     JavaServerService(
         JavaServerPersistenceService javaServerPersistenceService,
         PlanPersistenceService planPersistenceService,
-        SshClient sshClient,
+        ServerConfigService sshClient,
         HetznerClient hetznerClient
     ) {
         this.javaServerPersistenceService = javaServerPersistenceService;
