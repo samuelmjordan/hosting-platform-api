@@ -5,12 +5,10 @@ import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,21 +40,13 @@ public class ServerConfigService {
                 .replace("\\n", "\n")
                 .replace("\r", "")
                 .trim();
-
-            LOGGER.log(Level.INFO, "Key length: " + privateKey.length());
             
             Path keyPath = Files.createTempFile("ssh-key", null);
             Files.write(keyPath, privateKey.getBytes(), StandardOpenOption.WRITE);
 
             ssh.addHostKeyVerifier(new PromiscuousVerifier());
             ssh.loadKeys(keyPath.toString());
-            
-            LOGGER.log(Level.INFO, "Attempting connection...");
             ssh.connect(host, PORT);
-            
-            LOGGER.log(Level.INFO, "Connected. Available auth methods: " + 
-                ssh.getUserAuth().getAllowedMethods());
-                
             ssh.authPublickey(USERNAME, keyPath.toString());
             
             if (!ssh.isAuthenticated()) {
@@ -67,13 +57,11 @@ public class ServerConfigService {
 
             String[] commands = {
                 "curl -sSL https://get.docker.com/ | CHANNEL=stable bash",
-                "apt install -y tar unzip make gcc g++ python",
+                "apt install -y tar unzip make gcc g++ python3",
                 "mkdir -p /etc/pterodactyl",
                 "cd /etc/pterodactyl && curl -L -o wings \"https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_$([[ \"$(uname -m)\" == \"x86_64\" ]] && echo \"amd64\" || echo \"arm64\")\"",
                 "chmod u+x /etc/pterodactyl/wings",
-                "echo '[Unit]\nDescription=Pterodactyl Wings Daemon\nAfter=docker.service\nRequires=docker.service\n\n[Service]\nUser=root\nWorkingDirectory=/etc/pterodactyl\nLimitNOFILE=4096\nPIDFile=/var/run/wings/daemon.pid\nExecStart=/etc/pterodactyl/wings\nRestart=on-failure\nStartLimitInterval=180\nStartLimitBurst=30\n\n[Install]\nWantedBy=multi-user.target' > /etc/systemd/system/wings.service",
-                "systemctl enable wings",
-                "systemctl start wings"
+                "echo '[Unit]\nDescription=Pterodactyl Wings Daemon\nAfter=docker.service\nRequires=docker.service\n\n[Service]\nUser=root\nWorkingDirectory=/etc/pterodactyl\nLimitNOFILE=4096\nPIDFile=/var/run/wings/daemon.pid\nExecStart=/etc/pterodactyl/wings\nRestart=on-failure\nStartLimitInterval=180\nStartLimitBurst=30\n\n[Install]\nWantedBy=multi-user.target' > /etc/systemd/system/wings.service"
             };
 
             for (String command : commands) {
@@ -85,9 +73,6 @@ public class ServerConfigService {
                     
                     cmd.join(TIMEOUT, TimeUnit.SECONDS);
                     
-                    LOGGER.log(Level.INFO, String.format("Command: %s\nOutput: %s\nError: %s", 
-                        command, output, error));
-                    
                     if (cmd.getExitStatus() != 0) {
                         throw new RuntimeException(String.format(
                             "Command failed with status %d: %s\nOutput: %s\nError: %s",
@@ -96,15 +81,17 @@ public class ServerConfigService {
                     }
                 }
             }
-            
-            // Verify wings is running
+
             try (Session session = ssh.startSession()) {
-                Command cmd = session.exec("systemctl is-active wings");
+                Command cmd = session.exec("systemctl list-unit-files | grep wings.service");
+                String output = new String(cmd.getInputStream().readAllBytes());
                 cmd.join(10, TimeUnit.SECONDS);
                 
-                if (cmd.getExitStatus() != 0) {
-                    throw new RuntimeException("Wings service failed to start");
+                if (!output.contains("wings.service")) {
+                    throw new RuntimeException("wings service was not properly installed");
                 }
+                LOGGER.log(Level.INFO, "wings system service successfully configured");
+
             }
 
         } catch (Exception e) {
