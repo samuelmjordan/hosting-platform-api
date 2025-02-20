@@ -9,9 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
+import com.mc_host.api.model.entity.node.pterodactyl_request.PterodactylCreateNodeRequest;
+import com.mc_host.api.model.entity.node.pterodactyl_response.PterodactylNodeResponse;
+import org.springframework.web.bind.annotation.PostMapping;
 
+@Service
 public class PterodactylClient {
     private static final Logger LOGGER = Logger.getLogger(PterodactylClient.class.getName());
 
@@ -31,6 +37,7 @@ public class PterodactylClient {
         this.httpClient = httpClient;
     }
 
+    // SERVERS
     public ServerResponse getServer(String serverId) throws Exception {
         String response = sendRequest("GET", "/api/application/servers/" + serverId);
         return objectMapper.readValue(response, ServerResponse.class);
@@ -58,6 +65,37 @@ public class PterodactylClient {
         sendRequest("POST", "/api/client/servers/" + serverId + "/power", action);
     }
 
+    // NODES
+    @PostMapping("/api")
+    public PterodactylNodeResponse createNode(PterodactylCreateNodeRequest nodeDetails) throws Exception {
+        String response = sendRequest("POST", "/api/application/nodes", nodeDetails);
+        return objectMapper.readValue(response, PterodactylNodeResponse.class);
+    }
+    
+    public PterodactylNodeResponse getNode(String nodeId) throws Exception {
+        String response = sendRequest("GET", "/api/application/nodes/" + nodeId);
+        return objectMapper.readValue(response, PterodactylNodeResponse.class);
+    }
+    
+    public List<PterodactylNodeResponse> getAllNodes() throws Exception {
+        String response = sendRequest("GET", "/api/application/nodes");
+        PaginatedResponse<PterodactylNodeResponse> paginatedResponse = objectMapper.readValue(response,
+            objectMapper.getTypeFactory().constructParametricType(
+                PaginatedResponse.class, PterodactylNodeResponse.class));
+        return paginatedResponse.data;
+    }
+    
+    public void deleteNode(String nodeId) throws Exception {
+        sendRequest("DELETE", "/api/application/nodes/" + nodeId);
+    }
+    
+    public PterodactylNodeResponse updateNode(String nodeId, PterodactylCreateNodeRequest nodeDetails) throws Exception {
+        String response = sendRequest("PATCH", "/api/application/nodes/" + nodeId, nodeDetails);
+        return objectMapper.readValue(response, PterodactylNodeResponse.class);
+    }
+
+
+    // REQUESTS
     private String sendRequest(String method, String path) throws Exception {
         return sendRequest(method, path, null);
     }
@@ -67,6 +105,7 @@ public class PterodactylClient {
             .uri(URI.create(pterodactylConfiguration.getApiBase() + path))
             .header("Authorization", "Bearer " + pterodactylConfiguration.getApiToken())
             .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
             .timeout(REQUEST_TIMEOUT);
 
         var request = (switch (method) {

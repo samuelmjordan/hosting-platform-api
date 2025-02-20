@@ -16,6 +16,7 @@ public class ApiConfiguration {
     public HttpClient httpClient() {
         return HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
+            .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
     }
 

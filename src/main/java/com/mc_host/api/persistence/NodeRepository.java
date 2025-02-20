@@ -20,19 +20,11 @@ public class NodeRepository {
             return jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
                     INSERT INTO node_ (
-                        node_id, 
-                        pterodactyl_node_id,
-                        hetzner_node_id,
-                        ipv4,
-                        hetzner_region
+                        node_id
                     )
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (?)
                     """);
                 ps.setString(1, node.getNodeId());
-                ps.setString(2, node.getPterodactylNodeId());
-                ps.setLong(3, node.getHetznerNodeId());
-                ps.setString(4, node.getIpv4());
-                ps.setString(5, node.getHetznerRegion().toString());
                 return ps;
             });
         } catch (DataAccessException e) {
@@ -50,7 +42,6 @@ public class NodeRepository {
                         ipv4 = ?,
                         hetzner_region = ?
                     WHERE node_id = ?
-                    )
                     """);
                 ps.setString(1, node.getPterodactylNodeId());
                 ps.setLong(2, node.getHetznerNodeId());

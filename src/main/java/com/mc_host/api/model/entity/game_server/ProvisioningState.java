@@ -16,7 +16,7 @@ public enum ProvisioningState {
 
     static {
         NEW.nextPossibleStates = validTransitions(NODE_PROVISIONED);
-        NODE_PROVISIONED.nextPossibleStates = validTransitions(NODE_PROVISIONED);
+        NODE_PROVISIONED.nextPossibleStates = validTransitions(NODE_CONFIGURED);
         NODE_CONFIGURED.nextPossibleStates = validTransitions(READY);
         READY.nextPossibleStates = validTransitions();
     }

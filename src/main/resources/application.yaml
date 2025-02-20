@@ -26,7 +26,7 @@ cors:
     - http://localhost:3000
 
 pterodactyl:
-  api-base: ${PANEL_HOST}/api
+  api-base: ${PANEL_HOST}
   api-token: ${PANEL_SECRET_KEY}
 
 hetzner:

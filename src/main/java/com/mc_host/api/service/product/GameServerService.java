@@ -8,10 +8,13 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.HetznerClient;
+import com.mc_host.api.client.PterodactylClient;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.model.entity.game_server.GameServer;
 import com.mc_host.api.model.entity.game_server.ProvisioningState;
 import com.mc_host.api.model.entity.node.Node;
+import com.mc_host.api.model.entity.node.pterodactyl_request.PterodactylCreateNodeRequest;
+import com.mc_host.api.model.entity.node.pterodactyl_response.PterodactylNodeResponse;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
@@ -23,24 +26,28 @@ import com.mc_host.api.persistence.PlanRepository;
 @Service
 public class GameServerService implements ProductService {
     private static final Logger LOGGER = Logger.getLogger(GameServerService.class.getName());
+    private static final String SCHEME = "https";
 
     private final GameServerRepository gameServerRepository;
     private final NodeRepository nodeRepository;
     private final PlanRepository planRepository;
     private final WingsConfigService sshClient;
     private final HetznerClient hetznerClient;
+    private final PterodactylClient pterodactylClient;
 
     GameServerService(
         GameServerRepository gameServerRepository,
         NodeRepository nodeRepository,
         PlanRepository planRepository,
         WingsConfigService sshClient,
-        HetznerClient hetznerClient
+        HetznerClient hetznerClient,
+        PterodactylClient pterodactylClient
     ) {
         this.gameServerRepository = gameServerRepository;
         this.nodeRepository = nodeRepository;
         this.planRepository = planRepository;
         this.hetznerClient = hetznerClient;
+        this.pterodactylClient = pterodactylClient;
         this.sshClient = sshClient;
     }
 
@@ -71,7 +78,7 @@ public class GameServerService implements ProductService {
             .serverId(UUID.randomUUID().toString())
             .subscriptionId(subscription.subscriptionId())
             .planId(planId)
-            .nodeId(UUID.randomUUID().toString())
+            .nodeId(node.getNodeId())
             .build();
         gameServerRepository.insertNewJavaServer(gameServer);
         nodeRepository.insertNewNode(node);
@@ -87,8 +94,8 @@ public class GameServerService implements ProductService {
             ).server;
 
             // If it  fails to come up, then teardown
-            if (!hetznerClient.waitForServerStatus(node.getHetznerNodeId(), "running")) {
-                hetznerClient.deleteServer(node.getHetznerNodeId());
+            if (!hetznerClient.waitForServerStatus(hetznerServer.id, "running")) {
+                hetznerClient.deleteServer(hetznerServer.id);
                 throw new RuntimeException(String.format("Hetzner node %s for subscription %s failed to reach running state within timeout", node.getHetznerNodeId(), subscription.subscriptionId()));
             }
 
@@ -100,9 +107,27 @@ public class GameServerService implements ProductService {
             gameServer.transitionState(ProvisioningState.NODE_PROVISIONED);
             gameServerRepository.updateJavaServer(gameServer);
 
-            // Install wings and configure pterodactyl node
+            // Install wings
             gameServer.getProvisioningState().validateTransition(ProvisioningState.NODE_CONFIGURED);
             sshClient.setupWings(node.getIpv4());
+
+            // COnfigure pterodactyl node
+            PterodactylCreateNodeRequest pterodactylNode = PterodactylCreateNodeRequest.builder()
+                .name(node.getNodeId())
+                .description(node.getNodeId())
+                .locationId(HetznerRegion.NBG1.getPterodactylLocationId())
+                .public_(true)
+                .fqdn("temp.com")
+                .scheme(SCHEME)
+                .memory(1024)
+                .memoryOverallocate(0)
+                .disk(50000)
+                .diskOverallocate(0)
+                .uploadSize(100)
+                .daemonSftp(2022)
+                .daemonListen(8080)
+                .build();
+            PterodactylNodeResponse pterodactylResponse = pterodactylClient.createNode(pterodactylNode);
             gameServer.transitionState(ProvisioningState.NODE_CONFIGURED);
             gameServer.transitionState(ProvisioningState.READY);
             gameServer.resetRetryCount();
