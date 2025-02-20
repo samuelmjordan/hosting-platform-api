@@ -1,4 +1,4 @@
-package com.mc_host.api.model.entity.server;
+package com.mc_host.api.model.entity.game_server;
 
 public interface ProvisionableServer {
     ProvisioningState getProvisioningState();

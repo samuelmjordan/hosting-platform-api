@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = JavaServerSpecification.class, name = "JAVA_SERVER")
+    @JsonSubTypes.Type(value = JavaServerSpecification.class, name = "game_server")
 })
 public sealed interface Specification permits JavaServerSpecification{
     String specification_id();

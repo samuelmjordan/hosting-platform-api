@@ -13,11 +13,11 @@ import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.model.specification.JavaServerSpecification;
 
 @Service
-public class PlanPersistenceService {
+public class PlanRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public PlanPersistenceService(JdbcTemplate jdbcTemplate) {
+    public PlanRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -39,7 +39,7 @@ public class PlanPersistenceService {
                     jss_.ssd_gb
                 FROM plan_
                 JOIN price_ ON price_.price_id = plan_.price_id
-                JOIN java_server_specification_ jss_ ON jss_.specification_id = plan_.specification_id
+                JOIN game_server_specification_ jss_ ON jss_.specification_id = plan_.specification_id
                 """,
                 (rs, rowNum) -> new Plan(
                     new JavaServerSpecification(

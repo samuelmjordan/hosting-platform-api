@@ -10,11 +10,11 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.model.Currency;
 
 @Service
-public class JavaServerSpecPersistenceService {
+public class GameServerSpecRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public JavaServerSpecPersistenceService(JdbcTemplate jdbcTemplate) {
+    public GameServerSpecRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

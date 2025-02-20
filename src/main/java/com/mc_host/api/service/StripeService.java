@@ -23,8 +23,8 @@ import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.UserEntity;
 import com.mc_host.api.model.request.CheckoutRequest;
-import com.mc_host.api.persistence.JavaServerSpecPersistenceService;
-import com.mc_host.api.persistence.UserPersistenceService;
+import com.mc_host.api.persistence.GameServerSpecRepository;
+import com.mc_host.api.persistence.UserRepository;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -40,8 +40,8 @@ public class StripeService implements StripeResource{
     private final StripeConfiguration stripeConfiguration;
     private final ClerkConfiguration clerkConfiguration;
     private final StripeEventProcessor stripeEventProcessor;
-    private final UserPersistenceService userPersistenceService;
-    private final JavaServerSpecPersistenceService javaServerSpecPersistenceService;
+    private final UserRepository userRepository;
+    private final GameServerSpecRepository gameServerSpecRepository;
     private final DataFetchingService dataFetchingService;
     private final Executor virtualThreadExecutor;
 
@@ -49,16 +49,16 @@ public class StripeService implements StripeResource{
         StripeConfiguration stripeConfiguration,
         ClerkConfiguration clerkConfiguration,
         StripeEventProcessor eventProcessor,
-        UserPersistenceService userPersistenceService,
-        JavaServerSpecPersistenceService javaServerSpecPersistenceService,
+        UserRepository userRepository,
+        GameServerSpecRepository gameServerSpecRepository,
         DataFetchingService dataFetchingService,
         Executor virtualThreadExecutor
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.clerkConfiguration = clerkConfiguration;
         this.stripeEventProcessor = eventProcessor;
-        this.userPersistenceService = userPersistenceService;
-        this.javaServerSpecPersistenceService = javaServerSpecPersistenceService;
+        this.userRepository = userRepository;
+        this.gameServerSpecRepository = gameServerSpecRepository;
         this.dataFetchingService  = dataFetchingService;
         this.virtualThreadExecutor = virtualThreadExecutor;
     }
@@ -134,12 +134,12 @@ public class StripeService implements StripeResource{
         if (currency.equals(Currency.XXX)) {
             return priceId;
         }
-        return javaServerSpecPersistenceService.convertPrice(priceId, currency)
+        return gameServerSpecRepository.convertPrice(priceId, currency)
             .orElseThrow(() -> new IllegalStateException(String.format("No alternative for priceId %s in %s", priceId, currency)));
     }
 
     private String getCustomerId(String userId) throws CustomerNotFoundException {
-        Optional<String> stripeCustomerId = userPersistenceService.selectCustomerIdByClerkId(userId);
+        Optional<String> stripeCustomerId = userRepository.selectCustomerIdByClerkId(userId);
         if (stripeCustomerId.isPresent()) {
             LOGGER.log(Level.INFO, "Completed fetching details - clerkId:  " + userId);
             return stripeCustomerId.get();
@@ -190,7 +190,7 @@ public class StripeService implements StripeResource{
         );
         
         Customer stripeCustomer = Customer.create(customerParams);
-        userPersistenceService.insertUser(new UserEntity(userId, stripeCustomer.getId()));
+        userRepository.insertUser(new UserEntity(userId, stripeCustomer.getId()));
 
         LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: " + userId);
         return stripeCustomer.getId();

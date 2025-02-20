@@ -15,25 +15,25 @@ import com.mc_host.api.model.CacheNamespace;
 import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.specification.SpecificationType;
-import com.mc_host.api.persistence.PlanPersistenceService;
-import com.mc_host.api.persistence.UserPersistenceService;
+import com.mc_host.api.persistence.PlanRepository;
+import com.mc_host.api.persistence.UserRepository;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final CachingService cachingService;
-    private final PlanPersistenceService planPersistenceService;
-    private final UserPersistenceService userPersistenceService;
+    private final PlanRepository planRepository;
+    private final UserRepository userRepository;
 
     public DataFetchingService(
         CachingService cachingService,
-        PlanPersistenceService planPersistenceService,
-        UserPersistenceService userPersistenceService
+        PlanRepository planRepository,
+        UserRepository userRepository
     ) {
         this.cachingService = cachingService;
-        this.planPersistenceService = planPersistenceService;
-        this.userPersistenceService = userPersistenceService;
+        this.planRepository = planRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -50,7 +50,7 @@ public class DataFetchingService implements DataFetchingResource  {
             return cachedCurrency.get();
         }
 
-        Optional<Currency> currency = userPersistenceService.selectUserCurrency(userId);
+        Optional<Currency> currency = userRepository.selectUserCurrency(userId);
         if (currency.isPresent()) {
             cachingService.set(cacheNamespace, userId, currency.get());
             return currency.get();
@@ -78,8 +78,8 @@ public class DataFetchingService implements DataFetchingResource  {
     
             List<Plan> plans;
             switch(specType)  {
-                case SpecificationType.JAVA_SERVER:
-                    plans = planPersistenceService.selectJavaServerPlans();
+                case SpecificationType.GAME_SERVER:
+                    plans = planRepository.selectJavaServerPlans();
                     break;
                 default:
                     throw new IllegalStateException(String.format("specType %s is unhandled", specType));

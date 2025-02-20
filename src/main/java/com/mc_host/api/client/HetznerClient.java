@@ -74,11 +74,11 @@ public class HetznerClient {
         sendRequest("POST", "/servers/" + serverId + "/actions", action);
     }
 
-    public Boolean waitForServerStatus(String hetznerId, String expectedStatus) throws Exception {
+    public Boolean waitForServerStatus(Long hetznerId, String expectedStatus) throws Exception {
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < MAX_WAIT_TIME.toMillis()) {
             try {
-                HetznerServerResponse response = getServer(Long.parseLong(hetznerId));
+                HetznerServerResponse response = getServer(hetznerId);
                 if (response != null && expectedStatus.equals(response.server.status)) {
                     return true;
                 }

@@ -6,21 +6,21 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.model.specification.SpecificationType;
-import com.mc_host.api.persistence.PricePersistenceService;
+import com.mc_host.api.persistence.PriceRepository;
 
 @Service
 public class ProductServiceSupplier {
-    private final PricePersistenceService pricePersistenceService;
+    private final PriceRepository priceRepository;
 
-    private final JavaServerService javaServerService;
-    private final BedrockServerService bedrockServerService;
+    private final GameServerService javaServerService;
+    private final AccountTierService bedrockServerService;
 
     ProductServiceSupplier(
-        PricePersistenceService pricePersistenceService,
-        JavaServerService javaServerService,
-        BedrockServerService bedrockServerService
+        PriceRepository priceRepository,
+        GameServerService javaServerService,
+        AccountTierService bedrockServerService
     ) {
-        this.pricePersistenceService = pricePersistenceService;
+        this.priceRepository = priceRepository;
         this.javaServerService =  javaServerService;
         this.bedrockServerService = bedrockServerService;
     }
@@ -30,7 +30,7 @@ public class ProductServiceSupplier {
     }
 
     public ProductService supply(SubscriptionEntity subscription) {
-        SpecificationType product = SpecificationType.fromProductId(pricePersistenceService.selectProductId(subscription.priceId())
+        SpecificationType product = SpecificationType.fromProductId(priceRepository.selectProductId(subscription.priceId())
             .orElseThrow(() -> new IllegalArgumentException("Couldnt fetch product for priceId " + subscription.priceId())));
 
         List<ProductService> productServices = List.of(

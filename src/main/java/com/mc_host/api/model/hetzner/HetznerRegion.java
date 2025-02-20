@@ -1,7 +1,7 @@
-package com.mc_host.api.model.entity.server;
+package com.mc_host.api.model.hetzner;
 
-public enum HetznerServerType {
-    CAX11;
+public enum HetznerRegion {
+    NBG1;
 
     @Override
     public String toString() {

@@ -5,8 +5,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public enum SpecificationType {
-    JAVA_SERVER("prod_RiiVxhDuwyX0qD"),
-    BEDROCK_SERVER("BEDROCK_SERVER::placeholder");
+    GAME_SERVER("prod_RiiVxhDuwyX0qD"),
+    ACCOUNT_TIER("BEDROCK_SERVER::placeholder");
 
     private String productId;
 

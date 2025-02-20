@@ -6,11 +6,11 @@ import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.model.specification.SpecificationType;
 
 @Service
-public class BedrockServerService implements ProductService {
+public class AccountTierService implements ProductService {
 
     @Override
     public boolean isType(SpecificationType type) {
-        return type.equals(SpecificationType.BEDROCK_SERVER);
+        return type.equals(SpecificationType.ACCOUNT_TIER);
     }
 
     @Override

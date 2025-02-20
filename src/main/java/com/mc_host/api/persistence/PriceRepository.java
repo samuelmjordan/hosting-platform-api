@@ -15,11 +15,11 @@ import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
 
 @Service
-public class PricePersistenceService {
+public class PriceRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public PricePersistenceService(JdbcTemplate jdbcTemplate) {
+    public PriceRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

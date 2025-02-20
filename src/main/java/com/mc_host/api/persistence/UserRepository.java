@@ -10,11 +10,11 @@ import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.UserEntity;
 
 @Service
-public class UserPersistenceService {
+public class UserRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public UserPersistenceService(JdbcTemplate jdbcTemplate) {
+    public UserRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

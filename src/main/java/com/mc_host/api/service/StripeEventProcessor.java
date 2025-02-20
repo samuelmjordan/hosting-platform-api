@@ -25,8 +25,8 @@ import com.mc_host.api.model.Currency;
 import com.mc_host.api.model.entity.PriceEntity;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.model.specification.SpecificationType;
-import com.mc_host.api.persistence.PricePersistenceService;
-import com.mc_host.api.persistence.SubscriptionPersistenceService;
+import com.mc_host.api.persistence.PriceRepository;
+import com.mc_host.api.persistence.SubscriptionRepository;
 import com.mc_host.api.service.product.ProductServiceSupplier;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
@@ -42,8 +42,8 @@ public class StripeEventProcessor {
     private final StripeConfiguration stripeConfiguration;
     private final ProductServiceSupplier productServiceSupplier;
     private final CachingService cachingService;
-    private final SubscriptionPersistenceService subscriptionPersistenceService;
-    private final PricePersistenceService pricePersistenceService;
+    private final SubscriptionRepository subscriptionRepository;
+    private final PriceRepository priceRepository;
     private final Executor virtualThreadExecutor;
     private final ScheduledExecutorService delayedTaskScheduler;
 
@@ -51,16 +51,16 @@ public class StripeEventProcessor {
         StripeConfiguration stripeConfiguration,
         ProductServiceSupplier productServiceSupplier,
         CachingService cachingService,
-        SubscriptionPersistenceService subscriptionPersistenceService,
-        PricePersistenceService pricePersistenceService,
+        SubscriptionRepository subscriptionRepository,
+        PriceRepository priceRepository,
         Executor virtualThreadExecutor,
         ScheduledExecutorService delayedTaskScheduler
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.productServiceSupplier = productServiceSupplier;
         this.cachingService = cachingService;
-        this.subscriptionPersistenceService = subscriptionPersistenceService;
-        this.pricePersistenceService = pricePersistenceService;
+        this.subscriptionRepository = subscriptionRepository;
+        this.priceRepository = priceRepository;
         this.virtualThreadExecutor = virtualThreadExecutor;
         this. delayedTaskScheduler = delayedTaskScheduler;
     }
@@ -129,7 +129,7 @@ public class StripeEventProcessor {
     @Transactional
     private void syncSubscriptionData(String customerId) {
         try {
-            List<SubscriptionEntity> dbSubscriptions = subscriptionPersistenceService.selectSubscriptionsByCustomerId(customerId);
+            List<SubscriptionEntity> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
 
             List<Subscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData();
             Set<String> stripeSubscriptionIds = stripeSubscriptions.stream().map(Subscription::getId).collect(Collectors.toSet());
@@ -140,14 +140,14 @@ public class StripeEventProcessor {
                 .collect(Collectors.toSet());
 
             if (!dbSubscriptionsToDelete.isEmpty())  {
-                subscriptionPersistenceService.deleteCustomerSubscriptions(dbSubscriptionsToDelete, customerId);
+                subscriptionRepository.deleteCustomerSubscriptions(dbSubscriptionsToDelete, customerId);
             }
 
             List<CompletableFuture<Void>> futures = stripeSubscriptions.stream()
                 .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
                 .map(subscription -> CompletableFuture.runAsync(() -> {
                     try {
-                        subscriptionPersistenceService.insertSubscription(subscription);
+                        subscriptionRepository.insertSubscription(subscription);
                         productServiceSupplier.supplyAndHandle(subscription);
                     } catch (Exception e) {
                         LOGGER.log(Level.SEVERE, "Sync failed for subscription id " + subscription.subscriptionId(), e);
@@ -157,7 +157,7 @@ public class StripeEventProcessor {
                 .toList();
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
                 
-            subscriptionPersistenceService.updateUserCurrencyFromSubscription(customerId);
+            subscriptionRepository.updateUserCurrencyFromSubscription(customerId);
             LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
@@ -180,7 +180,7 @@ public class StripeEventProcessor {
     @Transactional
     public List<PriceEntity> syncPriceData(String productId) {
         try {
-            List<PriceEntity> dbPrices = pricePersistenceService.selectPricesByProductId(productId);
+            List<PriceEntity> dbPrices = priceRepository.selectPricesByProductId(productId);
     
             PriceListParams priceListParams = PriceListParams.builder()
                 .setProduct(productId)
@@ -194,7 +194,7 @@ public class StripeEventProcessor {
                 .collect(Collectors.toSet());
     
             if (!dbPricesToDelete.isEmpty())  {
-                pricePersistenceService.deleteProductPrices(dbPricesToDelete, productId);
+                priceRepository.deleteProductPrices(dbPricesToDelete, productId);
             }
     
             List<PriceEntity> stripePriceEntities = stripePrices.stream()
@@ -203,7 +203,7 @@ public class StripeEventProcessor {
             cachingService.evict(CacheNamespace.SPECIFICATION_PLANS, SpecificationType.fromProductId(productId).name());
     
             stripePriceEntities.stream()
-                .forEach(price-> pricePersistenceService.insertPrice(price));
+                .forEach(price-> priceRepository.insertPrice(price));
     
             return stripePriceEntities;
         } catch (StripeException e) {

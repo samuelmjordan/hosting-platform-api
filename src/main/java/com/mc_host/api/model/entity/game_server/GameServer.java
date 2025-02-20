@@ -1,9 +1,9 @@
-package com.mc_host.api.model.entity.server;
+package com.mc_host.api.model.entity.game_server;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.mc_host.api.service.product.JavaServerService;
+import com.mc_host.api.service.product.GameServerService;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -16,32 +16,30 @@ import lombok.ToString;
 @Setter
 @ToString
 @EqualsAndHashCode
-public class JavaServer implements ProvisionableServer {
-    private static final Logger LOGGER = Logger.getLogger(JavaServerService.class.getName());
+public class GameServer implements ProvisionableServer {
+    private static final Logger LOGGER = Logger.getLogger(GameServerService.class.getName());
 
     private final String serverId;
     private final String subscriptionId;
     private final String planId;
 
-    private String hetznerId;
-    private String pterodactylId;
+    private String nodeId;
+
     @Builder.Default private ProvisioningState provisioningState = ProvisioningState.NEW;
     @Builder.Default private Integer retryCount = 0;
     
-    public JavaServer(
+    public GameServer(
         String serverId,
         String subscriptionId,
         String planId,
-        String hetznerId,
-        String pterodactylId,
+        String nodeId,
         ProvisioningState provisioningState,
         Integer retryCount
     ) {
         this.serverId = serverId;
-        this.hetznerId = hetznerId;
-        this.pterodactylId = pterodactylId;
         this.subscriptionId = subscriptionId;
         this.planId = planId;
+        this.nodeId = nodeId;
         this.provisioningState = provisioningState;
         this.retryCount = retryCount;
 

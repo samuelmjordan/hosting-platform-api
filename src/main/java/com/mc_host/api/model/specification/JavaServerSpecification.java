@@ -9,5 +9,5 @@ public record JavaServerSpecification(
     String ssd_gb
 ) implements Specification{
     @Override
-    public SpecificationType type() { return SpecificationType.JAVA_SERVER; }
+    public SpecificationType type() { return SpecificationType.GAME_SERVER; }
 }

@@ -16,11 +16,11 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 
 @Service
-public class SubscriptionPersistenceService {
+public class SubscriptionRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public SubscriptionPersistenceService(JdbcTemplate jdbcTemplate) {
+    public SubscriptionRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

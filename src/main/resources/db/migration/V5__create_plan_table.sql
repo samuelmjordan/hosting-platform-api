@@ -12,8 +12,8 @@ CREATE TABLE plan_ (
     -- Constraints
     CONSTRAINT plan_plan_id_unique UNIQUE (plan_id),
     CONSTRAINT plan_price_id_unique UNIQUE (price_id),
-    CONSTRAINT fk_plan_java_server_specification FOREIGN KEY (specification_id)
-        REFERENCES java_server_specification_ (specification_id),
+    CONSTRAINT fk_plan_game_server_specification FOREIGN KEY (specification_id)
+        REFERENCES game_server_specification_ (specification_id),
     CONSTRAINT fk_plan_price FOREIGN KEY (price_id)
         REFERENCES price_ (price_id)
 );

@@ -1,4 +1,4 @@
-INSERT INTO java_server_specification_ 
+INSERT INTO game_server_specification_ 
     (specification_id, title, caption, ram_gb, vcpu, ssd_gb)
 VALUES
     ('7bf955c1-8072-4812-87fc-a096af2485bf', 'Wooden', 'Perfect for vanilla servers and small friend groups. Not much, but honest work', '4', '2', '50'),
