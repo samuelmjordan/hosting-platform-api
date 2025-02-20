@@ -46,16 +46,16 @@ public class HetznerClient {
             "ssh_keys", List.of("dev")
         );
 
-        var response = sendRequest("POST", "/servers", requestBody);
+        String response = sendRequest("POST", "/servers", requestBody);
         return objectMapper.readValue(response, HetznerServerResponse.class);
     }
 
     public void deleteServer(long serverId) throws Exception {
-        sendRequest("DELETE", "/servers/" + serverId, null);
+        sendRequest("DELETE", "/servers/" + serverId);
     }
 
     public HetznerServerResponse getServer(long serverId) throws Exception {
-        var response = sendRequest("GET", "/servers/" + serverId, null);
+        String response = sendRequest("GET", "/servers/" + serverId);
         return objectMapper.readValue(response, HetznerServerResponse.class);
     }
 
@@ -75,22 +75,25 @@ public class HetznerClient {
     }
 
     public Boolean waitForServerStatus(String hetznerId, String expectedStatus) throws Exception {
-    long startTime = System.currentTimeMillis();
-    while (System.currentTimeMillis() - startTime < MAX_WAIT_TIME.toMillis()) {
-        try {
-            HetznerServerResponse response = getServer(Long.parseLong(hetznerId));
-            if (response != null && expectedStatus.equals(response.server.status)) {
-                return true;
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < MAX_WAIT_TIME.toMillis()) {
+            try {
+                HetznerServerResponse response = getServer(Long.parseLong(hetznerId));
+                if (response != null && expectedStatus.equals(response.server.status)) {
+                    return true;
+                }
+                Thread.sleep(POLL_INTERVAL.toMillis());
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to poll server status: " + hetznerId, e);
+                throw e;
             }
-            Thread.sleep(POLL_INTERVAL.toMillis());
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to poll server status: " + hetznerId, e);
-            throw e;
         }
+        return false;
     }
-    return false;
-}
 
+    private String sendRequest(String method, String path) throws Exception {
+        return sendRequest(method, path, null);
+    }
 
     private String sendRequest(String method, String path, Object body) throws Exception {
         var builder = HttpRequest.newBuilder()

@@ -1,4 +1,4 @@
-package com.mc_host.api.client;
+package com.mc_host.api.service.product;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
@@ -13,27 +13,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import com.mc_host.api.configuration.HetznerConfiguration;
 
 @Service
-@Controller
-public class ServerConfigService {
-    private static final Logger LOGGER = Logger.getLogger(ServerConfigService.class.getName());
+public class WingsConfigService {
+    private static final Logger LOGGER = Logger.getLogger(WingsConfigService.class.getName());
     private static final String USERNAME = "root";
     private static final int PORT = 22;
     private static final int TIMEOUT = 300;
 
     private final HetznerConfiguration hetznerConfiguration;
 
-    ServerConfigService(HetznerConfiguration hetznerConfiguration) {
+    WingsConfigService(HetznerConfiguration hetznerConfiguration) {
         this.hetznerConfiguration = hetznerConfiguration;
     }
 
-    @GetMapping("/ssh")
     public void setupWings(String host) throws IOException {
         try (SSHClient ssh = new SSHClient()) {
             String privateKey = hetznerConfiguration.getSshPrivateKey()
