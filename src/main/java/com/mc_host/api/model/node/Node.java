@@ -1,4 +1,4 @@
-package com.mc_host.api.model.entity.node;
+package com.mc_host.api.model.node;
 
 import java.util.UUID;
 

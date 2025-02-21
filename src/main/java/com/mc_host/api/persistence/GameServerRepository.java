@@ -6,8 +6,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.entity.game_server.GameServer;
-import com.mc_host.api.model.entity.game_server.ProvisioningState;
+import com.mc_host.api.model.game_server.GameServer;
+import com.mc_host.api.model.game_server.ProvisioningState;
 
 @Service
 public class GameServerRepository {

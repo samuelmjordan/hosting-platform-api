@@ -1,4 +1,4 @@
-package com.mc_host.api.model.entity.game_server;
+package com.mc_host.api.model.game_server;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;

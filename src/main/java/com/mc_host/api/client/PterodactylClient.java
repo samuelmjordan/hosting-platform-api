@@ -13,8 +13,9 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.model.entity.node.pterodactyl_request.PterodactylCreateNodeRequest;
-import com.mc_host.api.model.entity.node.pterodactyl_response.PterodactylNodeResponse;
+import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
+import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
+
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Service

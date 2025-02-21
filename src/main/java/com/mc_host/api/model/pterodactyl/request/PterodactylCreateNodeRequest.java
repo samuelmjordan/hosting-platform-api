@@ -1,4 +1,4 @@
-package com.mc_host.api.model.entity.node.pterodactyl_request;
+package com.mc_host.api.model.pterodactyl.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

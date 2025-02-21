@@ -10,14 +10,14 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.client.HetznerClient;
 import com.mc_host.api.client.PterodactylClient;
 import com.mc_host.api.model.entity.SubscriptionEntity;
-import com.mc_host.api.model.entity.game_server.GameServer;
-import com.mc_host.api.model.entity.game_server.ProvisioningState;
-import com.mc_host.api.model.entity.node.Node;
-import com.mc_host.api.model.entity.node.pterodactyl_request.PterodactylCreateNodeRequest;
-import com.mc_host.api.model.entity.node.pterodactyl_response.PterodactylNodeResponse;
+import com.mc_host.api.model.game_server.GameServer;
+import com.mc_host.api.model.game_server.ProvisioningState;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
+import com.mc_host.api.model.node.Node;
+import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
+import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.GameServerRepository;
 import com.mc_host.api.persistence.NodeRepository;
@@ -85,6 +85,7 @@ public class GameServerService implements ProductService {
 
         try {     
             // Create hetzner node
+            LOGGER.log(Level.INFO, String.format("[node: %s] [subscription: %s] Provisioning with hetzner", node.getNodeId(), subscription.subscriptionId()));
             gameServer.getProvisioningState().validateTransition(ProvisioningState.NODE_PROVISIONED);
             Server hetznerServer = hetznerClient.createServer(
                 gameServer.getServerId(),
@@ -94,6 +95,7 @@ public class GameServerService implements ProductService {
             ).server;
 
             // If it  fails to come up, then teardown
+            LOGGER.log(Level.INFO, String.format("[node: %s] [subscription: %s] Waiting for hetxner node to start", node.getNodeId(), subscription.subscriptionId()));
             if (!hetznerClient.waitForServerStatus(hetznerServer.id, "running")) {
                 hetznerClient.deleteServer(hetznerServer.id);
                 throw new RuntimeException(String.format("Hetzner node %s for subscription %s failed to reach running state within timeout", node.getHetznerNodeId(), subscription.subscriptionId()));
@@ -108,10 +110,12 @@ public class GameServerService implements ProductService {
             gameServerRepository.updateJavaServer(gameServer);
 
             // Install wings
+            LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] [subscription: %s] Installing wings via ssh", node.getNodeId(), node.getHetznerNodeId(), subscription.subscriptionId()));
             gameServer.getProvisioningState().validateTransition(ProvisioningState.NODE_CONFIGURED);
             sshClient.setupWings(node.getIpv4());
 
             // COnfigure pterodactyl node
+            LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] [subscription: %s] Registering node with pterodactyl", node.getNodeId(), node.getHetznerNodeId(), subscription.subscriptionId()));
             PterodactylCreateNodeRequest pterodactylNode = PterodactylCreateNodeRequest.builder()
                 .name(node.getNodeId())
                 .description(node.getNodeId())
@@ -128,6 +132,9 @@ public class GameServerService implements ProductService {
                 .daemonListen(8080)
                 .build();
             PterodactylNodeResponse pterodactylResponse = pterodactylClient.createNode(pterodactylNode);
+            LOGGER.info("pterodcatyl uuid: " + pterodactylResponse.attributes().uuid());
+            node.setPterodactylNodeId(pterodactylResponse.attributes().uuid());
+            nodeRepository.updateNode(node);
             gameServer.transitionState(ProvisioningState.NODE_CONFIGURED);
             gameServer.transitionState(ProvisioningState.READY);
             gameServer.resetRetryCount();
