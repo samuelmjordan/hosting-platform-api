@@ -23,6 +23,7 @@ public class WingsConfigService {
     private static final String USERNAME = "root";
     private static final int PORT = 22;
     private static final int TIMEOUT = 300;
+    private static final int DELAY = 3000;
 
     private final HetznerConfiguration hetznerConfiguration;
 
@@ -39,11 +40,24 @@ public class WingsConfigService {
             
             Path keyPath = Files.createTempFile("ssh-key", null);
             Files.write(keyPath, privateKey.getBytes(), StandardOpenOption.WRITE);
-
-            ssh.addHostKeyVerifier(new PromiscuousVerifier());
-            ssh.loadKeys(keyPath.toString());
-            ssh.connect(host, PORT);
-            ssh.authPublickey(USERNAME, keyPath.toString());
+            
+            int retries = 0;
+            int delay = DELAY;
+            while (true) {
+                try {
+                    ssh.addHostKeyVerifier(new PromiscuousVerifier());
+                    ssh.loadKeys(keyPath.toString());
+                    ssh.connect(host, PORT);
+                    ssh.authPublickey(USERNAME, keyPath.toString());
+                    break;
+                } catch(Exception e) {
+                    Thread.sleep(delay);
+                    delay *= 1.2;
+                    if (retries >= 3) {
+                        throw e;
+                    }
+                }
+            }
             
             if (!ssh.isAuthenticated()) {
                 throw new RuntimeException("Authentication failed after attempting key auth");

@@ -25,6 +25,10 @@ cors:
     - https://mc-host-web-production.up.railway.app
     - http://localhost:3000
 
+cloudflare:
+  api-base: "https://api.cloudflare.com/client/v4"
+  api-token: ${CLOUDFLARE_SECRET_KEY}
+
 pterodactyl:
   api-base: ${PANEL_HOST}
   api-token: ${PANEL_SECRET_KEY}

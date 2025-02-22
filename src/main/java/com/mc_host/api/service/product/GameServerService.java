@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.client.CloudflareClient;
 import com.mc_host.api.client.HetznerClient;
 import com.mc_host.api.client.PterodactylClient;
 import com.mc_host.api.model.entity.SubscriptionEntity;
@@ -27,28 +28,32 @@ import com.mc_host.api.persistence.PlanRepository;
 public class GameServerService implements ProductService {
     private static final Logger LOGGER = Logger.getLogger(GameServerService.class.getName());
     private static final String SCHEME = "https";
+    private static final String DOMAIN = "samuelmjordan.dev";
 
     private final GameServerRepository gameServerRepository;
     private final NodeRepository nodeRepository;
     private final PlanRepository planRepository;
-    private final WingsConfigService sshClient;
+    private final WingsConfigService wingsConfigClient;
     private final HetznerClient hetznerClient;
     private final PterodactylClient pterodactylClient;
+    private final CloudflareClient cloudflareClient;
 
     GameServerService(
         GameServerRepository gameServerRepository,
         NodeRepository nodeRepository,
         PlanRepository planRepository,
-        WingsConfigService sshClient,
+        WingsConfigService wingsConfigClient,
         HetznerClient hetznerClient,
-        PterodactylClient pterodactylClient
+        PterodactylClient pterodactylClient,
+        CloudflareClient cloudflareClient
     ) {
         this.gameServerRepository = gameServerRepository;
         this.nodeRepository = nodeRepository;
         this.planRepository = planRepository;
         this.hetznerClient = hetznerClient;
         this.pterodactylClient = pterodactylClient;
-        this.sshClient = sshClient;
+        this.wingsConfigClient = wingsConfigClient;
+        this.cloudflareClient = cloudflareClient;
     }
 
     @Override
@@ -88,7 +93,7 @@ public class GameServerService implements ProductService {
             LOGGER.log(Level.INFO, String.format("[node: %s] [subscription: %s] Provisioning with hetzner", node.getNodeId(), subscription.subscriptionId()));
             gameServer.getProvisioningState().validateTransition(ProvisioningState.NODE_PROVISIONED);
             Server hetznerServer = hetznerClient.createServer(
-                gameServer.getServerId(),
+                "nodeId::" + node.getNodeId(),
                 HetznerServerType.CAX11.toString(),
                 HetznerRegion.NBG1.toString(),
                 "ubuntu-24.04"
@@ -109,12 +114,24 @@ public class GameServerService implements ProductService {
             gameServer.transitionState(ProvisioningState.NODE_PROVISIONED);
             gameServerRepository.updateJavaServer(gameServer);
 
+            // Create DNS records with cloudflare
+            LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] [subscription: %s] Creating DNS records with cloudflare", node.getNodeId(), node.getHetznerNodeId(), subscription.subscriptionId()));
+            gameServer.getProvisioningState().validateTransition(ProvisioningState.NODE_CONFIGURED);
+            cloudflareClient.createARecord(DOMAIN, gameServer.getServerId(), node.getIpv4(), false);
+            cloudflareClient.createSRVRecord(
+                DOMAIN,
+                gameServer.getServerId(),
+                "tcp",
+                String.join(".", gameServer.getServerId(), DOMAIN),
+                0,
+                0,
+                25565);
+            
             // Install wings
             LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] [subscription: %s] Installing wings via ssh", node.getNodeId(), node.getHetznerNodeId(), subscription.subscriptionId()));
-            gameServer.getProvisioningState().validateTransition(ProvisioningState.NODE_CONFIGURED);
-            sshClient.setupWings(node.getIpv4());
+            wingsConfigClient.setupWings(node.getIpv4());
 
-            // COnfigure pterodactyl node
+            // Configure pterodactyl node
             LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] [subscription: %s] Registering node with pterodactyl", node.getNodeId(), node.getHetznerNodeId(), subscription.subscriptionId()));
             PterodactylCreateNodeRequest pterodactylNode = PterodactylCreateNodeRequest.builder()
                 .name(node.getNodeId())
