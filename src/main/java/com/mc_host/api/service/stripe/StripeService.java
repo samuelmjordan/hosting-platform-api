@@ -1,4 +1,4 @@
-package com.mc_host.api.service;
+package com.mc_host.api.service.stripe;
 
 import java.util.Collections;
 import java.util.Map;
@@ -25,6 +25,7 @@ import com.mc_host.api.model.entity.UserEntity;
 import com.mc_host.api.model.request.CheckoutRequest;
 import com.mc_host.api.persistence.GameServerSpecRepository;
 import com.mc_host.api.persistence.UserRepository;
+import com.mc_host.api.service.data.DataFetchingService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -34,7 +35,7 @@ import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 
 @Service
-public class StripeService implements StripeResource{
+public class StripeService implements StripeResource {
     private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
     
     private final StripeConfiguration stripeConfiguration;

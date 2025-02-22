@@ -1,4 +1,4 @@
-package com.mc_host.api.service;
+package com.mc_host.api.service.stripe;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -28,6 +28,7 @@ import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PriceRepository;
 import com.mc_host.api.persistence.SubscriptionRepository;
 import com.mc_host.api.service.product.ProductServiceSupplier;
+import com.mc_host.api.service.util.CachingService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Price;

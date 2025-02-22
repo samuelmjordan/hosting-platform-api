@@ -1,4 +1,4 @@
-package com.mc_host.api.service;
+package com.mc_host.api.service.data;
 
 import java.time.Duration;
 import java.util.List;
@@ -17,6 +17,7 @@ import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PlanRepository;
 import com.mc_host.api.persistence.UserRepository;
+import com.mc_host.api.service.util.CachingService;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {
