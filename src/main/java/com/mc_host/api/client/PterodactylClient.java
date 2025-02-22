@@ -1,10 +1,6 @@
 package com.mc_host.api.client;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -16,26 +12,29 @@ import com.mc_host.api.configuration.PterodactylConfiguration;
 import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
 import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
 
-import org.springframework.web.bind.annotation.PostMapping;
-
 @Service
-public class PterodactylClient {
+public class PterodactylClient extends BaseApiClient {
     private static final Logger LOGGER = Logger.getLogger(PterodactylClient.class.getName());
 
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
-
     private final PterodactylConfiguration pterodactylConfiguration;
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
 
     PterodactylClient(
         PterodactylConfiguration pterodactylConfiguration,
         HttpClient httpClient,
         ObjectMapper objectMapper
     ) {
+        super(httpClient, objectMapper);
         this.pterodactylConfiguration = pterodactylConfiguration;
-        this.objectMapper = objectMapper;
-        this.httpClient = httpClient;
+    }
+
+    @Override
+    protected String getApiBase() {
+        return pterodactylConfiguration.getApiBase();
+    }
+
+    @Override
+    protected String getAuthorizationHeader() {
+        return "Bearer " + pterodactylConfiguration.getApiToken();
     }
 
     // SERVERS
@@ -67,7 +66,6 @@ public class PterodactylClient {
     }
 
     // NODES
-    @PostMapping("/api")
     public PterodactylNodeResponse createNode(PterodactylCreateNodeRequest nodeDetails) throws Exception {
         String response = sendRequest("POST", "/api/application/nodes", nodeDetails);
         return objectMapper.readValue(response, PterodactylNodeResponse.class);
@@ -95,43 +93,9 @@ public class PterodactylClient {
         return objectMapper.readValue(response, PterodactylNodeResponse.class);
     }
 
-
-    // REQUESTS
-    private String sendRequest(String method, String path) throws Exception {
-        return sendRequest(method, path, null);
-    }
-
-    private String sendRequest(String method, String path, Object body) throws Exception {
-        var builder = HttpRequest.newBuilder()
-            .uri(URI.create(pterodactylConfiguration.getApiBase() + path))
-            .header("Authorization", "Bearer " + pterodactylConfiguration.getApiToken())
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .timeout(REQUEST_TIMEOUT);
-
-        var request = (switch (method) {
-            case "GET" -> builder.GET();
-            case "DELETE" -> builder.DELETE();
-            case "POST" -> builder.POST(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
-            case "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
-            default -> throw new IllegalArgumentException("Unsupported HTTP method: " + method);
-        }).build();
-
-        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        
-        if (response.statusCode() >= 400) {
-            throw new RuntimeException("API error: " + response.statusCode() + " " + response.body());
-        }
-
-        return response.body();
-    }
-
     public enum PowerState {
         START, STOP, RESTART, KILL
     }
-
     public record ServerResponse(String id, ServerAttributes attributes) {}
     public record ServerAttributes(
         String name,

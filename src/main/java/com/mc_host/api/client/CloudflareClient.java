@@ -1,10 +1,6 @@
 package com.mc_host.api.client;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -15,22 +11,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.CloudflareConfiguration;
 
 @Service
-public class CloudflareClient {
+public class CloudflareClient extends BaseApiClient{
     private static final Logger LOGGER = Logger.getLogger(CloudflareClient.class.getName());
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
 
     private final CloudflareConfiguration cloudflareConfiguration;
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
 
     public CloudflareClient(
         CloudflareConfiguration cloudflareConfiguration,
         HttpClient httpClient,
         ObjectMapper objectMapper
     ) {
+        super(httpClient, objectMapper);
         this.cloudflareConfiguration = cloudflareConfiguration;
-        this.objectMapper = objectMapper;
-        this.httpClient = httpClient;
+    }
+
+    @Override
+    protected String getApiBase() {
+        return cloudflareConfiguration.getApiBase();
+    }
+
+    @Override
+    protected String getAuthorizationHeader() {
+        return "Bearer " + cloudflareConfiguration.getApiToken();
     }
 
     public DNSRecord createSRVRecord(
@@ -119,36 +121,6 @@ public class CloudflareClient {
             throw new RuntimeException("Zone not found: " + zoneName);
         }
         return zones.result.get(0).id;
-    }
-
-    private String sendRequest(String method, String path) throws Exception {
-        return sendRequest(method, path, null);
-    }
-
-    private String sendRequest(String method, String path, Object body) throws Exception {
-        var builder = HttpRequest.newBuilder()
-            .uri(URI.create(cloudflareConfiguration.getApiBase() + path))
-            .header("Authorization", "Bearer " + cloudflareConfiguration.getApiToken())
-            .header("Content-Type", "application/json")
-            .timeout(REQUEST_TIMEOUT);
-
-        var request = (switch (method) {
-            case "GET" -> builder.GET();
-            case "DELETE" -> builder.DELETE();
-            case "POST" -> builder.POST(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
-            case "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
-            default -> throw new IllegalArgumentException("Unsupported HTTP method: " + method);
-        }).build();
-
-        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        
-        if (response.statusCode() >= 400) {
-            throw new RuntimeException("API error: " + response.statusCode() + " " + response.body());
-        }
-
-        return response.body();
     }
 
     public record Zone(String id, String name) {}

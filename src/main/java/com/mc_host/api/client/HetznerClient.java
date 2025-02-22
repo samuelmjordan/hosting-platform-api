@@ -1,9 +1,6 @@
 package com.mc_host.api.client;
 
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.URI;
 import java.time.Duration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerConfiguration;
@@ -17,24 +14,32 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 @Service
-public class HetznerClient {
+public class HetznerClient extends BaseApiClient{
     private static final Logger LOGGER = Logger.getLogger(HetznerClient.class.getName());
 
     private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
     private static final Duration MAX_WAIT_TIME = Duration.ofMinutes(5);
 
     private final HetznerConfiguration hetznerConfiguration;
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
 
     public HetznerClient(
         HetznerConfiguration hetznerConfiguration,
         HttpClient httpClient,
         ObjectMapper objectMapper
     ) {
+        super(httpClient, objectMapper);
         this.hetznerConfiguration = hetznerConfiguration;
-        this.objectMapper = objectMapper;
-        this.httpClient = httpClient;
+    }
+
+    
+    @Override
+    protected String getApiBase() {
+        return hetznerConfiguration.getApiBase();
+    }
+
+    @Override
+    protected String getAuthorizationHeader() {
+        return "Bearer " + hetznerConfiguration.getApiToken();
     }
 
     public HetznerServerResponse createServer(String name, String serverType, String location, String image) throws Exception {
@@ -89,36 +94,6 @@ public class HetznerClient {
             }
         }
         return false;
-    }
-
-    private String sendRequest(String method, String path) throws Exception {
-        return sendRequest(method, path, null);
-    }
-
-    private String sendRequest(String method, String path, Object body) throws Exception {
-        var builder = HttpRequest.newBuilder()
-            .uri(URI.create(hetznerConfiguration.getApiBase() + path))
-            .header("Authorization", "Bearer " + hetznerConfiguration.getApiToken())
-            .header("Content-Type", "application/json")
-            .timeout(Duration.ofSeconds(30));
-
-        var request = (switch (method) {
-            case "GET" -> builder.GET();
-            case "DELETE" -> builder.DELETE();
-            case "POST" -> builder.POST(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
-            case "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
-            default -> throw new IllegalArgumentException("Unsupported HTTP method: " + method);
-        }).build();
-
-        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        
-        if (response.statusCode() >= 400) {
-            throw new RuntimeException("API error: " + response.statusCode() + " " + response.body());
-        }
-
-        return response.body();
     }
 
 }
