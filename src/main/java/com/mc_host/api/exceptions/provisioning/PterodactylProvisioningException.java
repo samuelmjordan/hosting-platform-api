@@ -7,7 +7,7 @@ public class PterodactylProvisioningException extends NodeProvisioningException 
         Throwable cause,
         String nodeId,
         Long hetznerNodeId,
-        String pterodactylNodeId
+        Long pterodactylNodeId
     ) {
         super(
             message,

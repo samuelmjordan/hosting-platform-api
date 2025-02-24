@@ -93,6 +93,10 @@ public class PterodactylClient extends BaseApiClient {
         return objectMapper.readValue(response, PterodactylNodeResponse.class);
     }
 
+    public String getNodeConfiguration(Long nodeId) throws Exception { 
+        return sendRequest("GET", "/api/application/nodes/" + nodeId + "/configuration");
+    }
+
     public enum PowerState {
         START, STOP, RESTART, KILL
     }

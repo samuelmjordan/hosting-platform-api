@@ -4,11 +4,11 @@ CREATE TABLE node_ (
     node_id TEXT NOT NULL,
 
     -- External identifiers
-    pterodactyl_node_id TEXT,
+    pterodactyl_node_id BIGINT,
     hetzner_node_id BIGINT,
 
     -- Info
-    dedicated BOOLEAN,
+    dedicated BOOLEAN NOT NULL,
     ipv4 TEXT,
     hetzner_region TEXT,
     

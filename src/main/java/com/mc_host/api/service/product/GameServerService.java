@@ -52,6 +52,7 @@ public class GameServerService implements ProductService {
                 .subscriptionId(subscription.subscriptionId())
                 .planId(planId)
                 .nodeId(node.getNodeId())
+                .subdomain(node.getSubdomain()) // TODO: should make seperate server and node domains
                 .build();
             gameServerRepository.insertNewJavaServer(gameServer);
         } else {

@@ -4,7 +4,7 @@ public record PterodactylNodeResponse(
     Attributes attributes
 ) {
     public record Attributes(
-        Integer id,
+        Long id,
         String uuid
     ) {}
 }

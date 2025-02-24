@@ -49,7 +49,8 @@ public class CloudNodeService {
 
     public Node provisionCloudNode(HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
         try {    
-            Node node = new Node(); 
+            Node node = Node.newCloudNode();
+            nodeRepository.insertNewNode(node);
             provisionHetznerNode(node, hetznerRegion, hetznerServerType);
             createDnsRecords(node);
             configurePterodactylNode(node);
@@ -159,10 +160,10 @@ public class CloudNodeService {
                 .daemonListen(8080)
                 .build();
             pterodactylResponse = pterodactylClient.createNode(pterodactylNode);
-            node.setPterodactylNodeId(pterodactylResponse.attributes().uuid());
+            node.setPterodactylNodeId(pterodactylResponse.attributes().id());
             nodeRepository.updateNode(node);
         } catch (Exception e) {
-            String pterodactylNodeId = pterodactylResponse == null ? null : pterodactylResponse.attributes().uuid();
+            Long pterodactylNodeId = pterodactylResponse == null ? null : pterodactylResponse.attributes().id();
             throw new PterodactylProvisioningException(
                 "Failed to create cloudflare dns records",
                 e,
@@ -176,7 +177,8 @@ public class CloudNodeService {
         // Install wings
         LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Installing wings via ssh", node.getNodeId(), node.getHetznerNodeId()));
         try {
-            wingsConfigClient.setupWings(node.getIpv4());
+            String wingsConfig = pterodactylClient.getNodeConfiguration(node.getPterodactylNodeId());
+            wingsConfigClient.setupWings(node, wingsConfig);
         } catch (Exception e) {
             throw new SshProvisioningException(
                 "Failed to install wings",

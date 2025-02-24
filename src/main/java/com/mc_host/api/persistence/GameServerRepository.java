@@ -25,14 +25,16 @@ public class GameServerRepository {
                         server_id, 
                         subscription_id,
                         plan_id,
+                        node_id,
                         subdomain
                     )
-                    VALUES (?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?)
                     """);
                 ps.setString(1, javaServer.getServerId());
                 ps.setString(2, javaServer.getSubscriptionId());
                 ps.setString(3, javaServer.getPlanId());
-                ps.setString(4, javaServer.getSubdomain());
+                ps.setString(4, javaServer.getNodeId());
+                ps.setString(5, javaServer.getSubdomain());
                 return ps;
             });
         } catch (DataAccessException e) {

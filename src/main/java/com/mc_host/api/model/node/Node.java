@@ -11,13 +11,27 @@ import lombok.Data;
 @AllArgsConstructor
 public class Node {
     private final String nodeId;
+    private final Boolean dedicated;
 
-    private String pterodactylNodeId;
+    private Long pterodactylNodeId;
     private Long hetznerNodeId;
     private String ipv4;
     private HetznerRegion hetznerRegion;
 
-    public Node() {
+    private Node(Boolean dedicated) {
         this.nodeId  =  UUID.randomUUID().toString();
+        this.dedicated = dedicated;
+    }
+
+    public static Node newCloudNode() {
+        return new Node(false);
+    }
+
+    public static Node newDedicatedNode() {
+        return new Node(true);
+    }
+
+    public String getSubdomain() {
+        return nodeId.replace("-", "");
     }
 }
