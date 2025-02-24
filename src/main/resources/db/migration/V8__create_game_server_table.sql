@@ -10,9 +10,8 @@ CREATE TABLE game_server_ (
     -- Location
     node_id TEXT,
 
-    -- Server states
-    provisioning_state TEXT NOT NULL,
-    retry_count SMALLINT NOT NULL,
+    -- Subdomain
+    subdomain TEXT,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -20,6 +19,7 @@ CREATE TABLE game_server_ (
 
     -- Constraints
     CONSTRAINT game_server_server_id_unique UNIQUE (server_id),
+    CONSTRAINT game_server_subdomain_unique UNIQUE (subdomain),
     CONSTRAINT fk_game_server_subscription_ FOREIGN KEY (subscription_id)
         REFERENCES subscription_ (subscription_id),
     CONSTRAINT fk_game_server_plan_ FOREIGN KEY (plan_id)
