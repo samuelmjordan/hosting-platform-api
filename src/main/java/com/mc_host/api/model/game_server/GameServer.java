@@ -16,7 +16,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @EqualsAndHashCode
-public class GameServer implements ProvisionableServer {
+public class GameServer {
     private static final Logger LOGGER = Logger.getLogger(GameServerService.class.getName());
 
     private final String serverId;
@@ -24,24 +24,20 @@ public class GameServer implements ProvisionableServer {
     private final String planId;
 
     private String nodeId;
-
-    @Builder.Default private ProvisioningState provisioningState = ProvisioningState.NEW;
-    @Builder.Default private Integer retryCount = 0;
+    private String subdomain;
     
     public GameServer(
         String serverId,
         String subscriptionId,
         String planId,
         String nodeId,
-        ProvisioningState provisioningState,
-        Integer retryCount
+        String subdomain
     ) {
         this.serverId = serverId;
         this.subscriptionId = subscriptionId;
         this.planId = planId;
         this.nodeId = nodeId;
-        this.provisioningState = provisioningState;
-        this.retryCount = retryCount;
+        this.subdomain = subdomain;
 
         if (serverId == null || subscriptionId == null || planId == null) {
             LOGGER.log(Level.SEVERE, String.format("Invalid java server object %s", this.toString()));

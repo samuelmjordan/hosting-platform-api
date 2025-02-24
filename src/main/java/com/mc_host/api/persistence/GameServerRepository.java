@@ -7,7 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.game_server.GameServer;
-import com.mc_host.api.model.game_server.ProvisioningState;
 
 @Service
 public class GameServerRepository {
@@ -26,16 +25,14 @@ public class GameServerRepository {
                         server_id, 
                         subscription_id,
                         plan_id,
-                        provisioning_state,
-                        retry_count
+                        subdomain
                     )
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?)
                     """);
                 ps.setString(1, javaServer.getServerId());
                 ps.setString(2, javaServer.getSubscriptionId());
                 ps.setString(3, javaServer.getPlanId());
-                ps.setString(4, javaServer.getProvisioningState().name());
-                ps.setInt(5, javaServer.getRetryCount());
+                ps.setString(4, javaServer.getSubdomain());
                 return ps;
             });
         } catch (DataAccessException e) {
@@ -51,16 +48,14 @@ public class GameServerRepository {
                     SET subscription_id = ?,
                         plan_id = ?,
                         node_id = ?,
-                        provisioning_state = ?,
-                        retry_count = ?
+                        subdomain = ?,
                     WHERE server_id = ?
                     """);
                 ps.setString(1, javaServer.getSubscriptionId());
                 ps.setString(2, javaServer.getPlanId());
                 ps.setString(3, javaServer.getNodeId());
-                ps.setString(4, javaServer.getProvisioningState().name());
-                ps.setInt(5, javaServer.getRetryCount());
-                ps.setString(6, javaServer.getServerId());
+                ps.setString(4, javaServer.getSubdomain());
+                ps.setString(5, javaServer.getServerId());
                 return ps;
             });
             
@@ -83,8 +78,7 @@ public class GameServerRepository {
                     subscription_id,
                     plan_id,
                     node_id,
-                    provisioning_state,
-                    retry_count
+                    subdomain
                 FROM game_server_
                 WHERE subscription_id = ?
                 """,
@@ -93,8 +87,7 @@ public class GameServerRepository {
                     rs.getString("subscription_id"), 
                     rs.getString("plan_id"),
                     rs.getString("node_id"), 
-                    ProvisioningState.valueOf(rs.getString("provisioning_state")),
-                    rs.getInt("retry_count")),
+                    rs.getString("subdomain")),
                 subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {

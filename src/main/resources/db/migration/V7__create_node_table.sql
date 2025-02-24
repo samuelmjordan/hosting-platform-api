@@ -11,10 +11,6 @@ CREATE TABLE node_ (
     dedicated BOOLEAN,
     ipv4 TEXT,
     hetzner_region TEXT,
-
-    -- Provisioning State 
-    provisioning_state TEXT NOT NULL,
-    retry_count SMALLINT NOT NULL,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

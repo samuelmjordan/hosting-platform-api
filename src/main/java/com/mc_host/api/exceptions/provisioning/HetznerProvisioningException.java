@@ -1,25 +1,19 @@
 package com.mc_host.api.exceptions.provisioning;
 
-import com.mc_host.api.model.game_server.ProvisioningState;
-
 public class HetznerProvisioningException extends NodeProvisioningException {
 
     public HetznerProvisioningException(
         String message,
         Throwable cause,
-        String subscriptionId,
         String nodeId,
-        Long hetznerNodeId,
-        ProvisioningState state 
+        Long hetznerNodeId
     ) {
         super(
             message,
             cause,
-            subscriptionId,
             nodeId,
             hetznerNodeId,
-            null,
-            state
+            null
         );
     }
 }
