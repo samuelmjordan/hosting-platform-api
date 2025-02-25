@@ -14,12 +14,15 @@ import com.mc_host.api.client.PterodactylClient;
 import com.mc_host.api.client.PterodactylClient.AllocationAttributes;
 import com.mc_host.api.client.PterodactylClient.AllocationResponse;
 import com.mc_host.api.client.PterodactylClient.ServerResponse;
+import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.exceptions.provisioning.CloudflareProvisioningException;
 import com.mc_host.api.model.entity.SubscriptionEntity;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.Node;
+import com.mc_host.api.model.pterodactyl.games.Egg;
+import com.mc_host.api.model.pterodactyl.games.Nest;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.GameServerRepository;
 import com.mc_host.api.persistence.PlanRepository;
@@ -29,12 +32,7 @@ import com.mc_host.api.service.node.CloudNodeService;
 public class GameServerService implements ProductService {
     private static final Logger LOGGER = Logger.getLogger(GameServerService.class.getName());
 
-    private static final String SCHEME = "https";
-    private static final String DOMAIN = "samuelmjordan.dev";
-
-    private static final int VANILLA_MINECRAFT_EGG_ID = 2;
-    private static final int VANILLA_MINECRAFT_NEST_ID = 1;
-
+    private final ApplicationConfiguration applicationConfiguration;
     private final GameServerRepository gameServerRepository;
     private final PlanRepository planRepository;
     private final PterodactylClient pterodactylClient;
@@ -42,12 +40,14 @@ public class GameServerService implements ProductService {
     private final CloudNodeService cloudNodeService;
 
     GameServerService(
+        ApplicationConfiguration applicationConfiguration,
         GameServerRepository gameServerRepository,
         PlanRepository planRepository,
         PterodactylClient pterodactylClient,
         CloudflareClient cloudflareClient,
         CloudNodeService cloudNodeService
     ) {
+        this.applicationConfiguration = applicationConfiguration;
         this.gameServerRepository = gameServerRepository;
         this.planRepository = planRepository;
         this.pterodactylClient = pterodactylClient;
@@ -88,19 +88,15 @@ public class GameServerService implements ProductService {
 
         private void createCNameRecord(Node node, AllocationAttributes allocationAttributes) throws  CloudflareProvisioningException {
         LOGGER.log(Level.INFO, String.format("Creating CName record with cloudflare: %s.%s --> %s.%s", 
-            "test", DOMAIN, node.getSubdomain(), DOMAIN, allocationAttributes.port()));
+            "test", applicationConfiguration.getDomain(), node.getSubdomain(), applicationConfiguration.getDomain(), allocationAttributes.port()));
         try {
             cloudflareClient.createCNAMERecord(
-                DOMAIN, 
+                applicationConfiguration.getDomain(), 
                 "test", 
-                String.join(".", node.getSubdomain(), DOMAIN),
+                String.join(".", node.getSubdomain(), applicationConfiguration.getDomain()),
                 false);
         } catch (Exception e) {
-            throw new CloudflareProvisioningException(
-                "Failed to create cloudflare cname record",
-                e,
-                node.getNodeId(),
-                node.getHetznerNodeId());
+            throw new RuntimeException("Failed to create cloudflare cname record", e);
         }
     }
 
@@ -109,7 +105,7 @@ public class GameServerService implements ProductService {
             Map<String, Object> serverDetails = Map.ofEntries(
                 Map.entry("name", "Minecraft - " + gameServer.getServerId()),
                 Map.entry("user", 1),
-                Map.entry("egg", VANILLA_MINECRAFT_EGG_ID),
+                Map.entry("egg", Egg.VANILLA_MINECRAFT.getId()),
                 Map.entry("docker_image", "ghcr.io/pterodactyl/yolks:java_21"),
                 Map.entry("startup", "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar"),
                 Map.entry("environment", Map.of(
@@ -134,7 +130,7 @@ public class GameServerService implements ProductService {
                 Map.entry("allocation", Map.of(
                     "default", allocationAttributes.id()
                 )),
-                Map.entry("nest", VANILLA_MINECRAFT_NEST_ID),
+                Map.entry("nest", Nest.MINECRAFT.getId()),
                 Map.entry("external_id", gameServer.getServerId())
             );
             

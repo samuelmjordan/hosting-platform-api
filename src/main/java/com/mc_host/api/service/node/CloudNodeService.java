@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.client.CloudflareClient;
 import com.mc_host.api.client.HetznerClient;
 import com.mc_host.api.client.PterodactylClient;
+import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.exceptions.provisioning.CloudflareProvisioningException;
 import com.mc_host.api.exceptions.provisioning.HetznerProvisioningException;
 import com.mc_host.api.exceptions.provisioning.PterodactylProvisioningException;
@@ -25,13 +26,9 @@ import com.mc_host.api.service.product.WingsConfigService;
 @Service
 public class CloudNodeService {
     private static final Logger LOGGER = Logger.getLogger(CloudNodeService.class.getName());
-    private static final String SCHEME = "https";
-    private static final String DOMAIN = "samuelmjordan.dev";
+    private static final Integer DEFAULT_MINECRAFT_PORT = 25565;
 
-    private static final List<Integer> DEFAULT_MINECRAFT_PORTS = List.of(
-        25565, 25566, 25567, 25568, 25569, 25570, 25571, 25572, 25573, 25574
-    );
-
+    private final ApplicationConfiguration applicationConfiguration;
     private final NodeRepository nodeRepository;
     private final WingsConfigService wingsConfigClient;
     private final HetznerClient hetznerClient;
@@ -39,12 +36,14 @@ public class CloudNodeService {
     private final CloudflareClient cloudflareClient;
 
     CloudNodeService(
+        ApplicationConfiguration applicationConfiguration,
         NodeRepository nodeRepository,
         WingsConfigService wingsConfigClient,
         HetznerClient hetznerClient,
         PterodactylClient pterodactylClient,
         CloudflareClient cloudflareClient
     ) {
+        this.applicationConfiguration = applicationConfiguration;
         this.nodeRepository = nodeRepository;
         this.hetznerClient = hetznerClient;
         this.pterodactylClient = pterodactylClient;
@@ -126,7 +125,7 @@ public class CloudNodeService {
         // Create DNS records with cloudflare
         LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Creating DNS records with cloudflare", node.getNodeId(), node.getHetznerNodeId()));
         try {
-            cloudflareClient.createARecord(DOMAIN, node.getNodeId().replace("-", ""), node.getIpv4(), false);
+            cloudflareClient.createARecord(applicationConfiguration.getDomain(), node.getNodeId().replace("-", ""), node.getIpv4(), false);
         } catch (Exception e) {
             throw new CloudflareProvisioningException(
                 "Failed to create cloudflare dns records",
@@ -147,8 +146,8 @@ public class CloudNodeService {
                 .description(node.getNodeId())
                 .locationId(HetznerRegion.NBG1.getPterodactylLocationId())
                 .public_(true)
-                .fqdn(String.join(".", node.getNodeId().replace("-", ""), DOMAIN))
-                .scheme(SCHEME)
+                .fqdn(String.join(".", node.getNodeId().replace("-", ""), applicationConfiguration.getDomain()))
+                .scheme(applicationConfiguration.getScheme())
                 .memory(1024)
                 .memoryOverallocate(0)
                 .disk(50000)
@@ -178,12 +177,12 @@ public class CloudNodeService {
             pterodactylClient.createMultipleAllocations(
                 node.getPterodactylNodeId(),
                 node.getIpv4(),
-                DEFAULT_MINECRAFT_PORTS,
+                List.of(DEFAULT_MINECRAFT_PORT),
                 "Minecraft"
             );
             
-            LOGGER.log(Level.INFO, String.format("[node: %s] Successfully created %d allocations", 
-                node.getNodeId(), DEFAULT_MINECRAFT_PORTS.size()));
+            LOGGER.log(Level.INFO, String.format("[node: %s] Successfully created allocation %d", 
+                node.getNodeId(), DEFAULT_MINECRAFT_PORT));
         } catch (Exception e) {
             throw new PterodactylProvisioningException(
                 "Failed to create allocations on pterodactyl node",

@@ -7,8 +7,8 @@ import lombok.Data;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "pterodactyl")
-public class PterodactylConfiguration {
-    private final String apiBase;
-    private final String apiToken;
+@ConfigurationProperties(prefix = "application")
+public class ApplicationConfiguration {
+    private final String scheme;
+    private final String domain;
 }

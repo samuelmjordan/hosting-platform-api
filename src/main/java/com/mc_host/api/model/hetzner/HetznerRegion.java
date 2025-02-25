@@ -8,8 +8,8 @@ import lombok.Getter;
 public enum HetznerRegion {
     NBG1(Region.WEST_EUROPE, 1);
 
-    public Region marketingRegionMapping;
-    public Integer pterodactylLocationId;
+    public final Region marketingRegionMapping;
+    public final Integer pterodactylLocationId;
 
     HetznerRegion(
         Region regionMapping,
