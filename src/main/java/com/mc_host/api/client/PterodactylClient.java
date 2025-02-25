@@ -97,6 +97,59 @@ public class PterodactylClient extends BaseApiClient {
         return sendRequest("GET", "/api/application/nodes/" + nodeId + "/configuration");
     }
 
+    // ALLOCATIONS
+    public List<AllocationResponse> getNodeAllocations(Long nodeId) throws Exception {
+        String response = sendRequest("GET", "/api/application/nodes/" + nodeId + "/allocations");
+        PaginatedResponse<AllocationResponse> paginatedResponse = objectMapper.readValue(response,
+            objectMapper.getTypeFactory().constructParametricType(
+                PaginatedResponse.class, AllocationResponse.class));
+        return paginatedResponse.data;
+    }
+
+    public AllocationResponse createAllocation(Long nodeId, String ip, Integer port, String alias) throws Exception {
+        var allocationRequest = Map.of(
+            "ip", ip,
+            "ports", List.of(port.toString()),
+            "alias", alias != null ? alias : ""
+        );
+        
+        String response = sendRequest("POST", "/api/application/nodes/" + nodeId + "/allocations", allocationRequest);
+        return objectMapper.readValue(response, AllocationResponse.class);
+    }
+
+    public void createMultipleAllocations(Long nodeId, String ip, List<Integer> ports, String alias) throws Exception {
+        var portsStr = ports.stream().map(Object::toString).toList();
+        var allocationRequest = Map.of(
+            "ip", ip,
+            "ports", portsStr,
+            "alias", alias != null ? alias : ""
+        );
+        
+        sendRequest("POST", "/api/application/nodes/" + nodeId + "/allocations", allocationRequest);
+    }
+
+    public void deleteAllocation(Long nodeId, Long allocationId) throws Exception {
+        sendRequest("DELETE", "/api/application/nodes/" + nodeId + "/allocations/" + allocationId);
+    }
+
+    public List<AllocationResponse> getUnassignedAllocations(Long nodeId) throws Exception {
+        List<AllocationResponse> allocations = getNodeAllocations(nodeId);
+        return allocations.stream()
+            .filter(a -> a.attributes().assigned() == false)
+            .toList();
+    }
+
+    public record AllocationResponse(AllocationAttributes attributes) {}
+    
+    public record AllocationAttributes(
+        Long id,
+        String ip,
+        Integer port,
+        String alias,
+        Boolean assigned,
+        Long node_id
+    ) {}
+
     public enum PowerState {
         START, STOP, RESTART, KILL
     }

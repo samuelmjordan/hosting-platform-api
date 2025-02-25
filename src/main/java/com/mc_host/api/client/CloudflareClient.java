@@ -94,6 +94,29 @@ public class CloudflareClient extends BaseApiClient{
         return objectMapper.readValue(response, DNSRecord.class);
     }
 
+    public DNSRecord createCNAMERecord(
+        String zoneName,
+        String name,
+        String target,
+        boolean proxied
+    ) throws Exception {
+        var recordData = Map.of(
+            "type", "CNAME",
+            "name", name,
+            "content", target,
+            "proxied", proxied,
+            "ttl", 3600
+        );
+
+        String zoneId = getZoneId(zoneName);
+        String response = sendRequest(
+            "POST",
+            "/zones/" + zoneId + "/dns_records",
+            recordData
+        );
+        return objectMapper.readValue(response, DNSRecord.class);
+    }
+
     public void deleteDNSRecord(String zoneName, String recordId) throws Exception {
         String zoneId = getZoneId(zoneName);
         sendRequest("DELETE", "/zones/" + zoneId + "/dns_records/" + recordId);

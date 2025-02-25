@@ -1,5 +1,6 @@
 package com.mc_host.api.service.node;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,6 +28,10 @@ public class CloudNodeService {
     private static final String SCHEME = "https";
     private static final String DOMAIN = "samuelmjordan.dev";
 
+    private static final List<Integer> DEFAULT_MINECRAFT_PORTS = List.of(
+        25565, 25566, 25567, 25568, 25569, 25570, 25571, 25572, 25573, 25574
+    );
+
     private final NodeRepository nodeRepository;
     private final WingsConfigService wingsConfigClient;
     private final HetznerClient hetznerClient;
@@ -52,8 +57,9 @@ public class CloudNodeService {
             Node node = Node.newCloudNode();
             nodeRepository.insertNewNode(node);
             provisionHetznerNode(node, hetznerRegion, hetznerServerType);
-            createDnsRecords(node);
+            createARecord(node);
             configurePterodactylNode(node);
+            createAllocations(node);
             installWings(node);
 
             LOGGER.log(Level.INFO, String.format("Cloud node %s READY", node.getNodeId()));
@@ -116,19 +122,11 @@ public class CloudNodeService {
 
     }
 
-    private void createDnsRecords(Node node) throws  CloudflareProvisioningException {
+    private void createARecord(Node node) throws  CloudflareProvisioningException {
         // Create DNS records with cloudflare
         LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Creating DNS records with cloudflare", node.getNodeId(), node.getHetznerNodeId()));
         try {
             cloudflareClient.createARecord(DOMAIN, node.getNodeId().replace("-", ""), node.getIpv4(), false);
-            cloudflareClient.createSRVRecord(
-                DOMAIN,
-                node.getNodeId().replace("-", ""),
-                "tcp",
-                String.join(".", node.getNodeId().replace("-", ""), DOMAIN),
-                0,
-                0,
-                25565);
         } catch (Exception e) {
             throw new CloudflareProvisioningException(
                 "Failed to create cloudflare dns records",
@@ -170,6 +168,29 @@ public class CloudNodeService {
                 node.getNodeId(),
                 node.getHetznerNodeId(),
                 pterodactylNodeId);
+        }
+    }
+
+    private void createAllocations(Node node) throws PterodactylProvisioningException {
+        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Creating port allocations", 
+            node.getNodeId(), node.getHetznerNodeId()));
+        try {
+            pterodactylClient.createMultipleAllocations(
+                node.getPterodactylNodeId(),
+                node.getIpv4(),
+                DEFAULT_MINECRAFT_PORTS,
+                "Minecraft"
+            );
+            
+            LOGGER.log(Level.INFO, String.format("[node: %s] Successfully created %d allocations", 
+                node.getNodeId(), DEFAULT_MINECRAFT_PORTS.size()));
+        } catch (Exception e) {
+            throw new PterodactylProvisioningException(
+                "Failed to create allocations on pterodactyl node",
+                e,
+                node.getNodeId(),
+                node.getHetznerNodeId(),
+                node.getPterodactylNodeId());
         }
     }
 
