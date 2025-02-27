@@ -19,24 +19,20 @@ public class GameServerRepository {
 
     public int insertNewJavaServer(GameServer javaServer) {
         try {
-            return jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    INSERT INTO game_server_ (
-                        server_id, 
-                        subscription_id,
-                        plan_id,
-                        node_id,
-                        subdomain
-                    )
-                    VALUES (?, ?, ?, ?, ?)
-                    """);
-                ps.setString(1, javaServer.getServerId());
-                ps.setString(2, javaServer.getSubscriptionId());
-                ps.setString(3, javaServer.getPlanId());
-                ps.setString(4, javaServer.getNodeId());
-                ps.setString(5, javaServer.getSubdomain());
-                return ps;
-            });
+            return jdbcTemplate.update("""
+                INSERT INTO game_server_ (
+                    server_id, 
+                    subscription_id,
+                    plan_id,
+                    node_id
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                javaServer.getServerId(),
+                javaServer.getSubscriptionId(),
+                javaServer.getPlanId(),
+                javaServer.getNodeId()
+            );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to create new game server: " + e.getMessage(), e);
         }
@@ -44,23 +40,30 @@ public class GameServerRepository {
 
     public int updateJavaServer(GameServer javaServer) {
         try {
-            int rowsAffected = jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE game_server_
-                    SET subscription_id = ?,
-                        plan_id = ?,
-                        node_id = ?,
-                        subdomain = ?,
-                    WHERE server_id = ?
-                    """);
-                ps.setString(1, javaServer.getSubscriptionId());
-                ps.setString(2, javaServer.getPlanId());
-                ps.setString(3, javaServer.getNodeId());
-                ps.setString(4, javaServer.getSubdomain());
-                ps.setString(5, javaServer.getServerId());
-                return ps;
-            });
-            
+            int rowsAffected = jdbcTemplate.update("""
+                UPDATE game_server_
+                SET subscription_id = ?,
+                    plan_id = ?,
+                    pterodactyl_server_id = ?,
+                    node_id = ?,
+                    allocation_id = ?,
+                    port = ?,
+                    c_name_record_id = ?,
+                    zone_name = ?,
+                    record_name  = ?
+                WHERE server_id = ?
+                """,
+                javaServer.getSubscriptionId(),
+                javaServer.getPlanId(),
+                javaServer.getPterodactylServerId(),
+                javaServer.getNodeId(),
+                javaServer.getAllocationId(),
+                javaServer.getPort(),
+                javaServer.getCNameRecordId(),
+                javaServer.getZoneName(),
+                javaServer.getRecordName(),
+                javaServer.getServerId()
+            );
             if (rowsAffected == 0) {
                 throw new RuntimeException("No existing game server found with id: " + javaServer.getServerId());
             }
@@ -71,7 +74,7 @@ public class GameServerRepository {
         }
     }
 
-    public Optional<GameServer> selectJavaServerFromSubscription(String subscriptionId) {
+    public Optional<GameServer> selectGameServerFromSubscription(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -79,8 +82,13 @@ public class GameServerRepository {
                     server_id,
                     subscription_id,
                     plan_id,
+                    pterodactyl_server_id,
                     node_id,
-                    subdomain
+                    allocation_id,
+                    port,
+                    c_name_record_id,
+                    zone_name,
+                    record_name
                 FROM game_server_
                 WHERE subscription_id = ?
                 """,
@@ -89,7 +97,12 @@ public class GameServerRepository {
                     rs.getString("subscription_id"), 
                     rs.getString("plan_id"),
                     rs.getString("node_id"), 
-                    rs.getString("subdomain")),
+                    rs.getLong("pterodactyl_server_id"),
+                    rs.getLong("allocation_id"),
+                    rs.getInt("port"),
+                    rs.getString("c_name_record_id"),
+                    rs.getString("zone_name"),
+                    rs.getString("record_name")),
                 subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {

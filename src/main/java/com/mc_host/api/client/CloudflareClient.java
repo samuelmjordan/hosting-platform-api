@@ -3,6 +3,7 @@ package com.mc_host.api.client;
 import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
@@ -91,10 +92,11 @@ public class CloudflareClient extends BaseApiClient{
             "/zones/" + zoneId + "/dns_records",
             recordData
         );
-        return objectMapper.readValue(response, DNSRecord.class);
+        SingleRecordResponse<DNSRecord> record = objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(SingleRecordResponse.class, DNSRecord.class));
+        return record.result;
     }
 
-    public DNSRecord createCNAMERecord(
+    public DNSRecord createCNameRecord(
         String zoneName,
         String name,
         String target,
@@ -114,7 +116,8 @@ public class CloudflareClient extends BaseApiClient{
             "/zones/" + zoneId + "/dns_records",
             recordData
         );
-        return objectMapper.readValue(response, DNSRecord.class);
+        SingleRecordResponse<DNSRecord> record = objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(SingleRecordResponse.class, DNSRecord.class));
+        return record.result;
     }
 
     public void deleteDNSRecord(String zoneName, String recordId) throws Exception {
@@ -150,10 +153,18 @@ public class CloudflareClient extends BaseApiClient{
     public record DNSRecord(
         String id,
         String type,
+        String zoneId,
+        String zoneName,
         String name,
         String content,
-        boolean proxied,
-        int ttl
+        Boolean proxied,
+        Integer ttl
+    ) {}
+    public record SingleRecordResponse<T>(
+        boolean success,
+        T result,
+        List<String> errors,
+        List<String> messages
     ) {}
     public record PaginatedResponse<T>(
         boolean success,

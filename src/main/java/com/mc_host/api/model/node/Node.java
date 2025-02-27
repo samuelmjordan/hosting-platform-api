@@ -15,8 +15,11 @@ public class Node {
 
     private Long pterodactylNodeId;
     private Long hetznerNodeId;
-    private String ipv4;
     private HetznerRegion hetznerRegion;
+    private String aRecordId;
+    private String zoneName;
+    private String recordName;
+    private String ipv4;
 
     private Node(Boolean dedicated) {
         this.nodeId  =  UUID.randomUUID().toString();

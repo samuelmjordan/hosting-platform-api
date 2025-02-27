@@ -9,6 +9,6 @@ import lombok.Data;
 @Configuration
 @ConfigurationProperties(prefix = "application")
 public class ApplicationConfiguration {
-    private final String scheme;
-    private final String domain;
+    private String scheme;
+    private String domain;
 }

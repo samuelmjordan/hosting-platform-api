@@ -9,8 +9,13 @@ CREATE TABLE node_ (
 
     -- Info
     dedicated BOOLEAN NOT NULL,
-    ipv4 TEXT,
     hetzner_region TEXT,
+
+    -- DNS Info
+    a_record_id TEXT,
+    zone_name TEXT,
+    record_name TEXT,
+    ipv4 TEXT,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -20,6 +25,8 @@ CREATE TABLE node_ (
     CONSTRAINT node_node_id_unique UNIQUE (node_id),
     CONSTRAINT node_pterodactyl_node_id_unique UNIQUE (pterodactyl_node_id),
     CONSTRAINT node_hetzner_node_id_unique UNIQUE (hetzner_node_id),
+    CONSTRAINT node_record_a_record_id_unique UNIQUE (a_record_id),
+    CONSTRAINT node_record_name_unique UNIQUE (record_name),
     CONSTRAINT node_ipv4_unique UNIQUE (ipv4)
 );
 

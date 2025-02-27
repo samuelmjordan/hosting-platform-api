@@ -3,15 +3,22 @@ CREATE TABLE game_server_ (
     id BIGSERIAL PRIMARY KEY,
     server_id TEXT NOT NULL,
 
+    -- External identifier
+    pterodactyl_server_id BIGINT,
+
     -- Payment and specification details
     subscription_id TEXT NOT NULL,
     plan_id TEXT NOT NULL,
 
-    -- Location
+    -- Infra
     node_id TEXT,
+    allocation_id BIGINT,
+    port BIGINT,
 
-    -- Subdomain
-    subdomain TEXT,
+    -- DNS
+    c_name_record_id TEXT,
+    zone_name TEXT,
+    record_name TEXT,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,7 +26,9 @@ CREATE TABLE game_server_ (
 
     -- Constraints
     CONSTRAINT game_server_server_id_unique UNIQUE (server_id),
-    CONSTRAINT game_server_subdomain_unique UNIQUE (subdomain),
+    CONSTRAINT game_server_c_name_record_id_unique UNIQUE (c_name_record_id),
+    CONSTRAINT game_server_record_name_unique UNIQUE (record_name),
+    CONSTRAINT game_server_pterodactyl_server_id_unique UNIQUE (pterodactyl_server_id),
     CONSTRAINT fk_game_server_subscription_ FOREIGN KEY (subscription_id)
         REFERENCES subscription_ (subscription_id),
     CONSTRAINT fk_game_server_plan_ FOREIGN KEY (plan_id)

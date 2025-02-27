@@ -56,7 +56,7 @@ public class PterodactylClient extends BaseApiClient {
         return objectMapper.readValue(response, ServerResponse.class);
     }
 
-    public void deleteServer(String serverId) throws Exception {
+    public void deleteServer(Long serverId) throws Exception {
         sendRequest("DELETE", "/api/application/servers/" + serverId);
     }
 
@@ -84,7 +84,7 @@ public class PterodactylClient extends BaseApiClient {
         return paginatedResponse.data;
     }
     
-    public void deleteNode(String nodeId) throws Exception {
+    public void deleteNode(Long nodeId) throws Exception {
         sendRequest("DELETE", "/api/application/nodes/" + nodeId);
     }
     
@@ -153,8 +153,9 @@ public class PterodactylClient extends BaseApiClient {
     public enum PowerState {
         START, STOP, RESTART, KILL
     }
-    public record ServerResponse(String id, ServerAttributes attributes) {}
+    public record ServerResponse(ServerAttributes attributes) {}
     public record ServerAttributes(
+        Long id, 
         String name,
         String description,
         String uuid,

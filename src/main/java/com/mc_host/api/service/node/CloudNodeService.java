@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.CloudflareClient;
+import com.mc_host.api.client.CloudflareClient.DNSRecord;
 import com.mc_host.api.client.HetznerClient;
 import com.mc_host.api.client.PterodactylClient;
 import com.mc_host.api.configuration.ApplicationConfiguration;
@@ -52,8 +53,8 @@ public class CloudNodeService {
     }
 
     public Node provisionCloudNode(HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
+        Node node = Node.newCloudNode();
         try {    
-            Node node = Node.newCloudNode();
             nodeRepository.insertNewNode(node);
             provisionHetznerNode(node, hetznerRegion, hetznerServerType);
             createARecord(node);
@@ -64,16 +65,19 @@ public class CloudNodeService {
             LOGGER.log(Level.INFO, String.format("Cloud node %s READY", node.getNodeId()));
             return node;
         } catch(HetznerProvisioningException e) {
-            // cleanup
+            destroyHetznerNode(node);
             throw e;
         } catch(CloudflareProvisioningException e) {
-            // cleanup
+            destroyHetznerNode(node);
             throw e;
         } catch(PterodactylProvisioningException e) {
-            // cleanup
+            destroyDNSRecord(node);
+            destroyHetznerNode(node);
             throw e;
         } catch(SshProvisioningException e) {
-            // cleanup
+            destroyPterodactylNode(node);
+            destroyDNSRecord(node);
+            destroyHetznerNode(node);
             throw e;
         }   
     }
@@ -125,7 +129,13 @@ public class CloudNodeService {
         // Create DNS records with cloudflare
         LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Creating DNS records with cloudflare", node.getNodeId(), node.getHetznerNodeId()));
         try {
-            cloudflareClient.createARecord(applicationConfiguration.getDomain(), node.getNodeId().replace("-", ""), node.getIpv4(), false);
+            String zoneName = applicationConfiguration.getDomain();
+            String recordName = node.getNodeId().replace("-", "");
+            DNSRecord aRecord = cloudflareClient.createARecord(zoneName, recordName, node.getIpv4(), false);
+            node.setARecordId(aRecord.id());
+            node.setZoneName(zoneName);
+            node.setRecordName(recordName);
+            nodeRepository.updateNode(node);
         } catch (Exception e) {
             throw new CloudflareProvisioningException(
                 "Failed to create cloudflare dns records",
@@ -206,6 +216,68 @@ public class CloudNodeService {
                 node.getNodeId(),
                 node.getHetznerNodeId(),
                 node.getPterodactylNodeId());
+        }
+    }
+
+    public void destroyCloudNode(String nodeId) {
+        Node node = null; //fetch
+        try {    
+            destroyPterodactylNode(node);
+            destroyHetznerNode(node);
+            destroyDNSRecord(node);
+            LOGGER.log(Level.INFO, String.format("Cloud node %s DESTROYED", nodeId));
+        } catch(HetznerProvisioningException e) {
+            // cleanup
+            throw e;
+        } catch(CloudflareProvisioningException e) {
+            // cleanup
+            throw e;
+        } catch(PterodactylProvisioningException e) {
+            // cleanup
+            throw e;
+        } catch(SshProvisioningException e) {
+            // cleanup
+            throw e;
+        }  
+    }
+
+    private void destroyPterodactylNode(Node node) {
+        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Registering node with pterodactyl", node.getNodeId(), node.getHetznerNodeId()));
+        try {
+            pterodactylClient.deleteNode(node.getPterodactylNodeId());
+        } catch (Exception e) {
+            throw new PterodactylProvisioningException(
+                "Failed to destroy pterodactyl node",
+                e,
+                node.getNodeId(),
+                node.getHetznerNodeId(),
+                node.getPterodactylNodeId());
+        }
+    }
+
+    private void destroyHetznerNode(Node node) {
+        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNodeId]: %s", node.getNodeId(), node.getHetznerNodeId()));
+        try {
+            hetznerClient.deleteServer(node.getHetznerNodeId());
+        } catch (Exception e) {
+            throw new HetznerProvisioningException(
+                "Destroy hetzner node request failed",
+                e,
+                node.getNodeId(),
+                node.getHetznerNodeId());
+        }
+    }
+
+    private void destroyDNSRecord(Node node) {
+        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Destroying DNS records with cloudflare", node.getNodeId(), node.getHetznerNodeId()));
+        try {
+            cloudflareClient.deleteDNSRecord(node.getZoneName(), node.getRecordName());
+        } catch (Exception e) {
+            throw new CloudflareProvisioningException(
+                "Failed to create cloudflare dns records",
+                e,
+                node.getNodeId(),
+                node.getHetznerNodeId());
         }
     }
 }

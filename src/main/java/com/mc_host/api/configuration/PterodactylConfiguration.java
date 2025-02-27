@@ -9,6 +9,6 @@ import lombok.Data;
 @Configuration
 @ConfigurationProperties(prefix = "pterodactyl")
 public class PterodactylConfiguration {
-    private final String apiBase;
-    private final String apiToken;
+    private String apiBase;
+    private String apiToken;
 }
