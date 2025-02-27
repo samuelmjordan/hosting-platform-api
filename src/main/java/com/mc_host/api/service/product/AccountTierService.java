@@ -2,7 +2,7 @@ package com.mc_host.api.service.product;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.entity.SubscriptionEntity;
+import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.specification.SpecificationType;
 
 @Service
@@ -14,9 +14,21 @@ public class AccountTierService implements ProductService {
     }
 
     @Override
-    public void handle(SubscriptionEntity subscriptionEntity) {
+    public void create(ContentSubscription newSubscription) {
         // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'handle'");
+        throw new UnsupportedOperationException("Unimplemented method 'create'");
+    }
+
+    @Override
+    public void delete(ContentSubscription oldSubscription) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'delete'");
+    }
+
+    @Override
+    public void update(ContentSubscription newSubscription, ContentSubscription oldSubscription) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'update'");
     }
     
 }

@@ -109,4 +109,17 @@ public class GameServerRepository {
             throw new RuntimeException(String.format("Failed to fetch java server for subscription id %s", subscriptionId), e);
         }
     }
+
+    public int deleteGameServer(String serverId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM game_server_
+                WHERE server_id = ?
+                """,
+                serverId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to destroy game server: " + e.getMessage(), e);
+        }
+    }
 }

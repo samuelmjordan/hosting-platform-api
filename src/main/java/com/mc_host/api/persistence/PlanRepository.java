@@ -7,9 +7,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.Currency;
+import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
-import com.mc_host.api.model.entity.PriceEntity;
+import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.specification.JavaServerSpecification;
 
 @Service
@@ -50,11 +50,11 @@ public class PlanRepository {
                         rs.getString("vcpu"),
                         rs.getString("ssd_gb")
                     ), 
-                    new PriceEntity(
+                    new ContentPrice(
                         rs.getString("price_id"),
                         rs.getString("product_id"),
                         rs.getBoolean("active"),
-                        Currency.fromCode(rs.getString("currency")),
+                        AcceptedCurrency.fromCode(rs.getString("currency")),
                         rs.getLong("minor_amount")
                     )
                 )

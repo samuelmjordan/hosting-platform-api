@@ -6,8 +6,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.Currency;
-import com.mc_host.api.model.entity.UserEntity;
+import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.entity.ApplicationUser;
 
 @Service
 public class UserRepository {
@@ -18,7 +18,7 @@ public class UserRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public int insertUser(UserEntity userEntity) {
+    public int insertUser(ApplicationUser userEntity) {
         try {
             return jdbcTemplate.update(
                 """
@@ -52,7 +52,7 @@ public class UserRepository {
         }
     }
 
-    public Optional<Currency> selectUserCurrency(String userId) {
+    public Optional<AcceptedCurrency> selectUserCurrency(String userId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -60,7 +60,7 @@ public class UserRepository {
                 FROM user_
                 WHERE clerk_id = ?
                 """,
-                (rs, rowNum) -> Currency.fromCode(rs.getString("currency")),
+                (rs, rowNum) -> AcceptedCurrency.fromCode(rs.getString("currency")),
                 userId
             ).stream().findFirst();
         } catch (DataAccessException e) {

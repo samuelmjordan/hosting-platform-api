@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.CacheNamespace;
-import com.mc_host.api.model.Currency;
+import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PlanRepository;
@@ -38,27 +38,27 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     @Override
-    public ResponseEntity<Currency> getUserCurrency(String userId) {
+    public ResponseEntity<AcceptedCurrency> getUserCurrency(String userId) {
         return ResponseEntity.ok(getUserCurrencyInner(userId));
     }
 
-    public Currency getUserCurrencyInner(String userId) {
+    public AcceptedCurrency getUserCurrencyInner(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching currency for clerkId %s", userId));
 
         CacheNamespace cacheNamespace = CacheNamespace.USER_CURRENCY;
-        Optional<Currency> cachedCurrency = cachingService.retrieve(cacheNamespace, userId, Currency.class);
+        Optional<AcceptedCurrency> cachedCurrency = cachingService.retrieve(cacheNamespace, userId, AcceptedCurrency.class);
         if (cachedCurrency.isPresent()) {
             return cachedCurrency.get();
         }
 
-        Optional<Currency> currency = userRepository.selectUserCurrency(userId);
+        Optional<AcceptedCurrency> currency = userRepository.selectUserCurrency(userId);
         if (currency.isPresent()) {
             cachingService.set(cacheNamespace, userId, currency.get());
             return currency.get();
         }
 
-        cachingService.set(cacheNamespace, userId, Currency.XXX, Duration.ofSeconds(60));
-        return Currency.XXX;
+        cachingService.set(cacheNamespace, userId, AcceptedCurrency.XXX, Duration.ofSeconds(60));
+        return AcceptedCurrency.XXX;
     }
 
     @Override

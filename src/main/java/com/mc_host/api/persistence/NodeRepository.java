@@ -37,6 +37,7 @@ public class NodeRepository {
 
     public int updateNode(Node node) {
         try {
+            String hetznerRegion = node.getHetznerRegion() == null ? null : node.getHetznerRegion().toString();
             return jdbcTemplate.update("""
                 UPDATE node_
                 SET dedicated = ?,
@@ -52,7 +53,7 @@ public class NodeRepository {
                 node.getDedicated(),
                 node.getPterodactylNodeId(),
                 node.getHetznerNodeId(),
-                node.getHetznerRegion().toString(),
+                hetznerRegion,
                 node.getARecordId(),
                 node.getZoneName(),
                 node.getRecordName(),
@@ -86,7 +87,7 @@ public class NodeRepository {
                     rs.getBoolean("dedicated"), 
                     rs.getLong("pterodactyl_node_id"),
                     rs.getLong("hetzner_node_id"), 
-                    HetznerRegion.valueOf(rs.getString("hetzner_region")),
+                    HetznerRegion.lookup(rs.getString("hetzner_region")),
                     rs.getString("a_record_id"),
                     rs.getString("zone_name"),
                     rs.getString("record_name"),
@@ -95,6 +96,19 @@ public class NodeRepository {
             ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException(String.format("Failed to fetch node for node id %s", nodeId), e);
+        }
+    }
+
+    public int deleteNode(String nodeId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM node_
+                WHERE node_id = ?
+                """,
+                nodeId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete node: " + e.getMessage(), e);
         }
     }
     

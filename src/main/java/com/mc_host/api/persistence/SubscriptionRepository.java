@@ -1,19 +1,15 @@
 package com.mc_host.api.persistence;
 
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Set;
 import java.util.TimeZone;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.entity.SubscriptionEntity;
+import com.mc_host.api.model.entity.ContentSubscription;
 
 @Service
 public class SubscriptionRepository {
@@ -24,7 +20,7 @@ public class SubscriptionRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void insertSubscription(SubscriptionEntity subscriptionEntity) {
+    public void insertSubscription(ContentSubscription subscriptionEntity) {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
@@ -64,23 +60,23 @@ public class SubscriptionRepository {
         }
     }
 
-    public void deleteCustomerSubscriptions(Set<String> subscriptionIds, String customerId) {
+    public void deleteCustomerSubscription(String subscriptionId, String customerId) {
         try {
             jdbcTemplate.update(
                 """
                 DELETE FROM subscription_
                 WHERE customer_id = ? 
-                AND subscription_id = ANY(?)
+                AND subscription_id = ?
                 """,
                 customerId,
-                createArrayOf("text", subscriptionIds.toArray())
+                subscriptionId
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete subscriptions from database: " + e.getMessage(), e);
         }
     }
 
-    public List<SubscriptionEntity> selectSubscriptionsByCustomerId(String customerId) {
+    public List<ContentSubscription> selectSubscriptionsByCustomerId(String customerId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -96,7 +92,7 @@ public class SubscriptionRepository {
                 WHERE customer_id = ?
                 ORDER BY status_, current_period_start DESC
                 """,
-                (rs, rowNum) -> new SubscriptionEntity(
+                (rs, rowNum) -> new ContentSubscription(
                     rs.getString("subscription_id"),
                     rs.getString("customer_id"),
                     rs.getString("status_"),
@@ -137,12 +133,4 @@ public class SubscriptionRepository {
             throw new RuntimeException("Failed to update currency for customer ID: " + customerId, e);
         }
      }
-
-    private Array createArrayOf(String typeName, Object[] elements) {
-        try (Connection conn = jdbcTemplate.getDataSource().getConnection()) {
-            return conn.createArrayOf(typeName, elements);
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to create SQL array: " + e.getMessage(), e);
-        }
-    }
 }

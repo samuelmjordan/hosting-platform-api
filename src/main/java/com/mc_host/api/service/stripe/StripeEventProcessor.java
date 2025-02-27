@@ -21,9 +21,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.model.CacheNamespace;
-import com.mc_host.api.model.Currency;
-import com.mc_host.api.model.entity.PriceEntity;
-import com.mc_host.api.model.entity.SubscriptionEntity;
+import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.entity.ContentPrice;
+import com.mc_host.api.model.entity.ContentSubscription;
+import com.mc_host.api.model.entity.SubscriptionPair;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PriceRepository;
 import com.mc_host.api.persistence.SubscriptionRepository;
@@ -127,36 +128,62 @@ public class StripeEventProcessor {
         }
     }
 
-    @Transactional
     private void syncSubscriptionData(String customerId) {
         try {
-            List<SubscriptionEntity> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
+            List<ContentSubscription> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
+            List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData().stream()
+                .map(subscription -> stripeSubscriptionToEntity(subscription, customerId)).toList();
 
-            List<Subscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData();
-            Set<String> stripeSubscriptionIds = stripeSubscriptions.stream().map(Subscription::getId).collect(Collectors.toSet());
+            List<ContentSubscription> subscriptionsToDelete = dbSubscriptions.stream()
+                .filter(dbSubscription -> stripeSubscriptions.stream().noneMatch(dbSubscription::isAlike))
+                .toList();
 
-            Set<String> dbSubscriptionsToDelete = dbSubscriptions.stream()
-                .map(SubscriptionEntity::subscriptionId)
-                .filter(id -> !stripeSubscriptionIds.contains(id))
-                .collect(Collectors.toSet());
+            List<ContentSubscription> subscriptionsToCreate = stripeSubscriptions.stream()
+                .filter(stripeSubscription -> dbSubscriptions.stream().noneMatch(stripeSubscription::isAlike))
+                .toList();
 
-            if (!dbSubscriptionsToDelete.isEmpty())  {
-                subscriptionRepository.deleteCustomerSubscriptions(dbSubscriptionsToDelete, customerId);
-            }
+            List<SubscriptionPair> subscriptionsToUpdate = dbSubscriptions.stream()
+                .flatMap(dbSubscription -> stripeSubscriptions.stream()
+                    .filter(dbSubscription::isAlike)
+                    .map(stripeSubscription -> new SubscriptionPair(dbSubscription, stripeSubscription)))
+                .toList();
 
-            List<CompletableFuture<Void>> futures = stripeSubscriptions.stream()
-                .map(subscription -> stripeSubscriptionToEntity(subscription, customerId))
+            List<CompletableFuture<Void>> deleteFutures = subscriptionsToDelete.stream()
+                .map(subscription -> CompletableFuture.runAsync(() -> {
+                    try {
+                        productServiceSupplier.supply(subscription).delete(subscription);
+                        subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), customerId);
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Deletion failed for subscription id " + subscription.subscriptionId(), e);
+                        throw e;
+                    }
+                }, virtualThreadExecutor)).toList();
+
+            List<CompletableFuture<Void>> createFutures = subscriptionsToCreate.stream()
                 .map(subscription -> CompletableFuture.runAsync(() -> {
                     try {
                         subscriptionRepository.insertSubscription(subscription);
-                        productServiceSupplier.supplyAndHandle(subscription);
+                        productServiceSupplier.supply(subscription).create(subscription);
                     } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Sync failed for subscription id " + subscription.subscriptionId(), e);
+                        LOGGER.log(Level.SEVERE, "Creation failed for subscription id " + subscription.subscriptionId(), e);
                         throw e;
                     }
-                }, virtualThreadExecutor))
-                .toList();
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+                }, virtualThreadExecutor)).toList();
+
+            List<CompletableFuture<Void>> updateFutures = subscriptionsToUpdate.stream()
+                .map(subscriptionPair -> CompletableFuture.runAsync(() -> {
+                    try {
+                        subscriptionRepository.insertSubscription(subscriptionPair.getNewSubscription());
+                        productServiceSupplier.supply(subscriptionPair.getNewSubscription()).update(subscriptionPair.getOldSubscription(), subscriptionPair.getNewSubscription());
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Update failed for subscription id " + subscriptionPair.getOldSubscription().subscriptionId(), e);
+                        throw e;
+                    }
+                }, virtualThreadExecutor)).toList();
+
+            CompletableFuture.allOf(deleteFutures.toArray(new CompletableFuture[0])).join();
+            CompletableFuture.allOf(createFutures.toArray(new CompletableFuture[0])).join();
+            CompletableFuture.allOf(updateFutures.toArray(new CompletableFuture[0])).join();
                 
             subscriptionRepository.updateUserCurrencyFromSubscription(customerId);
             LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
@@ -166,8 +193,8 @@ public class StripeEventProcessor {
         }
     }
 
-    private SubscriptionEntity stripeSubscriptionToEntity(Subscription subscription, String customerId) {
-        return new SubscriptionEntity(
+    private ContentSubscription stripeSubscriptionToEntity(Subscription subscription, String customerId) {
+        return new ContentSubscription(
             subscription.getId(), 
             customerId, 
             subscription.getStatus(), 
@@ -179,9 +206,9 @@ public class StripeEventProcessor {
     }
 
     @Transactional
-    public List<PriceEntity> syncPriceData(String productId) {
+    public List<ContentPrice> syncPriceData(String productId) {
         try {
-            List<PriceEntity> dbPrices = priceRepository.selectPricesByProductId(productId);
+            List<ContentPrice> dbPrices = priceRepository.selectPricesByProductId(productId);
     
             PriceListParams priceListParams = PriceListParams.builder()
                 .setProduct(productId)
@@ -190,7 +217,7 @@ public class StripeEventProcessor {
             Set<String> stripePriceIds = stripePrices.stream().map(Price::getId).collect(Collectors.toSet());
     
             Set<String> dbPricesToDelete = dbPrices.stream()
-                .map(PriceEntity::priceId)
+                .map(ContentPrice::priceId)
                 .filter(id -> !stripePriceIds.contains(id))
                 .collect(Collectors.toSet());
     
@@ -198,7 +225,7 @@ public class StripeEventProcessor {
                 priceRepository.deleteProductPrices(dbPricesToDelete, productId);
             }
     
-            List<PriceEntity> stripePriceEntities = stripePrices.stream()
+            List<ContentPrice> stripePriceEntities = stripePrices.stream()
                 .map(price -> stripePriceToEntity(price, productId))
                 .toList();
             cachingService.evict(CacheNamespace.SPECIFICATION_PLANS, SpecificationType.fromProductId(productId).name());
@@ -213,12 +240,12 @@ public class StripeEventProcessor {
         }
     }
 
-    private PriceEntity stripePriceToEntity(Price price, String productId) {
-        return new PriceEntity(
+    private ContentPrice stripePriceToEntity(Price price, String productId) {
+        return new ContentPrice(
             price.getId(), 
             productId, 
             price.getActive(),
-            Currency.fromCode(price.getCurrency()),
+            AcceptedCurrency.fromCode(price.getCurrency()),
             price.getUnitAmount()
         );
     }

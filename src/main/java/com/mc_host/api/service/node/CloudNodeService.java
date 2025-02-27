@@ -220,11 +220,13 @@ public class CloudNodeService {
     }
 
     public void destroyCloudNode(String nodeId) {
-        Node node = null; //fetch
+        Node node = nodeRepository.selectNode(nodeId)
+            .orElseThrow(() -> new RuntimeException(String.format("No node %s could be found", nodeId)));
         try {    
             destroyPterodactylNode(node);
             destroyHetznerNode(node);
             destroyDNSRecord(node);
+            nodeRepository.deleteNode(nodeId);
             LOGGER.log(Level.INFO, String.format("Cloud node %s DESTROYED", nodeId));
         } catch(HetznerProvisioningException e) {
             // cleanup
@@ -245,6 +247,8 @@ public class CloudNodeService {
         LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Registering node with pterodactyl", node.getNodeId(), node.getHetznerNodeId()));
         try {
             pterodactylClient.deleteNode(node.getPterodactylNodeId());
+            node.setPterodactylNodeId(null);
+            nodeRepository.updateNode(node);
         } catch (Exception e) {
             throw new PterodactylProvisioningException(
                 "Failed to destroy pterodactyl node",
@@ -256,9 +260,12 @@ public class CloudNodeService {
     }
 
     private void destroyHetznerNode(Node node) {
-        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNodeId]: %s", node.getNodeId(), node.getHetznerNodeId()));
+        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNodeId: %s] Destroying hetzner node", node.getNodeId(), node.getHetznerNodeId()));
         try {
             hetznerClient.deleteServer(node.getHetznerNodeId());
+            node.setHetznerNodeId(null);
+            node.setHetznerRegion(null);
+            nodeRepository.updateNode(node);
         } catch (Exception e) {
             throw new HetznerProvisioningException(
                 "Destroy hetzner node request failed",
@@ -269,12 +276,17 @@ public class CloudNodeService {
     }
 
     private void destroyDNSRecord(Node node) {
-        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Destroying DNS records with cloudflare", node.getNodeId(), node.getHetznerNodeId()));
+        LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] [aRecord: %s]Destroying DNS records with cloudflare", node.getNodeId(), node.getHetznerNodeId(), node.getARecordId()));
         try {
-            cloudflareClient.deleteDNSRecord(node.getZoneName(), node.getRecordName());
+            cloudflareClient.deleteDNSRecord(node.getZoneName(), node.getARecordId());
+            node.setARecordId(null);
+            node.setZoneName(null);
+            node.setRecordName(null);
+            node.setIpv4(null);
+            nodeRepository.updateNode(node);
         } catch (Exception e) {
             throw new CloudflareProvisioningException(
-                "Failed to create cloudflare dns records",
+                "Failed to destroy cloudflare dns records",
                 e,
                 node.getNodeId(),
                 node.getHetznerNodeId());

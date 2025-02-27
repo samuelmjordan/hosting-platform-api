@@ -11,8 +11,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.Currency;
-import com.mc_host.api.model.entity.PriceEntity;
+import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.entity.ContentPrice;
 
 @Service
 public class PriceRepository {
@@ -23,7 +23,7 @@ public class PriceRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void insertPrice(PriceEntity priceEntity) {
+    public void insertPrice(ContentPrice priceEntity) {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
@@ -70,7 +70,7 @@ public class PriceRepository {
         }
     }
 
-    public List<PriceEntity> selectPricesByProductId(String productId) {
+    public List<ContentPrice> selectPricesByProductId(String productId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -84,11 +84,11 @@ public class PriceRepository {
                 WHERE product_id = ?
                 ORDER BY active, currency, minor_amount DESC
                 """,
-                (rs, rowNum) -> new PriceEntity(
+                (rs, rowNum) -> new ContentPrice(
                     rs.getString("price_id"),
                     rs.getString("product_id"),
                     rs.getBoolean("active"),
-                    Currency.fromCode(rs.getString("currency")),
+                    AcceptedCurrency.fromCode(rs.getString("currency")),
                     rs.getLong("minor_amount")
                 ),
                 productId

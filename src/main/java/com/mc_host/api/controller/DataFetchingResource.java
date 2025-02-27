@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mc_host.api.model.Currency;
+import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.specification.SpecificationType;
 
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @RequestMapping("/api")
 public interface DataFetchingResource {
     @GetMapping("/user/{userId}/currency")
-    public ResponseEntity<Currency> getUserCurrency(
+    public ResponseEntity<AcceptedCurrency> getUserCurrency(
         @PathVariable String userId
     );
 

@@ -20,8 +20,8 @@ import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.exceptions.ClerkException;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
-import com.mc_host.api.model.Currency;
-import com.mc_host.api.model.entity.UserEntity;
+import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.entity.ApplicationUser;
 import com.mc_host.api.model.request.CheckoutRequest;
 import com.mc_host.api.persistence.GameServerSpecRepository;
 import com.mc_host.api.persistence.UserRepository;
@@ -131,8 +131,8 @@ public class StripeService implements StripeResource {
     }
 
     private String getPriceInCorrectCurrency(String priceId, String userId) {
-        Currency currency = dataFetchingService.getUserCurrencyInner(userId);
-        if (currency.equals(Currency.XXX)) {
+        AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);
+        if (currency.equals(AcceptedCurrency.XXX)) {
             return priceId;
         }
         return gameServerSpecRepository.convertPrice(priceId, currency)
@@ -191,7 +191,7 @@ public class StripeService implements StripeResource {
         );
         
         Customer stripeCustomer = Customer.create(customerParams);
-        userRepository.insertUser(new UserEntity(userId, stripeCustomer.getId()));
+        userRepository.insertUser(new ApplicationUser(userId, stripeCustomer.getId()));
 
         LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: " + userId);
         return stripeCustomer.getId();

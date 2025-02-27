@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.entity.SubscriptionEntity;
+import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PriceRepository;
 
@@ -25,11 +25,7 @@ public class ProductServiceSupplier {
         this.bedrockServerService = bedrockServerService;
     }
 
-    public void supplyAndHandle(SubscriptionEntity subscription) {
-        this.supply(subscription).handle(subscription);
-    }
-
-    public ProductService supply(SubscriptionEntity subscription) {
+    public ProductService supply(ContentSubscription subscription) {
         SpecificationType product = SpecificationType.fromProductId(priceRepository.selectProductId(subscription.priceId())
             .orElseThrow(() -> new IllegalArgumentException("Couldnt fetch product for priceId " + subscription.priceId())));
 

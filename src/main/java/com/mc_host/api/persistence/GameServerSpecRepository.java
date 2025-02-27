@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.Currency;
+import com.mc_host.api.model.AcceptedCurrency;
 
 @Service
 public class GameServerSpecRepository {
@@ -19,7 +19,7 @@ public class GameServerSpecRepository {
     }
 
     // Fetch an equivalent price id, in a given currency
-    public Optional<String> convertPrice(String priceId, Currency currency) {
+    public Optional<String> convertPrice(String priceId, AcceptedCurrency currency) {
         try {
             return jdbcTemplate.query(
                 """

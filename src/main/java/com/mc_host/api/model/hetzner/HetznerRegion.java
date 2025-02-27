@@ -1,18 +1,18 @@
 package com.mc_host.api.model.hetzner;
 
-import com.mc_host.api.model.Region;
+import com.mc_host.api.model.MarketingRegion;
 
 import lombok.Getter;
 
 @Getter
 public enum HetznerRegion {
-    NBG1(Region.WEST_EUROPE, 1);
+    NBG1(MarketingRegion.WEST_EUROPE, 1);
 
-    public final Region marketingRegionMapping;
+    public final MarketingRegion marketingRegionMapping;
     public final Integer pterodactylLocationId;
 
     HetznerRegion(
-        Region regionMapping,
+        MarketingRegion regionMapping,
         Integer pterodactylLocationId
     ) {
         this.marketingRegionMapping = regionMapping;
@@ -22,5 +22,9 @@ public enum HetznerRegion {
     @Override
     public String toString() {
         return this.name().toLowerCase();
+    }
+
+    public static HetznerRegion lookup(String string)  {
+        return HetznerRegion.valueOf(string.toUpperCase());
     }
 }

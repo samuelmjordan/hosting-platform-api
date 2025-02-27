@@ -1,6 +1,6 @@
 package com.mc_host.api.model.entity;
 
-public record UserEntity(
+public record ApplicationUser(
     String clerkId,
     String customerId
 ) {
