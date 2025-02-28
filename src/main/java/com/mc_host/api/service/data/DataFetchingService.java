@@ -17,22 +17,22 @@ import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PlanRepository;
 import com.mc_host.api.persistence.UserRepository;
-import com.mc_host.api.util.Cache;
+import com.mc_host.api.util.CacheService;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
-    private final Cache cachingService;
+    private final CacheService cacheService;
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
 
     public DataFetchingService(
-        Cache cachingService,
+        CacheService cacheService,
         PlanRepository planRepository,
         UserRepository userRepository
     ) {
-        this.cachingService = cachingService;
+        this.cacheService = cacheService;
         this.planRepository = planRepository;
         this.userRepository = userRepository;
     }
@@ -46,18 +46,18 @@ public class DataFetchingService implements DataFetchingResource  {
         LOGGER.log(Level.INFO, String.format("Fetching currency for clerkId %s", userId));
 
         CacheNamespace cacheNamespace = CacheNamespace.USER_CURRENCY;
-        Optional<AcceptedCurrency> cachedCurrency = cachingService.retrieve(cacheNamespace, userId, AcceptedCurrency.class);
+        Optional<AcceptedCurrency> cachedCurrency = cacheService.retrieve(cacheNamespace, userId, AcceptedCurrency.class);
         if (cachedCurrency.isPresent()) {
             return cachedCurrency.get();
         }
 
         Optional<AcceptedCurrency> currency = userRepository.selectUserCurrency(userId);
         if (currency.isPresent()) {
-            cachingService.set(cacheNamespace, userId, currency.get());
+            cacheService.set(cacheNamespace, userId, currency.get());
             return currency.get();
         }
 
-        cachingService.set(cacheNamespace, userId, AcceptedCurrency.XXX, Duration.ofSeconds(60));
+        cacheService.set(cacheNamespace, userId, AcceptedCurrency.XXX, Duration.ofSeconds(60));
         return AcceptedCurrency.XXX;
     }
 
@@ -70,7 +70,7 @@ public class DataFetchingService implements DataFetchingResource  {
     
         try {
             CacheNamespace cacheNamespace = CacheNamespace.SPECIFICATION_PLANS;
-            Optional<List<Plan>> cachedPlans = cachingService.retrieve(
+            Optional<List<Plan>> cachedPlans = cacheService.retrieve(
                 cacheNamespace, specType.name(), new TypeReference<List<Plan>>() {}
             );
             if (cachedPlans.isPresent() && !cachedPlans.get().isEmpty()) {
@@ -90,7 +90,7 @@ public class DataFetchingService implements DataFetchingResource  {
                 LOGGER.log(Level.WARNING, String.format("specType %s had no plans. Is this the correct Id?", specType));
                 throw new RuntimeException(String.format("specType %s had no plans. Is this the correct Id?", specType));
             }
-            cachingService.set(cacheNamespace, specType.name(), plans);
+            cacheService.set(cacheNamespace, specType.name(), plans);
             
             return ResponseEntity.ok(plans);
         } catch (RuntimeException e) {

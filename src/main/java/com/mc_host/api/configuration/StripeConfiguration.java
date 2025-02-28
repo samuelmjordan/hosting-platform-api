@@ -19,6 +19,7 @@ public class StripeConfiguration {
     private String signingKey;
     private String activeJavaProductId;
     private Long eventDebounceTtlMs;
+    private Long subscriptionSyncTimeoutMinutes;
     private List<String> subscriptionEvents;
     private List<String> priceEvents;
 

@@ -9,4 +9,14 @@ public record ContentPrice(
     AcceptedCurrency currency,
     Long minorAmount
 ) {
+
+    public Boolean isAlike(ContentPrice newPrice) {
+        if (newPrice == null) {
+            return false;
+        }
+        if (this.priceId().equals(newPrice.priceId())) {
+            return true;
+        }
+        return false;
+    }
 }

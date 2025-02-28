@@ -51,6 +51,7 @@ stripe:
   signing-key: ${STRIPE_SECRET_SIGNING_KEY}
   active-java-product-id: prod_RiiVxhDuwyX0qD
   event-debounce-ttl-ms: 5000
+  subscription-sync-timeout-minutes: 15
   subscription-events:
     - checkout.session.completed
     - customer.subscription.created

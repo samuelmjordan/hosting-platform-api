@@ -54,19 +54,19 @@ public class PriceRepository {
         }
     }
 
-    public void deleteProductPrices(Set<String> priceIds, String productId) {
+    public void deleteProductPrice(String priceId, String productId) {
         try {
             jdbcTemplate.update(
                 """
                 DELETE FROM price_
                 WHERE product_id = ? 
-                AND price_id = ANY(?)
+                AND price_id = ?
                 """,
                 productId,
-                createArrayOf("text", priceIds.toArray())
+                priceId
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to delete prices from database: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to delete price from database: " + e.getMessage(), e);
         }
     }
 
@@ -113,13 +113,4 @@ public class PriceRepository {
             throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
         }
     }
-
-
-    private Array createArrayOf(String typeName, Object[] elements) {
-        try (Connection conn = jdbcTemplate.getDataSource().getConnection()) {
-            return conn.createArrayOf(typeName, elements);
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to create SQL array: " + e.getMessage(), e);
-        }
-    }   
 }

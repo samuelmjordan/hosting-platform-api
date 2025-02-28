@@ -15,18 +15,15 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-public class Cache {
-    private static final Logger LOGGER = Logger.getLogger(Cache.class.getName());
+public class CacheService {
+    private static final Logger LOGGER = Logger.getLogger(CacheService.class.getName());
     private static final CacheNamespace API_NAMESPACE = CacheNamespace.API;
     private static final String DELIMITER = "::";
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public Cache(
-        StringRedisTemplate redisTemplate,
-        ObjectMapper objectMapper
-    ) {
+    public CacheService(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
@@ -51,6 +48,10 @@ public class Cache {
         } catch (JsonProcessingException e) {
             LOGGER.log(Level.WARNING, String.format("Failed to serialize value for key %s", key), e);
         }
+    }
+
+    public Boolean exists(CacheNamespace namespace, String flag) {
+        return redisTemplate.hasKey(composeKey(namespace, flag));
     }
 
     public <T> Boolean flagIfAbsent(CacheNamespace namespace, String flag, Duration ttl) {
