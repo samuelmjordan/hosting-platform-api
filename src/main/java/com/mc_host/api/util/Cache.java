@@ -1,4 +1,4 @@
-package com.mc_host.api.service.util;
+package com.mc_host.api.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,15 +15,15 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-public class CachingService {
-    private static final Logger LOGGER = Logger.getLogger(CachingService.class.getName());
+public class Cache {
+    private static final Logger LOGGER = Logger.getLogger(Cache.class.getName());
     private static final CacheNamespace API_NAMESPACE = CacheNamespace.API;
     private static final String DELIMITER = "::";
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public CachingService(
+    public Cache(
         StringRedisTemplate redisTemplate,
         ObjectMapper objectMapper
     ) {

@@ -1,5 +1,6 @@
-package com.mc_host.api.service.util;
+package com.mc_host.api.util;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.logging.Level;
@@ -68,6 +69,11 @@ public class Task {
         } catch (CompletionException e) {
             throw new RuntimeException("Resource cleanup failed", e.getCause());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void awaitCompletion(List<CompletableFuture<Void>> tasks) {
+        awaitCompletion(tasks.toArray(new CompletableFuture[0]));
     }
 
     @FunctionalInterface

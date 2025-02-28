@@ -17,18 +17,18 @@ import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PlanRepository;
 import com.mc_host.api.persistence.UserRepository;
-import com.mc_host.api.service.util.CachingService;
+import com.mc_host.api.util.Cache;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
-    private final CachingService cachingService;
+    private final Cache cachingService;
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
 
     public DataFetchingService(
-        CachingService cachingService,
+        Cache cachingService,
         PlanRepository planRepository,
         UserRepository userRepository
     ) {

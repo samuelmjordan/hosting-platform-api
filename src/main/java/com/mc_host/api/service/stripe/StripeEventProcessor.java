@@ -2,12 +2,12 @@ package com.mc_host.api.service.stripe;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -29,7 +29,8 @@ import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PriceRepository;
 import com.mc_host.api.persistence.SubscriptionRepository;
 import com.mc_host.api.service.product.ProductServiceSupplier;
-import com.mc_host.api.service.util.CachingService;
+import com.mc_host.api.util.Cache;
+import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Price;
@@ -43,19 +44,17 @@ public class StripeEventProcessor {
 
     private final StripeConfiguration stripeConfiguration;
     private final ProductServiceSupplier productServiceSupplier;
-    private final CachingService cachingService;
+    private final Cache cachingService;
     private final SubscriptionRepository subscriptionRepository;
     private final PriceRepository priceRepository;
-    private final Executor virtualThreadExecutor;
     private final ScheduledExecutorService delayedTaskScheduler;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
         ProductServiceSupplier productServiceSupplier,
-        CachingService cachingService,
+        Cache cachingService,
         SubscriptionRepository subscriptionRepository,
         PriceRepository priceRepository,
-        Executor virtualThreadExecutor,
         ScheduledExecutorService delayedTaskScheduler
     ) {
         this.stripeConfiguration = stripeConfiguration;
@@ -63,7 +62,6 @@ public class StripeEventProcessor {
         this.cachingService = cachingService;
         this.subscriptionRepository = subscriptionRepository;
         this.priceRepository = priceRepository;
-        this.virtualThreadExecutor = virtualThreadExecutor;
         this. delayedTaskScheduler = delayedTaskScheduler;
     }
     
@@ -128,70 +126,72 @@ public class StripeEventProcessor {
         }
     }
 
-    private void syncSubscriptionData(String customerId) {
-        try {
-            List<ContentSubscription> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
-            List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData().stream()
-                .map(subscription -> stripeSubscriptionToEntity(subscription, customerId)).toList();
+private void syncSubscriptionData(String customerId) {
+    try {
+        List<ContentSubscription> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
+        List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData().stream()
+            .map(subscription -> stripeSubscriptionToEntity(subscription, customerId)).toList();
 
-            List<ContentSubscription> subscriptionsToDelete = dbSubscriptions.stream()
-                .filter(dbSubscription -> stripeSubscriptions.stream().noneMatch(dbSubscription::isAlike))
-                .toList();
+        List<ContentSubscription> subscriptionsToDelete = dbSubscriptions.stream()
+            .filter(dbSubscription -> stripeSubscriptions.stream().noneMatch(dbSubscription::isAlike))
+            .toList();
+        List<ContentSubscription> subscriptionsToCreate = stripeSubscriptions.stream()
+            .filter(stripeSubscription -> dbSubscriptions.stream().noneMatch(stripeSubscription::isAlike))
+            .toList();
+        List<SubscriptionPair> subscriptionsToUpdate = dbSubscriptions.stream()
+            .flatMap(dbSubscription -> stripeSubscriptions.stream()
+                .filter(dbSubscription::isAlike)
+                .map(stripeSubscription -> new SubscriptionPair(dbSubscription, stripeSubscription)))
+            .toList();
 
-            List<ContentSubscription> subscriptionsToCreate = stripeSubscriptions.stream()
-                .filter(stripeSubscription -> dbSubscriptions.stream().noneMatch(stripeSubscription::isAlike))
-                .toList();
+        List<CompletableFuture<Void>> deleteTasks = subscriptionsToDelete.stream()
+            .map(subscription -> Task.alwaysAttempt(
+                "Delete subscription " + subscription.subscriptionId(),
+                () -> {
+                    productServiceSupplier.supply(subscription).delete(subscription);
+                    subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), customerId);
+                }
+            )).toList();
 
-            List<SubscriptionPair> subscriptionsToUpdate = dbSubscriptions.stream()
-                .flatMap(dbSubscription -> stripeSubscriptions.stream()
-                    .filter(dbSubscription::isAlike)
-                    .map(stripeSubscription -> new SubscriptionPair(dbSubscription, stripeSubscription)))
-                .toList();
+        List<CompletableFuture<Void>> createTasks = subscriptionsToCreate.stream()
+            .map(subscription -> Task.alwaysAttempt(
+                "Create subscription " + subscription.subscriptionId(),
+                () -> {
+                    subscriptionRepository.insertSubscription(subscription);
+                    productServiceSupplier.supply(subscription).create(subscription);
+                }
+            )).toList();
 
-            List<CompletableFuture<Void>> deleteFutures = subscriptionsToDelete.stream()
-                .map(subscription -> CompletableFuture.runAsync(() -> {
-                    try {
-                        productServiceSupplier.supply(subscription).delete(subscription);
-                        subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), customerId);
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Deletion failed for subscription id " + subscription.subscriptionId(), e);
-                        throw e;
-                    }
-                }, virtualThreadExecutor)).toList();
+        List<CompletableFuture<Void>> updateTasks = subscriptionsToUpdate.stream()
+            .map(subscriptionPair -> Task.alwaysAttempt(
+                "Update subscription " + subscriptionPair.getOldSubscription().subscriptionId(),
+                () -> {
+                    subscriptionRepository.insertSubscription(subscriptionPair.getNewSubscription());
+                    productServiceSupplier.supply(subscriptionPair.getNewSubscription())
+                        .update(subscriptionPair.getOldSubscription(), subscriptionPair.getNewSubscription());
+                }
+            )).toList();
 
-            List<CompletableFuture<Void>> createFutures = subscriptionsToCreate.stream()
-                .map(subscription -> CompletableFuture.runAsync(() -> {
-                    try {
-                        subscriptionRepository.insertSubscription(subscription);
-                        productServiceSupplier.supply(subscription).create(subscription);
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Creation failed for subscription id " + subscription.subscriptionId(), e);
-                        throw e;
-                    }
-                }, virtualThreadExecutor)).toList();
-
-            List<CompletableFuture<Void>> updateFutures = subscriptionsToUpdate.stream()
-                .map(subscriptionPair -> CompletableFuture.runAsync(() -> {
-                    try {
-                        subscriptionRepository.insertSubscription(subscriptionPair.getNewSubscription());
-                        productServiceSupplier.supply(subscriptionPair.getNewSubscription()).update(subscriptionPair.getOldSubscription(), subscriptionPair.getNewSubscription());
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Update failed for subscription id " + subscriptionPair.getOldSubscription().subscriptionId(), e);
-                        throw e;
-                    }
-                }, virtualThreadExecutor)).toList();
-
-            CompletableFuture.allOf(deleteFutures.toArray(new CompletableFuture[0])).join();
-            CompletableFuture.allOf(createFutures.toArray(new CompletableFuture[0])).join();
-            CompletableFuture.allOf(updateFutures.toArray(new CompletableFuture[0])).join();
-                
-            subscriptionRepository.updateUserCurrencyFromSubscription(customerId);
-            LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
-        } catch (StripeException e) {
-            LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
-            throw new RuntimeException("Failed to sync subscription data", e);
-        }
+        // Combine all tasks
+        List<CompletableFuture<Void>> allTasks = new ArrayList<>();
+        allTasks.addAll(deleteTasks);
+        allTasks.addAll(createTasks);
+        allTasks.addAll(updateTasks);
+        Task.awaitCompletion(allTasks);
+            
+        // Final update after all operations complete
+        CompletableFuture<Void> updateCurrency = Task.criticalTask(
+            "Update user currency for " + customerId,
+            () -> subscriptionRepository.updateUserCurrencyFromSubscription(customerId)
+        );
+        
+        Task.awaitCompletion(updateCurrency);
+        LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
+    } catch (StripeException e) {
+        LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
+        throw new RuntimeException("Failed to sync subscription data", e);
     }
+}
 
     private ContentSubscription stripeSubscriptionToEntity(Subscription subscription, String customerId) {
         return new ContentSubscription(

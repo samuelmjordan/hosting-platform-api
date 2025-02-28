@@ -29,7 +29,7 @@ import com.mc_host.api.persistence.GameServerRepository;
 import com.mc_host.api.persistence.NodeRepository;
 import com.mc_host.api.persistence.PlanRepository;
 import com.mc_host.api.service.node.CloudNodeService;
-import com.mc_host.api.service.util.Task;
+import com.mc_host.api.util.Task;
 
 @Service
 public class GameServerService implements ProductService {
