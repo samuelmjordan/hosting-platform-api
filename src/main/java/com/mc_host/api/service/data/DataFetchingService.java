@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.mc_host.api.controller.DataFetchingResource;
-import com.mc_host.api.model.CacheNamespace;
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
+import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PlanRepository;
 import com.mc_host.api.persistence.UserRepository;

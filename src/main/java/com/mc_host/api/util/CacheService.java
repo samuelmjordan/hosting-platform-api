@@ -2,7 +2,8 @@ package com.mc_host.api.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.model.CacheNamespace;
+import com.mc_host.api.model.cache.CacheNamespace;
+import com.mc_host.api.model.cache.Queue;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.lang.reflect.Type;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class CacheService {
     private static final Logger LOGGER = Logger.getLogger(CacheService.class.getName());
     private static final CacheNamespace API_NAMESPACE = CacheNamespace.API;
+    private static final CacheNamespace QUEUE_NAMESPACE = CacheNamespace.QUEUE;
     private static final String DELIMITER = "::";
 
     private final StringRedisTemplate redisTemplate;
@@ -83,5 +85,23 @@ public class CacheService {
             LOGGER.log(Level.WARNING, String.format("Failed to deserialize value for key %s with type %s", key, typeReference), e);
             return Optional.empty();
         }
+    }
+
+    public void queuePush(Queue queue, String value) {
+        try {
+            redisTemplate.opsForList().leftPush(composeKey(QUEUE_NAMESPACE, queue.name()), value);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, String.format("Failed to push value %s for queue %s", value, queue), e);
+            throw e;
+        }        
+    }
+
+    public String queueRead(Queue queue) {
+        try {
+            return redisTemplate.opsForList().rightPop(composeKey(QUEUE_NAMESPACE, queue.name()));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, String.format("Failed to read queue %s", queue), e);
+            throw e;
+        }        
     }
 }
