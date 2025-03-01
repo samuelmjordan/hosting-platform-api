@@ -2,6 +2,7 @@ package com.mc_host.api.service.node;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,6 +30,7 @@ import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
 import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
 import com.mc_host.api.persistence.NodeRepository;
 import com.mc_host.api.service.product.WingsConfigService;
+import com.mc_host.api.util.Task;
 
 @Service
 public class CloudNodeService {
@@ -207,28 +209,47 @@ public class CloudNodeService {
         }
     }
 
-    // TODO: Taskify
     public void destroyCloudNode(String nodeId) {
         LOGGER.log(Level.INFO, String.format("Starting teardown for node %s", nodeId));
         Optional<PterodactylNode> pterodactylNode = nodeRepository.selectPterodactylNode(nodeId);
         Optional<HetznerNode> hetznerNode = nodeRepository.selectHetznerNode(nodeId);
         Optional<DnsARecord> dnsARecord = nodeRepository.selectDnsARecord(nodeId);
-        try {
-            if (pterodactylNode.isPresent()) {
-                destroyPterodactylNode(pterodactylNode.get());
-            } // else, actually check?    
-            if (hetznerNode.isPresent()) {
-                destroyHetznerNode(hetznerNode.get());
-            }  
-            if (dnsARecord.isPresent()) {
-                destroyDNSRecord(dnsARecord.get());
+
+        CompletableFuture<Void> deletePterodactylNode = Task.alwaysAttempt(
+            String.format("Delete pterodactyl node for %s", nodeId), 
+            () -> {
+                if (pterodactylNode.isPresent()) {
+                    destroyPterodactylNode(pterodactylNode.get());
+                } // else, actually check?   
             }
-            nodeRepository.deleteNode(nodeId);
-            LOGGER.log(Level.INFO, String.format("Cloud node %s DESTROYED", nodeId));
-        } catch(NodeProvisioningException e) {
-            // cleanup
-            throw e;
-        }
+        );
+
+        CompletableFuture<Void> deleteHetznerNode = Task.alwaysAttempt(
+            String.format("Delete hetzner node for %s", nodeId), 
+            () -> {
+                if (hetznerNode.isPresent()) {
+                    destroyHetznerNode(hetznerNode.get());
+                }  
+            }
+        );
+        
+        CompletableFuture<Void> deleteDnsARecord = Task.alwaysAttempt(
+            String.format("Delete A record for %s", nodeId), 
+            () -> {
+                if (dnsARecord.isPresent()) {
+                    destroyDNSRecord(dnsARecord.get());
+                }
+            }
+        );
+
+        CompletableFuture<Void> deleteNode = Task.whenAllCompleteCritical(
+            String.format("Delete node %s", nodeId), 
+            () -> nodeRepository.deleteNode(nodeId),
+            deletePterodactylNode, deleteHetznerNode, deleteDnsARecord
+        );
+
+        Task.awaitCompletion(deleteNode);
+        LOGGER.log(Level.INFO, String.format("Cloud node %s DESTROYED", nodeId));
     }
 
     @Transactional
