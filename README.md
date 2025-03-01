@@ -1,3 +1,12 @@
-BUGS:
+TODO:
+- reconcile resources:
+    - hetzner node
+    - pterodactyl node
+    - a record
+    - pterodactyl server
+    - c name record
+- monitor available threads
+- sentry
 
-subscription table current period []
+BUGS:
+- subscription table current period not parsing correctly

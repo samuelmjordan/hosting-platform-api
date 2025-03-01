@@ -10,6 +10,6 @@ public class AsyncConfiguration {
 
     @Bean()
     public ScheduledExecutorService delayedTaskScheduler() {
-        return Executors.newScheduledThreadPool(5);
+        return Executors.newScheduledThreadPool(10); // roughly num of queues * 2
     }
 }
