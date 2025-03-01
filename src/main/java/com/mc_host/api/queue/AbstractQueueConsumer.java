@@ -20,7 +20,7 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
     protected static final long INITIAL_DELAY_MS = 100;
     protected static final long MAX_DELAY_MS = 5000;
     
-    private static final RateLimiter GLOBAL_RATE_LIMITER = new RateLimiter(1);
+    private static final RateLimiter GLOBAL_RATE_LIMITER = new RateLimiter(1000);
     
     private final AtomicInteger consecutiveEmptyPolls = new AtomicInteger(0);
     private final AtomicLong currentDelayMs = new AtomicLong(INITIAL_DELAY_MS);

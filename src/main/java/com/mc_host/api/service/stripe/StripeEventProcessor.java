@@ -1,11 +1,8 @@
 package com.mc_host.api.service.stripe;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -16,39 +13,29 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
-import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
-import com.mc_host.api.model.entity.ContentPrice;
-import com.mc_host.api.model.entity.PricePair;
-import com.mc_host.api.model.specification.SpecificationType;
-import com.mc_host.api.persistence.PriceRepository;
 import com.mc_host.api.util.CacheService;
-import com.mc_host.api.util.Task;
-import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
-import com.stripe.model.Price;
 import com.stripe.model.StripeObject;
-import com.stripe.param.PriceListParams;
 
 @Service
 public class StripeEventProcessor {
     private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
+    private static final Boolean HIGH_PRIORITY = true;
+    private static final Boolean LOW_PRIORITY = false;
 
     private final StripeConfiguration stripeConfiguration;
     private final CacheService cacheService;
-    private final PriceRepository priceRepository;
     private final ScheduledExecutorService delayedTaskScheduler;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
         CacheService cacheService,
-        PriceRepository priceRepository,
         ScheduledExecutorService delayedTaskScheduler
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.cacheService = cacheService;
-        this.priceRepository = priceRepository;
         this. delayedTaskScheduler = delayedTaskScheduler;
     }
     
@@ -67,17 +54,13 @@ public class StripeEventProcessor {
             if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
                 String customerId = extractValueFromEvent(event, "customer")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-                if (cacheService.flagIfAbsent(CacheNamespace.SUBSCRIPTION_SYNC_DEBOUNCE, customerId, Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
-                    delayedTaskScheduler.schedule(
-                        () -> cacheService.queuePush(Queue.SUBSCRIPTION_SYNC, customerId),
-                        stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS);
-                }
+                queuePushDebounce(Queue.SUBSCRIPTION_SYNC, CacheNamespace.SUBSCRIPTION_SYNC_DEBOUNCE, LOW_PRIORITY, customerId);
             }
 
             if (stripeConfiguration.isPriceEvent().test(event.getType())) {
                 String productId = extractValueFromEvent(event, "product")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get productId - eventType: %s", event.getType())));
-                syncPriceData(productId);
+                queuePushDebounce(Queue.PRICE_SYNC, CacheNamespace.PRICE_SYNC_DEBOUNCE, HIGH_PRIORITY, productId);
             }
 
             LOGGER.log(Level.INFO, String.format(
@@ -115,67 +98,16 @@ public class StripeEventProcessor {
         }
     }
 
-    public void syncPriceData(String productId) {
-        try {
-            PriceListParams priceListParams = PriceListParams.builder()
-                .setProduct(productId)
-                .build();
-            List<ContentPrice> stripePrices = Price.list(priceListParams).getData().stream()
-                .map(price -> stripePriceToEntity(price, productId))
-                .toList();
-            List<ContentPrice> dbPrices = priceRepository.selectPricesByProductId(productId);
-    
-            List<ContentPrice> pricesToDelete = dbPrices.stream()
-                .filter(dbPrice -> stripePrices.stream().noneMatch(dbPrice::isAlike))
-                .toList();
-            List<ContentPrice> pricesToCreate = stripePrices.stream()
-                .filter(stripePrice -> dbPrices.stream().noneMatch(stripePrice::isAlike))
-                .toList();
-            List<PricePair> pricesToUpdate = dbPrices.stream()
-                .flatMap(dbPrice -> stripePrices.stream()
-                    .filter(dbPrice::isAlike)
-                    .map(stripeSubscription -> new PricePair(dbPrice, stripeSubscription)))
-                .toList();
-
-            List<CompletableFuture<Void>> deleteTasks = pricesToDelete.stream()
-                .map(price -> Task.alwaysAttempt(
-                    "Delete price " + price.priceId(),
-                    () -> priceRepository.deleteProductPrice(price.priceId(), productId)
-                )).toList();
-
-            List<CompletableFuture<Void>> createTasks = pricesToCreate.stream()
-                .map(price -> Task.alwaysAttempt(
-                    "Create price " + price.priceId(),
-                    () -> priceRepository.insertPrice(price)
-                )).toList();
-
-            List<CompletableFuture<Void>> updateTasks = pricesToUpdate.stream()
-                .map(pricePair -> Task.alwaysAttempt(
-                    "Update price " + pricePair.getOldPrice().priceId(),
-                    () -> priceRepository.insertPrice(pricePair.getNewPrice())
-                )).toList();
-
-            List<CompletableFuture<Void>> allTasks = new ArrayList<>();
-            allTasks.addAll(deleteTasks);
-            allTasks.addAll(createTasks);
-            allTasks.addAll(updateTasks);
-            Task.awaitCompletion(allTasks);
-            
-            cacheService.evict(CacheNamespace.SPECIFICATION_PLANS, SpecificationType.fromProductId(productId).name());
-            LOGGER.log(Level.INFO, "Executed price db sync for product: " + productId);
-        } catch (StripeException e) {
-            LOGGER.log(Level.SEVERE, "Failed to sync price data for product: " + productId, e);
-            throw new RuntimeException("Failed to sync subscription data", e);
+    public void queuePushDebounce(Queue queue, CacheNamespace debounceFlag, Boolean priority, String value) {
+        if (cacheService.flagIfAbsent(
+            debounceFlag,
+            value,
+            Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
+        delayedTaskScheduler.schedule(
+            priority
+            ? () -> cacheService.queueRightPush(queue, value)
+            : () -> cacheService.queueLeftPush(queue, value),
+            stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS);
         }
-    }
-
-    private ContentPrice stripePriceToEntity(Price price, String productId) {
-        return new ContentPrice(
-            price.getId(), 
-            productId, 
-            price.getActive(),
-            AcceptedCurrency.fromCode(price.getCurrency()),
-            price.getUnitAmount()
-        );
     }
 }

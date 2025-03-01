@@ -11,12 +11,10 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
 import com.mc_host.api.persistence.SubscriptionRepository;
 import com.mc_host.api.service.product.ProductServiceSupplier;
-import com.mc_host.api.util.CacheService;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
@@ -26,16 +24,13 @@ public class StripeSubscriptionService {
     private static final Logger LOGGER = Logger.getLogger(StripeSubscriptionService.class.getName());
 
     private final ProductServiceSupplier productServiceSupplier;
-    private final CacheService cacheService;
     private final SubscriptionRepository subscriptionRepository;
 
     public StripeSubscriptionService(
         ProductServiceSupplier productServiceSupplier,
-        CacheService cacheService,
         SubscriptionRepository subscriptionRepository
     ) {
         this.productServiceSupplier = productServiceSupplier;
-        this.cacheService = cacheService;
         this.subscriptionRepository = subscriptionRepository;
     }
 
@@ -101,8 +96,6 @@ public class StripeSubscriptionService {
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
             throw new RuntimeException("Failed to sync subscription data", e);
-        } finally {
-            cacheService.evict(CacheNamespace.SUBSCRIPTION_SYNC_IN_PROGRESS, customerId);
         }
     }
 
