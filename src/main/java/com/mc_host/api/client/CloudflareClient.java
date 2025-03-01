@@ -3,7 +3,6 @@ package com.mc_host.api.client;
 import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
@@ -36,7 +35,7 @@ public class CloudflareClient extends BaseApiClient{
         return "Bearer " + cloudflareConfiguration.getApiToken();
     }
 
-    public DNSRecord createSRVRecord(
+    public DNSRecordResponse createSRVRecord(
         String zoneName,
         String service,
         String protocol,
@@ -69,10 +68,10 @@ public class CloudflareClient extends BaseApiClient{
             "/zones/" + zoneId + "/dns_records",
             recordData
         );
-        return objectMapper.readValue(response, DNSRecord.class);
+        return objectMapper.readValue(response, DNSRecordResponse.class);
     }
 
-    public DNSRecord createARecord(
+    public DNSRecordResponse createARecord(
         String zoneName,
         String name,
         String ipAddress,
@@ -92,11 +91,11 @@ public class CloudflareClient extends BaseApiClient{
             "/zones/" + zoneId + "/dns_records",
             recordData
         );
-        SingleRecordResponse<DNSRecord> record = objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(SingleRecordResponse.class, DNSRecord.class));
+        SingleRecordResponse<DNSRecordResponse> record = objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(SingleRecordResponse.class, DNSRecordResponse.class));
         return record.result;
     }
 
-    public DNSRecord createCNameRecord(
+    public DNSRecordResponse createCNameRecord(
         String zoneName,
         String name,
         String target,
@@ -116,7 +115,7 @@ public class CloudflareClient extends BaseApiClient{
             "/zones/" + zoneId + "/dns_records",
             recordData
         );
-        SingleRecordResponse<DNSRecord> record = objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(SingleRecordResponse.class, DNSRecord.class));
+        SingleRecordResponse<DNSRecordResponse> record = objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(SingleRecordResponse.class, DNSRecordResponse.class));
         return record.result;
     }
 
@@ -125,12 +124,12 @@ public class CloudflareClient extends BaseApiClient{
         sendRequest("DELETE", "/zones/" + zoneId + "/dns_records/" + recordId);
     }
 
-    public List<DNSRecord> getDNSRecords(String zoneName) throws Exception {
+    public List<DNSRecordResponse> getDNSRecords(String zoneName) throws Exception {
         String zoneId = getZoneId(zoneName);
         String response = sendRequest("GET", "/zones/" + zoneId + "/dns_records");
-        PaginatedResponse<DNSRecord> records = objectMapper.readValue(response,
+        PaginatedResponse<DNSRecordResponse> records = objectMapper.readValue(response,
             objectMapper.getTypeFactory().constructParametricType(
-                PaginatedResponse.class, DNSRecord.class));
+                PaginatedResponse.class, DNSRecordResponse.class));
         return records.result;
     }
 
@@ -150,7 +149,7 @@ public class CloudflareClient extends BaseApiClient{
     }
 
     public record Zone(String id, String name) {}
-    public record DNSRecord(
+    public record DNSRecordResponse(
         String id,
         String type,
         String zoneId,

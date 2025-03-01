@@ -18,7 +18,10 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerConfiguration;
+import com.mc_host.api.model.node.DnsARecord;
+import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.model.node.Node;
+import com.mc_host.api.model.node.PterodactylNode;
 
 @Service
 public class WingsConfigService {
@@ -44,7 +47,7 @@ public class WingsConfigService {
         this.yamlMapper = yamlMapper;
     }
 
-    public void setupWings(Node node, String jsonConfig) throws IOException {
+    public void setupWings(HetznerNode hetznerNode, DnsARecord dnsARecord, String jsonConfig) throws IOException {
         try (SSHClient ssh = new SSHClient()) {
             String privateKey = hetznerConfiguration.getSshPrivateKey()
                 .replace("\\n", "\n")
@@ -60,7 +63,7 @@ public class WingsConfigService {
                 try {
                     ssh.addHostKeyVerifier(new PromiscuousVerifier());
                     ssh.loadKeys(keyPath.toString());
-                    ssh.connect(node.getIpv4(), PORT);
+                    ssh.connect(hetznerNode.ipv4(), PORT);
                     ssh.authPublickey(USERNAME, keyPath.toString());
                     break;
                 } catch(Exception e) {
@@ -91,7 +94,7 @@ public class WingsConfigService {
 
             String[] commands = {
                 "apt-get update && apt-get install -y certbot",
-                "certbot certonly --standalone --non-interactive --agree-tos --email samuelmjordandev@gmail.com -d " + String.join(".", node.getNodeId().replace("-", ""), DOMAIN),
+                "certbot certonly --standalone --non-interactive --agree-tos --email samuelmjordandev@gmail.com -d " + dnsARecord.recordName(),
                 "curl -sSL https://get.docker.com/ | CHANNEL=stable bash",
                 "apt install -y tar unzip make gcc g++ python3",
                 "mkdir -p /etc/pterodactyl",

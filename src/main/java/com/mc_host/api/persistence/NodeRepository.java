@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.node.Node;
+import com.mc_host.api.model.node.HetznerNode;
+import com.mc_host.api.model.node.PterodactylNode;
+import com.mc_host.api.model.node.DnsARecord;
 
 @Service
 public class NodeRepository {
@@ -18,7 +21,9 @@ public class NodeRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public int insertNewNode(Node node) {
+    // --- Core Node operations ---
+
+    public int insertNode(Node node) {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO node_ (
@@ -27,71 +32,27 @@ public class NodeRepository {
                 )
                 VALUES (?, ?)
                 """,
-                node.getNodeId(),
-                node.getDedicated()
+                node.nodeId(),
+                node.dedicated()
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to create new node: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to create node: " + e.getMessage(), e);
         }
     }
 
-    public int updateNode(Node node) {
-        try {
-            String hetznerRegion = node.getHetznerRegion() == null ? null : node.getHetznerRegion().toString();
-            return jdbcTemplate.update("""
-                UPDATE node_
-                SET dedicated = ?,
-                    pterodactyl_node_id = ?,
-                    hetzner_node_id = ?,
-                    hetzner_region = ?,
-                    a_record_id = ?,
-                    zone_name = ?,
-                    record_name = ?,
-                    ipv4 = ?
-                WHERE node_id = ?
-                """,
-                node.getDedicated(),
-                node.getPterodactylNodeId(),
-                node.getHetznerNodeId(),
-                hetznerRegion,
-                node.getARecordId(),
-                node.getZoneName(),
-                node.getRecordName(),
-                node.getIpv4(),
-                node.getNodeId()
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to update node: " + e.getMessage(), e);
-        }
-    }
-
-        public Optional<Node> selectNode(String nodeId) {
+    public Optional<Node> selectNode(String nodeId) {
         try {
             return jdbcTemplate.query(
                 """
                 SELECT
                     node_id,
-                    dedicated,
-                    pterodactyl_node_id,
-                    hetzner_node_id,
-                    hetzner_region,
-                    a_record_id,
-                    zone_name,
-                    record_name,
-                    ipv4
+                    dedicated
                 FROM node_
                 WHERE node_id = ?
                 """,
                 (rs, rowNum) -> new Node(
                     rs.getString("node_id"), 
-                    rs.getBoolean("dedicated"), 
-                    rs.getLong("pterodactyl_node_id"),
-                    rs.getLong("hetzner_node_id"), 
-                    HetznerRegion.lookup(rs.getString("hetzner_region")),
-                    rs.getString("a_record_id"),
-                    rs.getString("zone_name"),
-                    rs.getString("record_name"),
-                    rs.getString("ipv4")),
+                    rs.getBoolean("dedicated")),
                     nodeId
             ).stream().findFirst();
         } catch (DataAccessException e) {
@@ -112,4 +73,180 @@ public class NodeRepository {
         }
     }
     
+    // --- Hetzner Node operations ---
+    
+    public int insertHetznerNode(HetznerNode hetznerNode) {
+        try {
+            String hetznerRegion = hetznerNode.hetznerRegion() == null ? null : hetznerNode.hetznerRegion().toString();
+            return jdbcTemplate.update("""
+                INSERT INTO hetzner_node_ (
+                    node_id,
+                    hetzner_node_id,
+                    hetzner_region,
+                    ipv4
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                hetznerNode.nodeId(),
+                hetznerNode.hetznerNodeId(),
+                hetznerRegion,
+                hetznerNode.ipv4()
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to create hetzner node: " + e.getMessage(), e);
+        }
+    }
+    
+    public Optional<HetznerNode> selectHetznerNode(String nodeId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    node_id,
+                    hetzner_node_id,
+                    hetzner_region,
+                    ipv4
+                FROM hetzner_node_
+                WHERE node_id = ?
+                """,
+                (rs, rowNum) -> new HetznerNode(
+                    rs.getString("node_id"),
+                    rs.getLong("hetzner_node_id"),
+                    HetznerRegion.lookup(rs.getString("hetzner_region")),
+                    rs.getString("ipv4")),
+                    nodeId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch hetzner node for node id %s", nodeId), e);
+        }
+    }
+    
+    public int deleteHetznerNode(String nodeId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM hetzner_node_
+                WHERE node_id = ?
+                """,
+                nodeId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete hetzner node: " + e.getMessage(), e);
+        }
+    }
+    
+    // --- Pterodactyl Node operations ---
+    
+    public int insertPterodactylNode(PterodactylNode pterodactylNode) {
+        try {
+            return jdbcTemplate.update("""
+                INSERT INTO pterodactyl_node_ (
+                    node_id,
+                    pterodactyl_node_id
+                )
+                VALUES (?, ?)
+                """,
+                pterodactylNode.nodeId(),
+                pterodactylNode.pterodactylNodeId()
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to create pterodactyl node: " + e.getMessage(), e);
+        }
+    }
+    
+    public Optional<PterodactylNode> selectPterodactylNode(String nodeId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    node_id,
+                    pterodactyl_node_id
+                FROM pterodactyl_node_
+                WHERE node_id = ?
+                """,
+                (rs, rowNum) -> new PterodactylNode(
+                    rs.getString("node_id"),
+                    rs.getLong("pterodactyl_node_id")),
+                    nodeId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for node id %s", nodeId), e);
+        }
+    }
+    
+    public int deletePterodactylNode(String nodeId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM pterodactyl_node_
+                WHERE node_id = ?
+                """,
+                nodeId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete pterodactyl node: " + e.getMessage(), e);
+        }
+    }
+    
+    // --- DNS A Record operations ---
+    
+    public int insertDnsARecord(DnsARecord dnsARecord) {
+        try {
+            return jdbcTemplate.update("""
+                INSERT INTO dns_a_record_ (
+                    node_id,
+                    a_record_id,
+                    zone_name,
+                    record_name,
+                    ipv4
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                dnsARecord.nodeId(),
+                dnsARecord.aRecordId(),
+                dnsARecord.zoneName(),
+                dnsARecord.recordName(),
+                dnsARecord.ipv4()
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to create DNS A record: " + e.getMessage(), e);
+        }
+    }
+    
+    public Optional<DnsARecord> selectDnsARecord(String nodeId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    node_id,
+                    a_record_id,
+                    zone_name,
+                    record_name,
+                    ipv4
+                FROM dns_a_record_
+                WHERE node_id = ?
+                """,
+                (rs, rowNum) -> new DnsARecord(
+                    rs.getString("node_id"),
+                    rs.getString("a_record_id"),
+                    rs.getString("zone_name"),
+                    rs.getString("record_name"),
+                    rs.getString("ipv4")),
+                    nodeId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch DNS A record for node id %s", nodeId), e);
+        }
+    }
+    
+    public int deleteDnsARecord(String nodeId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM dns_a_record_
+                WHERE node_id = ?
+                """,
+                nodeId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete DNS A record: " + e.getMessage(), e);
+        }
+    }
 }

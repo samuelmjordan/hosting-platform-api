@@ -2,6 +2,7 @@ package com.mc_host.api.service.product;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
@@ -10,7 +11,7 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.CloudflareClient;
-import com.mc_host.api.client.CloudflareClient.DNSRecord;
+import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
 import com.mc_host.api.client.PterodactylClient;
 import com.mc_host.api.client.PterodactylClient.AllocationAttributes;
 import com.mc_host.api.client.PterodactylClient.AllocationResponse;
@@ -18,10 +19,14 @@ import com.mc_host.api.client.PterodactylClient.ServerResponse;
 import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.exceptions.provisioning.CloudflareProvisioningException;
 import com.mc_host.api.model.entity.ContentSubscription;
+import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
+import com.mc_host.api.model.game_server.PterodactylServer;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
+import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.Node;
+import com.mc_host.api.model.node.PterodactylNode;
 import com.mc_host.api.model.pterodactyl.games.Egg;
 import com.mc_host.api.model.pterodactyl.games.Nest;
 import com.mc_host.api.model.specification.SpecificationType;
@@ -70,8 +75,8 @@ public class GameServerService implements ProductService {
     public void create(ContentSubscription subscription) {
         LOGGER.log(Level.INFO, String.format("Initialise resources for subscription %s", subscription.subscriptionId()));
         Node node = cloudNodeService.provisionCloudNode(HetznerRegion.NBG1, HetznerServerType.CAX11);
-        GameServer gameServer = createGameServerOnCloudNode(node, subscription);
-        LOGGER.log(Level.INFO, String.format("Started server %s at %s.%s:%s", gameServer.getServerId(), gameServer.getRecordName(), gameServer.getZoneName(), gameServer.getPort()));
+        GameServer gameServer = createGameServer(node, subscription);
+        LOGGER.log(Level.INFO, String.format("Started server %s", gameServer.serverId()));
     }
 
     @Override
@@ -80,11 +85,11 @@ public class GameServerService implements ProductService {
         GameServer gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId())
             .orElseThrow(() -> new IllegalStateException(String.format("Game server does not exist for subsccription %s",  subscription.subscriptionId())));
 
-        Node node = nodeRepository.selectNode(gameServer.getNodeId())
-            .orElseThrow(() -> new IllegalStateException(String.format("Found server %s without a node", gameServer.getServerId())));
+        Node node = nodeRepository.selectNode(gameServer.nodeId())
+            .orElseThrow(() -> new IllegalStateException(String.format("Could not find node %s", gameServer.nodeId())));
 
-        destroyGameServerOnCloudNode(node, gameServer);
-        LOGGER.log(Level.INFO, String.format("Destroyed server %s", gameServer.getServerId()));
+        destroyGameServer(node, gameServer);
+        LOGGER.log(Level.INFO, String.format("Destroyed server %s", gameServer.serverId()));
     }
 
     @Override
@@ -97,10 +102,10 @@ public class GameServerService implements ProductService {
         // update logic
     }
 
-    private GameServer createGameServerOnCloudNode(Node node, ContentSubscription subscription) {
-        LOGGER.log(Level.INFO, String.format("[node %s] [subscription  %s] Creating game server", node.getNodeId(), subscription.subscriptionId()));
+    private GameServer createGameServer(Node node, ContentSubscription subscription) {
+        LOGGER.log(Level.INFO, String.format("[node %s] [subscription  %s] Creating game server", node.nodeId(), subscription.subscriptionId()));
 
-        if (node.getDedicated()) {
+        if (node.dedicated()) {
             throw new IllegalStateException("Expected a cloud node, got a dedicated node");
         }
 
@@ -110,35 +115,33 @@ public class GameServerService implements ProductService {
             UUID.randomUUID().toString(),
             subscription.subscriptionId(),
             planId,
-            node.getNodeId()
+            node.nodeId()
         );
-        gameServerRepository.insertNewJavaServer(gameServer);
+        gameServerRepository.insertGameServer(gameServer);
 
         AllocationAttributes allocationAttributes = getAllocation(node);
         Long pterodactylServerId = createGameServer(node, gameServer, allocationAttributes);
-        gameServer.setPterodactylServerId(pterodactylServerId);
-        gameServerRepository.updateJavaServer(gameServer);
+        PterodactylServer pterodactylServer = new PterodactylServer(gameServer.serverId(), pterodactylServerId, allocationAttributes.id(), allocationAttributes.port());
+        gameServerRepository.insertPterodactylServer(pterodactylServer);
 
-        DNSRecord cNameRecord = createCNameRecord(node, allocationAttributes);
-        gameServer.setAllocationId(allocationAttributes.id());
-        gameServer.setPort(allocationAttributes.port());
-        gameServer.setCNameRecordId(cNameRecord.id());
-        gameServer.setZoneName(applicationConfiguration.getDomain());
-        gameServer.setRecordName(cNameRecord.name());
-        gameServerRepository.updateJavaServer(gameServer);
+        DNSRecordResponse dnsRecordResponse = createCNameRecord(node, allocationAttributes);
+        DnsCNameRecord dnsCNameRecord = new DnsCNameRecord(gameServer.serverId(), dnsRecordResponse.id(), dnsRecordResponse.zoneName(), dnsRecordResponse.name());
+        gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
 
         return gameServer;
     }
 
-    private DNSRecord createCNameRecord(Node node, AllocationAttributes allocationAttributes) throws  CloudflareProvisioningException {
+    private DNSRecordResponse createCNameRecord(Node node, AllocationAttributes allocationAttributes) throws  CloudflareProvisioningException {
         String subdomain = UUID.randomUUID().toString().replace("-", "");
-        LOGGER.log(Level.INFO, String.format("Creating CName record with cloudflare: %s.%s --> %s.%s", 
-            subdomain, applicationConfiguration.getDomain(), node.getSubdomain(), applicationConfiguration.getDomain(), allocationAttributes.port()));
+        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(node.nodeId())
+            .orElseThrow(() -> new RuntimeException(String.format("Failed to find a record for node %s", node.nodeId())));
+        LOGGER.log(Level.INFO, String.format("Creating CName record with cloudflare: %s.%s --> %s:%s", 
+            subdomain, applicationConfiguration.getDomain(), dnsARecord.recordName(), allocationAttributes.port()));
         try {
             return cloudflareClient.createCNameRecord(
                 applicationConfiguration.getDomain(), 
                 subdomain, 
-                String.join(".", node.getSubdomain(), applicationConfiguration.getDomain()),
+                dnsARecord.recordName(),
                 false
             );
         } catch (Exception e) {
@@ -149,7 +152,7 @@ public class GameServerService implements ProductService {
     private Long createGameServer(Node node, GameServer gameServer, AllocationAttributes allocationAttributes) {
         try {
             Map<String, Object> serverDetails = Map.ofEntries(
-                Map.entry("name", "Minecraft - " + gameServer.getServerId()),
+                Map.entry("name", "Minecraft - " + gameServer.serverId()),
                 Map.entry("user", 1),
                 Map.entry("egg", Egg.VANILLA_MINECRAFT.getId()),
                 Map.entry("docker_image", "ghcr.io/pterodactyl/yolks:java_21"),
@@ -177,7 +180,7 @@ public class GameServerService implements ProductService {
                     "default", allocationAttributes.id()
                 )),
                 Map.entry("nest", Nest.MINECRAFT.getId()),
-                Map.entry("external_id", gameServer.getServerId())
+                Map.entry("external_id", gameServer.serverId())
             );
             
             ServerResponse response = pterodactylClient.createServer(serverDetails);
@@ -192,47 +195,56 @@ public class GameServerService implements ProductService {
 
     private AllocationAttributes getAllocation(Node node) {
         try {
-            List<AllocationResponse> unassignedAllocations = pterodactylClient.getUnassignedAllocations(node.getPterodactylNodeId());
+            PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(node.nodeId())
+                .orElseThrow(() -> new RuntimeException(String.format("Failed to find pterodactyl details for node %s", node.nodeId())));                    
+            List<AllocationResponse> unassignedAllocations = pterodactylClient.getUnassignedAllocations(pterodactylNode.pterodactylNodeId());
             return unassignedAllocations.get(0).attributes();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to get allocation for node " + node.getNodeId(), e);
+            LOGGER.log(Level.SEVERE, "Failed to get allocation for node " + node.nodeId(), e);
             throw new RuntimeException("Failed to get server allocation: " + e.getMessage(), e);
         }
     }
 
-    private void destroyGameServerOnCloudNode(Node node, GameServer gameServer) {
-        if (node.getDedicated()) {
+    private void destroyGameServer(Node node, GameServer gameServer) {
+        if (node.dedicated()) {
             throw new IllegalStateException("Expected a cloud node, got a dedicated node");
         }
+
+        Optional<PterodactylServer> pterodactylServer = gameServerRepository.selectPterodactylServer(gameServer.serverId());
+        Optional<DnsCNameRecord> dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(gameServer.serverId());
     
         CompletableFuture<Void> deletePterodactyl = Task.alwaysAttempt(
-            String.format("Delete pterodactyl server %s", gameServer.getPterodactylServerId()), 
-            () -> pterodactylClient.deleteServer(gameServer.getPterodactylServerId())
+            String.format("Delete pterodactyl server for server %s", gameServer.serverId()), 
+            () -> {
+                if (pterodactylServer.isPresent()) {
+                    pterodactylClient.deleteServer(pterodactylServer.get().pterodactylServerId());
+                    gameServerRepository.deletePterodactylServer(pterodactylServer.get().serverId());
+                }
+            }
         );
     
         CompletableFuture<Void> deleteDns = Task.alwaysAttempt(
-            String.format("Delete c name record %s", gameServer.getCNameRecordId()), 
-            () -> cloudflareClient.deleteDNSRecord(gameServer.getZoneName(), gameServer.getCNameRecordId())
+            String.format("Delete c name record for server %s", gameServer.serverId()), 
+            () -> {
+                if (dnsCNameRecord.isPresent()) {
+                    cloudflareClient.deleteDNSRecord(dnsCNameRecord.get().zoneName(), dnsCNameRecord.get().cNameRecordId());
+                    gameServerRepository.deleteDnsCNameRecord(dnsCNameRecord.get().serverId());
+                }
+            }
         );
     
         CompletableFuture<Void> deleteGameServer = Task.whenAllCompleteCritical(
-            String.format("Delete game server %s", gameServer.getServerId()), 
-            () -> gameServerRepository.deleteGameServer(gameServer.getServerId()),
+            String.format("Delete game server %s", gameServer.serverId()), 
+            () -> gameServerRepository.deleteGameServer(gameServer.serverId()),
             deletePterodactyl, deleteDns
         );
 
         CompletableFuture<Void> destroyNode = Task.whenAllCompleteNonCritical(
-            String.format("Delete node %s", node.getNodeId()), 
-            () -> cloudNodeService.destroyCloudNode(node.getNodeId()),
-            deletePterodactyl
-        );
-    
-        CompletableFuture<Void> deleteNode = Task.whenAllCompleteCritical(
-            String.format("Delete node %s", node.getNodeId()), 
-            () -> nodeRepository.deleteNode(node.getNodeId()),
-            destroyNode
+            String.format("Delete node %s", node.nodeId()), 
+            () -> cloudNodeService.destroyCloudNode(node.nodeId()),
+            deleteGameServer
         );
 
-        Task.awaitCompletion(deleteGameServer, deleteNode);
+        Task.awaitCompletion(destroyNode);
     }
 }

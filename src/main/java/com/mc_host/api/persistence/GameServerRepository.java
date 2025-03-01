@@ -6,7 +6,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
+import com.mc_host.api.model.game_server.PterodactylServer;
 
 @Service
 public class GameServerRepository {
@@ -17,7 +19,9 @@ public class GameServerRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public int insertNewJavaServer(GameServer javaServer) {
+    // --- Core Game Server operations ---
+
+    public int insertGameServer(GameServer gameServer) {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO game_server_ (
@@ -28,49 +32,37 @@ public class GameServerRepository {
                 )
                 VALUES (?, ?, ?, ?)
                 """,
-                javaServer.getServerId(),
-                javaServer.getSubscriptionId(),
-                javaServer.getPlanId(),
-                javaServer.getNodeId()
+                gameServer.serverId(),
+                gameServer.subscriptionId(),
+                gameServer.planId(),
+                gameServer.nodeId()
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to create new game server: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to create game server: " + e.getMessage(), e);
         }
     }
 
-    public int updateJavaServer(GameServer javaServer) {
+    public Optional<GameServer> selectGameServer(String serverId) {
         try {
-            int rowsAffected = jdbcTemplate.update("""
-                UPDATE game_server_
-                SET subscription_id = ?,
-                    plan_id = ?,
-                    pterodactyl_server_id = ?,
-                    node_id = ?,
-                    allocation_id = ?,
-                    port = ?,
-                    c_name_record_id = ?,
-                    zone_name = ?,
-                    record_name  = ?
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    server_id,
+                    subscription_id,
+                    plan_id,
+                    node_id
+                FROM game_server_
                 WHERE server_id = ?
                 """,
-                javaServer.getSubscriptionId(),
-                javaServer.getPlanId(),
-                javaServer.getPterodactylServerId(),
-                javaServer.getNodeId(),
-                javaServer.getAllocationId(),
-                javaServer.getPort(),
-                javaServer.getCNameRecordId(),
-                javaServer.getZoneName(),
-                javaServer.getRecordName(),
-                javaServer.getServerId()
-            );
-            if (rowsAffected == 0) {
-                throw new RuntimeException("No existing game server found with id: " + javaServer.getServerId());
-            }
-            
-            return rowsAffected;
+                (rs, rowNum) -> new GameServer(
+                    rs.getString("server_id"), 
+                    rs.getString("subscription_id"), 
+                    rs.getString("plan_id"),
+                    rs.getString("node_id")),
+                serverId
+            ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to update game server: " + e.getMessage(), e);
+            throw new RuntimeException(String.format("Failed to fetch game server for server id %s", serverId), e);
         }
     }
 
@@ -82,13 +74,7 @@ public class GameServerRepository {
                     server_id,
                     subscription_id,
                     plan_id,
-                    pterodactyl_server_id,
-                    node_id,
-                    allocation_id,
-                    port,
-                    c_name_record_id,
-                    zone_name,
-                    record_name
+                    node_id
                 FROM game_server_
                 WHERE subscription_id = ?
                 """,
@@ -96,17 +82,11 @@ public class GameServerRepository {
                     rs.getString("server_id"), 
                     rs.getString("subscription_id"), 
                     rs.getString("plan_id"),
-                    rs.getString("node_id"), 
-                    rs.getLong("pterodactyl_server_id"),
-                    rs.getLong("allocation_id"),
-                    rs.getInt("port"),
-                    rs.getString("c_name_record_id"),
-                    rs.getString("zone_name"),
-                    rs.getString("record_name")),
+                    rs.getString("node_id")),
                 subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch java server for subscription id %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch game server for subscription id %s", subscriptionId), e);
         }
     }
 
@@ -119,7 +99,127 @@ public class GameServerRepository {
                 serverId
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to destroy game server: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to delete game server: " + e.getMessage(), e);
+        }
+    }
+    
+    // --- Pterodactyl Server operations ---
+    
+    public int insertPterodactylServer(PterodactylServer pterodactylServer) {
+        try {
+            return jdbcTemplate.update("""
+                INSERT INTO pterodactyl_server_ (
+                    server_id,
+                    pterodactyl_server_id,
+                    allocation_id,
+                    port
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                pterodactylServer.serverId(),
+                pterodactylServer.pterodactylServerId(),
+                pterodactylServer.allocationId(),
+                pterodactylServer.port()
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to create pterodactyl server: " + e.getMessage(), e);
+        }
+    }
+    
+    public Optional<PterodactylServer> selectPterodactylServer(String serverId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    server_id,
+                    pterodactyl_server_id,
+                    allocation_id,
+                    port
+                FROM pterodactyl_server_
+                WHERE server_id = ?
+                """,
+                (rs, rowNum) -> new PterodactylServer(
+                    rs.getString("server_id"),
+                    rs.getLong("pterodactyl_server_id"),
+                    rs.getLong("allocation_id"),
+                    rs.getInt("port")),
+                serverId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl server for server id %s", serverId), e);
+        }
+    }
+    
+    public int deletePterodactylServer(String serverId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM pterodactyl_server_
+                WHERE server_id = ?
+                """,
+                serverId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete pterodactyl server: " + e.getMessage(), e);
+        }
+    }
+    
+    // --- DNS C Record operations ---
+    
+    public int insertDnsCNameRecord(DnsCNameRecord dnsCRecord) {
+        try {
+            return jdbcTemplate.update("""
+                INSERT INTO dns_c_name_record_ (
+                    server_id,
+                    c_name_record_id,
+                    zone_name,
+                    record_name
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                dnsCRecord.serverId(),
+                dnsCRecord.cNameRecordId(),
+                dnsCRecord.zoneName(),
+                dnsCRecord.recordName()
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to create DNS C record: " + e.getMessage(), e);
+        }
+    }
+    
+    public Optional<DnsCNameRecord> selectDnsCNameRecord(String serverId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    server_id,
+                    c_name_record_id,
+                    zone_name,
+                    record_name
+                FROM dns_c_name_record_
+                WHERE server_id = ?
+                """,
+                (rs, rowNum) -> new DnsCNameRecord(
+                    rs.getString("server_id"),
+                    rs.getString("c_name_record_id"),
+                    rs.getString("zone_name"),
+                    rs.getString("record_name")),
+                serverId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch DNS C record for server id %s", serverId), e);
+        }
+    }
+    
+    public int deleteDnsCNameRecord(String serverId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM dns_c_name_record_
+                WHERE server_id = ?
+                """,
+                serverId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete DNS C record: " + e.getMessage(), e);
         }
     }
 }
