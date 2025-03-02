@@ -1,5 +1,6 @@
 package com.mc_host.api.persistence;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
@@ -118,6 +119,21 @@ public class NodeRepository {
             ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException(String.format("Failed to fetch hetzner node for node id %s", nodeId), e);
+        }
+    }
+
+    public List<Long> selectAllHetznerNodeIds() {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    hetzner_node_id
+                FROM hetzner_node_
+                """,
+                (rs, rowNum) -> rs.getLong("hetzner_node_id")
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch all hetzner nodes"), e);
         }
     }
     

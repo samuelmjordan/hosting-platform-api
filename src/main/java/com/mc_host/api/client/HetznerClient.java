@@ -2,9 +2,13 @@ package com.mc_host.api.client;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerConfiguration;
 import com.mc_host.api.model.hetzner.HetznerServerResponse;
+import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
+import com.mc_host.api.model.hetzner.HetznerServersResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -62,6 +66,12 @@ public class HetznerClient extends BaseApiClient{
     public HetznerServerResponse getServer(long serverId) throws Exception {
         String response = sendRequest("GET", "/servers/" + serverId);
         return objectMapper.readValue(response, HetznerServerResponse.class);
+    }
+
+    public List<Server> getAllServers() throws Exception {
+        String response = sendRequest("GET", "/servers");
+        HetznerServersResponse hetznerResponse = objectMapper.readValue(response, HetznerServersResponse.class);
+        return hetznerResponse.servers();
     }
 
     public void powerOn(long serverId) throws Exception {

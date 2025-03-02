@@ -10,6 +10,8 @@ public enum CacheNamespace {
 
     PRICE_SYNC_DEBOUNCE,
 
+    RECONCILIATION_IN_PROGRESS,
+
     SPECIFICATION_PLANS,
     USER_CURRENCY
 }
