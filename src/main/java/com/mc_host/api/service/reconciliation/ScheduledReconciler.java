@@ -26,7 +26,7 @@ public class ScheduledReconciler {
         this.cacheService = cacheService;
     }
 
-    @Scheduled(cron = "0 0 11 * * ?")
+    @Scheduled(cron = "0 0 11,18 * * ?", zone = "UTC")
     @GetMapping("/hetzner")
     public void reconcileAllResources() {
         for (ResourceType resourceType : ResourceType.values()) {

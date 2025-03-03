@@ -38,15 +38,16 @@ CREATE TABLE dns_a_record_ (
     id BIGSERIAL PRIMARY KEY,
     node_id TEXT NOT NULL,
     a_record_id TEXT NOT NULL,
+    zone_id TEXT NOT NULL,
     zone_name TEXT NOT NULL,
     record_name TEXT NOT NULL,
-    ipv4 TEXT NOT NULL,
+    content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT dns_a_record_node_id_fk FOREIGN KEY (node_id) REFERENCES node_(node_id),
     CONSTRAINT dns_a_record_a_record_id_unique UNIQUE (a_record_id),
     CONSTRAINT dns_a_record_record_name_unique UNIQUE (record_name),
-    CONSTRAINT dns_a_record_ipv4_unique UNIQUE (ipv4)
+    CONSTRAINT dns_a_record_ipv4_unique UNIQUE (content)
 );
 
 -- Indexes

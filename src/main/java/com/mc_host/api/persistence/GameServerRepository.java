@@ -165,21 +165,25 @@ public class GameServerRepository {
     
     // --- DNS C Record operations ---
     
-    public int insertDnsCNameRecord(DnsCNameRecord dnsCRecord) {
+    public int insertDnsCNameRecord(DnsCNameRecord dnsCNameRecord) {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO dns_c_name_record_ (
                     server_id,
                     c_name_record_id,
+                    zone_id,
                     zone_name,
-                    record_name
+                    record_name,
+                    content
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                dnsCRecord.serverId(),
-                dnsCRecord.cNameRecordId(),
-                dnsCRecord.zoneName(),
-                dnsCRecord.recordName()
+                dnsCNameRecord.serverId(),
+                dnsCNameRecord.zoneId(),
+                dnsCNameRecord.cNameRecordId(),
+                dnsCNameRecord.zoneName(),
+                dnsCNameRecord.recordName(),
+                dnsCNameRecord.content()
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to create DNS C record: " + e.getMessage(), e);
@@ -193,16 +197,20 @@ public class GameServerRepository {
                 SELECT
                     server_id,
                     c_name_record_id,
+                    zone_id,
                     zone_name,
-                    record_name
+                    record_name,
+                    content
                 FROM dns_c_name_record_
                 WHERE server_id = ?
                 """,
                 (rs, rowNum) -> new DnsCNameRecord(
                     rs.getString("server_id"),
                     rs.getString("c_name_record_id"),
+                    rs.getString("zone_id"),
                     rs.getString("zone_name"),
-                    rs.getString("record_name")),
+                    rs.getString("record_name"),
+                    rs.getString("content")),
                 serverId
             ).stream().findFirst();
         } catch (DataAccessException e) {

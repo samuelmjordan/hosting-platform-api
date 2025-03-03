@@ -124,25 +124,32 @@ public class GameServerService implements ProductService {
         PterodactylServer pterodactylServer = new PterodactylServer(gameServer.serverId(), pterodactylServerId, allocationAttributes.id(), allocationAttributes.port());
         gameServerRepository.insertPterodactylServer(pterodactylServer);
 
-        DNSRecordResponse dnsRecordResponse = createCNameRecord(node, allocationAttributes);
-        DnsCNameRecord dnsCNameRecord = new DnsCNameRecord(gameServer.serverId(), dnsRecordResponse.id(), dnsRecordResponse.zoneName(), dnsRecordResponse.name());
+        DnsCNameRecord dnsCNameRecord = createCNameRecord(gameServer, node, allocationAttributes);
         gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
 
         return gameServer;
     }
 
-    private DNSRecordResponse createCNameRecord(Node node, AllocationAttributes allocationAttributes) throws  CloudflareProvisioningException {
+    private DnsCNameRecord createCNameRecord(GameServer gameServer, Node node, AllocationAttributes allocationAttributes) throws  CloudflareProvisioningException {
         String subdomain = UUID.randomUUID().toString().replace("-", "");
         DnsARecord dnsARecord = nodeRepository.selectDnsARecord(node.nodeId())
             .orElseThrow(() -> new RuntimeException(String.format("Failed to find a record for node %s", node.nodeId())));
         LOGGER.log(Level.INFO, String.format("Creating CName record with cloudflare: %s.%s --> %s:%s", 
             subdomain, applicationConfiguration.getDomain(), dnsARecord.recordName(), allocationAttributes.port()));
         try {
-            return cloudflareClient.createCNameRecord(
-                applicationConfiguration.getDomain(), 
+            DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
+                dnsARecord.zoneId(), 
                 subdomain, 
                 dnsARecord.recordName(),
                 false
+            );
+            return new DnsCNameRecord(
+                gameServer.serverId(), 
+                dnsRecordResponse.id(), 
+                dnsARecord.zoneId(), 
+                dnsARecord.zoneName(),
+                dnsRecordResponse.name(),
+                dnsRecordResponse.content()
             );
         } catch (Exception e) {
             throw new RuntimeException("Failed to create cloudflare cname record", e);
@@ -227,7 +234,7 @@ public class GameServerService implements ProductService {
             String.format("Delete c name record for server %s", gameServer.serverId()), 
             () -> {
                 if (dnsCNameRecord.isPresent()) {
-                    cloudflareClient.deleteDNSRecord(dnsCNameRecord.get().zoneName(), dnsCNameRecord.get().cNameRecordId());
+                    cloudflareClient.deleteDNSRecord(dnsCNameRecord.get().zoneId(), dnsCNameRecord.get().cNameRecordId());
                     gameServerRepository.deleteDnsCNameRecord(dnsCNameRecord.get().serverId());
                 }
             }

@@ -210,17 +210,19 @@ public class NodeRepository {
                 INSERT INTO dns_a_record_ (
                     node_id,
                     a_record_id,
+                    zone_id,
                     zone_name,
                     record_name,
-                    ipv4
+                    content
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 dnsARecord.nodeId(),
                 dnsARecord.aRecordId(),
+                dnsARecord.zoneId(),
                 dnsARecord.zoneName(),
                 dnsARecord.recordName(),
-                dnsARecord.ipv4()
+                dnsARecord.content()
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to create DNS A record: " + e.getMessage(), e);
@@ -234,22 +236,50 @@ public class NodeRepository {
                 SELECT
                     node_id,
                     a_record_id,
+                    zone_id,
                     zone_name,
                     record_name,
-                    ipv4
+                    content
                 FROM dns_a_record_
                 WHERE node_id = ?
                 """,
                 (rs, rowNum) -> new DnsARecord(
                     rs.getString("node_id"),
                     rs.getString("a_record_id"),
+                    rs.getString("zone_id"),
                     rs.getString("zone_name"),
                     rs.getString("record_name"),
-                    rs.getString("ipv4")),
+                    rs.getString("content")),
                     nodeId
             ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException(String.format("Failed to fetch DNS A record for node id %s", nodeId), e);
+        }
+    }
+
+    public List<DnsARecord> selectAllARecordIds() {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    node_id,
+                    a_record_id,
+                    zone_id,
+                    zone_name,
+                    record_name,
+                    content
+                FROM dns_a_record_
+                """,
+                (rs, rowNum) -> new DnsARecord(
+                    rs.getString("node_id"),
+                    rs.getString("a_record_id"),
+                    rs.getString("zone_id"),
+                    rs.getString("zone_name"),
+                    rs.getString("record_name"),
+                    rs.getString("content"))
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch all a records"), e);
         }
     }
     

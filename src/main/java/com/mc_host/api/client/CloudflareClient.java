@@ -35,44 +35,8 @@ public class CloudflareClient extends BaseApiClient{
         return "Bearer " + cloudflareConfiguration.getApiToken();
     }
 
-    public DNSRecordResponse createSRVRecord(
-        String zoneName,
-        String service,
-        String protocol,
-        String target,
-        int priority,
-        int weight,
-        int port
-    ) throws Exception {
-        // Format: _service._protocol.name
-        String name = String.format("_%s._%s.%s", service, protocol, zoneName);
-        
-        var recordData = Map.of(
-            "type", "SRV",
-            "name", name,
-            "data", Map.of(
-                "service", service,
-                "proto", protocol,
-                "name", target,
-                "priority", priority,
-                "weight", weight,
-                "port", port,
-                "target", target
-            ),
-            "ttl", 3600
-        );
-
-        String zoneId = getZoneId(zoneName);
-        String response = sendRequest(
-            "POST", 
-            "/zones/" + zoneId + "/dns_records",
-            recordData
-        );
-        return objectMapper.readValue(response, DNSRecordResponse.class);
-    }
-
     public DNSRecordResponse createARecord(
-        String zoneName,
+        String zoneId,
         String name,
         String ipAddress,
         boolean proxied
@@ -85,7 +49,6 @@ public class CloudflareClient extends BaseApiClient{
             "ttl", 3600
         );
 
-        String zoneId = getZoneId(zoneName);
         String response = sendRequest(
             "POST",
             "/zones/" + zoneId + "/dns_records",
@@ -96,7 +59,7 @@ public class CloudflareClient extends BaseApiClient{
     }
 
     public DNSRecordResponse createCNameRecord(
-        String zoneName,
+        String zoneId,
         String name,
         String target,
         boolean proxied
@@ -109,7 +72,6 @@ public class CloudflareClient extends BaseApiClient{
             "ttl", 3600
         );
 
-        String zoneId = getZoneId(zoneName);
         String response = sendRequest(
             "POST",
             "/zones/" + zoneId + "/dns_records",
@@ -119,8 +81,7 @@ public class CloudflareClient extends BaseApiClient{
         return record.result;
     }
 
-    public void deleteDNSRecord(String zoneName, String recordId) throws Exception {
-        String zoneId = getZoneId(zoneName);
+    public void deleteDNSRecord(String zoneId, String recordId) throws Exception {
         sendRequest("DELETE", "/zones/" + zoneId + "/dns_records/" + recordId);
     }
 
@@ -133,7 +94,58 @@ public class CloudflareClient extends BaseApiClient{
         return records.result;
     }
 
-    private String getZoneId(String zoneName) throws Exception {
+    public List<DNSRecordResponse> getAllCRecords(String zoneId) throws Exception {
+        return getDNSRecordsForZoneIdAndType("CNAME", zoneId);
+    }
+    
+    public List<DNSRecordResponse> getAllARecords(String zoneId) throws Exception {
+        return getDNSRecordsForZoneIdAndType("A", zoneId);
+    }
+    
+    public List<String> getAllZones() throws Exception {
+        String response = sendRequest("GET", "/zones?per_page=50");
+        PaginatedResponse<Zone> zones = objectMapper.readValue(response,
+            objectMapper.getTypeFactory().constructParametricType(
+                PaginatedResponse.class, Zone.class));
+                
+        // If there are more pages, fetch them
+        List<Zone> allZones = new java.util.ArrayList<>(zones.result);
+        int totalPages = zones.result_info.total_pages;
+        
+        for (int page = 2; page <= totalPages; page++) {
+            String pageResponse = sendRequest("GET", "/zones?per_page=50&page=" + page);
+            PaginatedResponse<Zone> pageZones = objectMapper.readValue(pageResponse,
+                objectMapper.getTypeFactory().constructParametricType(
+                    PaginatedResponse.class, Zone.class));
+            allZones.addAll(pageZones.result);
+        }
+        
+        return allZones.stream().map(Zone::id).toList();
+    }
+    
+    private List<DNSRecordResponse> getDNSRecordsForZoneIdAndType(String recordType, String zoneId) throws Exception {
+        String typeParam = recordType != null ? "&type=" + recordType : "";
+        String response = sendRequest("GET", "/zones/" + zoneId + "/dns_records?per_page=100" + typeParam);
+        PaginatedResponse<DNSRecordResponse> records = objectMapper.readValue(response,
+            objectMapper.getTypeFactory().constructParametricType(
+                PaginatedResponse.class, DNSRecordResponse.class));
+                
+        // If there are more pages, fetch them
+        List<DNSRecordResponse> allRecords = new java.util.ArrayList<>(records.result);
+        int totalPages = records.result_info.total_pages;
+        
+        for (int page = 2; page <= totalPages; page++) {
+            String pageResponse = sendRequest("GET", "/zones/" + zoneId + "/dns_records?per_page=100&page=" + page + typeParam);
+            PaginatedResponse<DNSRecordResponse> pageRecords = objectMapper.readValue(pageResponse,
+                objectMapper.getTypeFactory().constructParametricType(
+                    PaginatedResponse.class, DNSRecordResponse.class));
+            allRecords.addAll(pageRecords.result);
+        }
+        
+        return allRecords;
+    }
+    
+    public String getZoneId(String zoneName) throws Exception {
         String response = sendRequest(
             "GET",
             "/zones?name=" + zoneName
@@ -152,8 +164,6 @@ public class CloudflareClient extends BaseApiClient{
     public record DNSRecordResponse(
         String id,
         String type,
-        String zoneId,
-        String zoneName,
         String name,
         String content,
         Boolean proxied,

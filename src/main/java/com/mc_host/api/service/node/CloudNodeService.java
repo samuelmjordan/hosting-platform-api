@@ -123,10 +123,17 @@ public class CloudNodeService {
         LOGGER.log(Level.INFO, String.format("[node: %s] [hetznerNode: %s] Creating DNS records with cloudflare", hetznerNode.nodeId(), hetznerNode.hetznerNodeId()));
         DnsARecord dnsARecord;
         try {
-            String zoneName = applicationConfiguration.getDomain();
+            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getDomain());
             String recordName = hetznerNode.nodeId().replace("-", "");
-            DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(zoneName, recordName, hetznerNode.ipv4(), false);
-            dnsARecord = new DnsARecord(hetznerNode.nodeId(), dnsARecordResponse.id(), dnsARecordResponse.zoneName(), dnsARecordResponse.name(), hetznerNode.ipv4());
+            DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(zoneId, recordName, hetznerNode.ipv4(), false);
+            dnsARecord = new DnsARecord(
+                hetznerNode.nodeId(), 
+                dnsARecordResponse.id(), 
+                zoneId, 
+                applicationConfiguration.getDomain(), 
+                dnsARecordResponse.name(), 
+                dnsARecordResponse.content()
+            );
             nodeRepository.insertDnsARecord(dnsARecord);
         } catch (Exception e) {
             throw new CloudflareProvisioningException(
@@ -288,7 +295,7 @@ public class CloudNodeService {
         LOGGER.log(Level.INFO, String.format("[node: %s] [aRecord: %s] Destroying DNS records with cloudflare", dnsARecord.nodeId(), dnsARecord.aRecordId()));
         try {
             nodeRepository.deleteDnsARecord(dnsARecord.nodeId());
-            cloudflareClient.deleteDNSRecord(dnsARecord.zoneName(), dnsARecord.aRecordId());
+            cloudflareClient.deleteDNSRecord(dnsARecord.zoneId(), dnsARecord.aRecordId());
         } catch (Exception e) {
             throw new CloudflareProvisioningException(
                 "Failed to destroy cloudflare dns records",

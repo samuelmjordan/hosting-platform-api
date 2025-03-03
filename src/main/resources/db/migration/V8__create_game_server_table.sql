@@ -35,8 +35,10 @@ CREATE TABLE dns_c_name_record_ (
     id BIGSERIAL PRIMARY KEY,
     server_id TEXT NOT NULL,
     c_name_record_id TEXT NOT NULL,
+    zone_id TEXT NOT NULL,
     zone_name TEXT NOT NULL,
     record_name TEXT NOT NULL,
+    content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT dns_c_record_server_id_fk FOREIGN KEY (server_id) 

@@ -8,16 +8,14 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.HetznerClient;
+import com.mc_host.api.model.ResourceType;
 import com.mc_host.api.persistence.NodeRepository;
 import com.mc_host.api.util.Task;
 
 
 @Service
-public class HetznerNodeReconciler {
+public class HetznerNodeReconciler implements ResourceReconciler {
     private static final Logger LOGGER = Logger.getLogger(HetznerNodeReconciler.class.getName());
-
-    protected static final long INITIAL_DELAY_MS = 60_000;
-    protected static final long MAX_DELAY_MS = 600_000;
 
     private final HetznerClient hetznerClient;
     private final NodeRepository nodeRepository;
@@ -30,6 +28,12 @@ public class HetznerNodeReconciler {
         this.nodeRepository = nodeRepository;
     }
 
+    @Override
+    public ResourceType getType() {
+        return ResourceType.HETZNER_NODE;
+    }
+
+    @Override
     public void reconcile() {
         LOGGER.log(Level.INFO, String.format("Reconciling hetzner nodes with db"));
         try {

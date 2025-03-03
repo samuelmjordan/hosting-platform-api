@@ -1,11 +1,8 @@
 package com.mc_host.api.service.reconciliation;
 
-import java.util.stream.Stream;
+import com.mc_host.api.model.ResourceType;
 
-public interface ResourceReconciler<T> {
-
-    Stream<T> fetchActualResources();
-    Stream<T> fetchDatabaseResources();
-    
-
+public interface ResourceReconciler {
+    ResourceType getType();
+    void reconcile();
 }

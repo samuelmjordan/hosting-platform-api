@@ -1,10 +1,10 @@
 package com.mc_host.api.model;
 
 public enum ResourceType {
-    HETZNER_NODE
+    HETZNER_NODE,
     //PTERODACTYL_NODE,
-    //A_RECORD,
+    A_RECORD;
 
     //PTERODACTYL_SERVER,
-    //C_NAME_RECORD
+    //C_NAME_RECORD;
 }
