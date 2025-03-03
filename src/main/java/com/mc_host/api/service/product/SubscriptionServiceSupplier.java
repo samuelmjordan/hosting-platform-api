@@ -9,13 +9,13 @@ import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.persistence.PriceRepository;
 
 @Service
-public class ProductServiceSupplier {
+public class SubscriptionServiceSupplier {
     private final PriceRepository priceRepository;
 
     private final GameServerService javaServerService;
     private final AccountTierService bedrockServerService;
 
-    ProductServiceSupplier(
+    SubscriptionServiceSupplier(
         PriceRepository priceRepository,
         GameServerService javaServerService,
         AccountTierService bedrockServerService
@@ -25,11 +25,11 @@ public class ProductServiceSupplier {
         this.bedrockServerService = bedrockServerService;
     }
 
-    public ProductService supply(ContentSubscription subscription) {
+    public SubscriptionService supply(ContentSubscription subscription) {
         SpecificationType product = SpecificationType.fromProductId(priceRepository.selectProductId(subscription.priceId())
             .orElseThrow(() -> new IllegalArgumentException("Couldnt fetch product for priceId " + subscription.priceId())));
 
-        List<ProductService> productServices = List.of(
+        List<SubscriptionService> productServices = List.of(
             javaServerService,
             bedrockServerService
         );

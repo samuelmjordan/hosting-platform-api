@@ -137,13 +137,26 @@ public class NodeRepository {
         }
     }
     
-    public int deleteHetznerNode(String nodeId) {
+    public int deleteHetznerNodewithNodeId(String nodeId) {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM hetzner_node_
                 WHERE node_id = ?
                 """,
                 nodeId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete hetzner node: " + e.getMessage(), e);
+        }
+    }
+
+    public int deleteHetznerNode(Long hetznerNodeId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM hetzner_node_
+                WHERE hetzner_node_id = ?
+                """,
+                hetznerNodeId
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete hetzner node: " + e.getMessage(), e);
@@ -189,13 +202,26 @@ public class NodeRepository {
         }
     }
     
-    public int deletePterodactylNode(String nodeId) {
+    public int deletePterodactylNodeFromNodeId(String nodeId) {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM pterodactyl_node_
                 WHERE node_id = ?
                 """,
                 nodeId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete pterodactyl node: " + e.getMessage(), e);
+        }
+    }
+
+    public int deletePterodactylNode(Long pterodactylNodeId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM pterodactyl_node_
+                WHERE pterodactyl_node_id = ?
+                """,
+                pterodactylNodeId
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete pterodactyl node: " + e.getMessage(), e);
@@ -287,7 +313,7 @@ public class NodeRepository {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM dns_a_record_
-                WHERE node_id = ?
+                WHERE a_record_id = ?
                 """,
                 nodeId
             );

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
 import com.mc_host.api.persistence.SubscriptionRepository;
-import com.mc_host.api.service.product.ProductServiceSupplier;
+import com.mc_host.api.service.product.SubscriptionServiceSupplier;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
@@ -23,11 +23,11 @@ import com.stripe.model.Subscription;
 public class StripeSubscriptionService {
     private static final Logger LOGGER = Logger.getLogger(StripeSubscriptionService.class.getName());
 
-    private final ProductServiceSupplier productServiceSupplier;
+    private final SubscriptionServiceSupplier productServiceSupplier;
     private final SubscriptionRepository subscriptionRepository;
 
     public StripeSubscriptionService(
-        ProductServiceSupplier productServiceSupplier,
+        SubscriptionServiceSupplier productServiceSupplier,
         SubscriptionRepository subscriptionRepository
     ) {
         this.productServiceSupplier = productServiceSupplier;

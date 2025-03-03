@@ -38,22 +38,22 @@ public class PterodactylClient extends BaseApiClient {
     }
 
     // SERVERS
-    public ServerResponse getServer(String serverId) throws Exception {
+    public PterodactylServerResponse getServer(String serverId) throws Exception {
         String response = sendRequest("GET", "/api/application/servers/" + serverId);
-        return objectMapper.readValue(response, ServerResponse.class);
+        return objectMapper.readValue(response, PterodactylServerResponse.class);
     }
 
-    public List<ServerResponse> getAllServers() throws Exception {
+    public List<PterodactylServerResponse> getAllServers() throws Exception {
         String response = sendRequest("GET", "/api/application/servers");
-        PaginatedResponse<ServerResponse> paginatedResponse = objectMapper.readValue(response, 
+        PaginatedResponse<PterodactylServerResponse> paginatedResponse = objectMapper.readValue(response, 
             objectMapper.getTypeFactory().constructParametricType(
-                PaginatedResponse.class, ServerResponse.class));
+                PaginatedResponse.class, PterodactylServerResponse.class));
         return paginatedResponse.data;
     }
 
-    public ServerResponse createServer(Map<String, Object> serverDetails) throws Exception {
+    public PterodactylServerResponse createServer(Map<String, Object> serverDetails) throws Exception {
         var response = sendRequest("POST", "/api/application/servers", serverDetails);
-        return objectMapper.readValue(response, ServerResponse.class);
+        return objectMapper.readValue(response, PterodactylServerResponse.class);
     }
 
     public void deleteServer(Long serverId) throws Exception {
@@ -153,7 +153,7 @@ public class PterodactylClient extends BaseApiClient {
     public enum PowerState {
         START, STOP, RESTART, KILL
     }
-    public record ServerResponse(ServerAttributes attributes) {}
+    public record PterodactylServerResponse(ServerAttributes attributes) {}
     public record ServerAttributes(
         Long id, 
         String name,

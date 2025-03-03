@@ -1,4 +1,5 @@
 TODO:
+- probably need a refactor. All equal resources rather than a server / a node?
 - reconcile resources:
     - hetzner node
     - pterodactyl node

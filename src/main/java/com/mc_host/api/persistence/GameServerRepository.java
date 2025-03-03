@@ -162,6 +162,19 @@ public class GameServerRepository {
             throw new RuntimeException("Failed to delete pterodactyl server: " + e.getMessage(), e);
         }
     }
+
+    public int deletePterodactylServer(Long pterodactylServerId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM pterodactyl_server_
+                WHERE pterodactyl_server_id = ?
+                """,
+                pterodactylServerId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete pterodactyl server: " + e.getMessage(), e);
+        }
+    }
     
     // --- DNS C Record operations ---
     
@@ -179,8 +192,8 @@ public class GameServerRepository {
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 dnsCNameRecord.serverId(),
-                dnsCNameRecord.zoneId(),
                 dnsCNameRecord.cNameRecordId(),
+                dnsCNameRecord.zoneId(),
                 dnsCNameRecord.zoneName(),
                 dnsCNameRecord.recordName(),
                 dnsCNameRecord.content()
@@ -222,7 +235,7 @@ public class GameServerRepository {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM dns_c_name_record_
-                WHERE server_id = ?
+                WHERE c_name_record_id = ?
                 """,
                 serverId
             );

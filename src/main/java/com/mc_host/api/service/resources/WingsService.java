@@ -1,4 +1,4 @@
-package com.mc_host.api.service.product;
+package com.mc_host.api.service.resources;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
@@ -18,12 +18,12 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerConfiguration;
+import com.mc_host.api.exceptions.resources.SshException;
 import com.mc_host.api.model.node.DnsARecord;
-import com.mc_host.api.model.node.HetznerNode;
 
 @Service
-public class WingsConfigService {
-    private static final Logger LOGGER = Logger.getLogger(WingsConfigService.class.getName());
+public class WingsService {
+    private static final Logger LOGGER = Logger.getLogger(WingsService.class.getName());
     private static final String USERNAME = "root";
     private static final int PORT = 22;
     private static final int TIMEOUT = 300;
@@ -33,7 +33,7 @@ public class WingsConfigService {
     private final ObjectMapper objectMapper;
     private final ObjectMapper yamlMapper;
 
-    WingsConfigService(
+    WingsService(
         HetznerConfiguration hetznerConfiguration,
         ObjectMapper objectMapper,
         ObjectMapper yamlMapper
@@ -134,7 +134,7 @@ public class WingsConfigService {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to setup Wings: " + e.getMessage(), e);
+            throw new SshException(String.format("[aRecordId: %s] Failed to setup Wings", dnsARecord.aRecordId()), e);
         }
     }
 }

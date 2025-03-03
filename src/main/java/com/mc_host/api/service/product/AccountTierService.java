@@ -6,7 +6,7 @@ import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.specification.SpecificationType;
 
 @Service
-public class AccountTierService implements ProductService {
+public class AccountTierService implements SubscriptionService {
 
     @Override
     public boolean isType(SpecificationType type) {
