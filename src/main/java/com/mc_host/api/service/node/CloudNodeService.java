@@ -16,7 +16,6 @@ import com.mc_host.api.client.PterodactylClient;
 import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.exceptions.provisioning.CloudflareProvisioningException;
 import com.mc_host.api.exceptions.provisioning.HetznerProvisioningException;
-import com.mc_host.api.exceptions.provisioning.NodeProvisioningException;
 import com.mc_host.api.exceptions.provisioning.PterodactylProvisioningException;
 import com.mc_host.api.exceptions.provisioning.SshProvisioningException;
 import com.mc_host.api.model.hetzner.HetznerRegion;
@@ -60,6 +59,7 @@ public class CloudNodeService {
         this.cloudflareClient = cloudflareClient;
     }
 
+    // TODO: Taskify!
     public Node provisionCloudNode(HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
         Node node = Node.newCloudNode();
         try {    
@@ -72,7 +72,8 @@ public class CloudNodeService {
             installWings(pterodactylNode, hetznerNode, dnsARecord);
             LOGGER.log(Level.INFO, String.format("Cloud node %s READY", node.nodeId()));
             return node;
-        } catch(NodeProvisioningException e) {
+        } catch(Exception e) {
+            LOGGER.log(Level.SEVERE, String.format("Encountered error provisioning node %s. Initiating cleanup.", node.nodeId()), e);
             destroyCloudNode(node.nodeId());
             throw e;
         }
@@ -201,11 +202,10 @@ public class CloudNodeService {
     }
 
     private void installWings(PterodactylNode pterodactylNode, HetznerNode hetznerNode, DnsARecord dnsARecord) throws SshProvisioningException {
-        // Install wings
         LOGGER.log(Level.INFO, String.format("[node: %s] Installing wings via ssh", pterodactylNode.nodeId()));
         try {
             String wingsConfig = pterodactylClient.getNodeConfiguration(pterodactylNode.pterodactylNodeId());
-            wingsConfigClient.setupWings(hetznerNode, dnsARecord, wingsConfig);
+            wingsConfigClient.setupWings(dnsARecord, wingsConfig);
         } catch (Exception e) {
             throw new SshProvisioningException(
                 "Failed to install wings",

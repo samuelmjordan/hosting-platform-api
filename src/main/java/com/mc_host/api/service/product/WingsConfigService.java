@@ -20,14 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerConfiguration;
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.HetznerNode;
-import com.mc_host.api.model.node.Node;
-import com.mc_host.api.model.node.PterodactylNode;
 
 @Service
 public class WingsConfigService {
     private static final Logger LOGGER = Logger.getLogger(WingsConfigService.class.getName());
-    private static final String SCHEME = "https";
-    private static final String DOMAIN = "samuelmjordan.dev";
     private static final String USERNAME = "root";
     private static final int PORT = 22;
     private static final int TIMEOUT = 300;
@@ -47,7 +43,7 @@ public class WingsConfigService {
         this.yamlMapper = yamlMapper;
     }
 
-    public void setupWings(HetznerNode hetznerNode, DnsARecord dnsARecord, String jsonConfig) throws IOException {
+    public void setupWings(DnsARecord dnsARecord, String jsonConfig) throws IOException {
         try (SSHClient ssh = new SSHClient()) {
             String privateKey = hetznerConfiguration.getSshPrivateKey()
                 .replace("\\n", "\n")
@@ -63,12 +59,13 @@ public class WingsConfigService {
                 try {
                     ssh.addHostKeyVerifier(new PromiscuousVerifier());
                     ssh.loadKeys(keyPath.toString());
-                    ssh.connect(hetznerNode.ipv4(), PORT);
+                    ssh.connect(dnsARecord.content(), PORT);
                     ssh.authPublickey(USERNAME, keyPath.toString());
                     break;
                 } catch(Exception e) {
                     Thread.sleep(delay);
                     delay *= 1.2;
+                    retries++;
                     if (retries >= 3) {
                         throw e;
                     }

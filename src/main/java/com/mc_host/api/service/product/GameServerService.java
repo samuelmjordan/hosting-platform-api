@@ -83,7 +83,7 @@ public class GameServerService implements ProductService {
     public void delete(ContentSubscription subscription) {
         LOGGER.log(Level.INFO, String.format("Teardown resources for subscription %s", subscription.subscriptionId()));
         GameServer gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId())
-            .orElseThrow(() -> new IllegalStateException(String.format("Game server does not exist for subsccription %s",  subscription.subscriptionId())));
+            .orElseThrow(() -> new IllegalStateException(String.format("Game server does not exist for subscription %s",  subscription.subscriptionId())));
 
         Node node = nodeRepository.selectNode(gameServer.nodeId())
             .orElseThrow(() -> new IllegalStateException(String.format("Could not find node %s", gameServer.nodeId())));
@@ -224,6 +224,7 @@ public class GameServerService implements ProductService {
             String.format("Delete pterodactyl server for server %s", gameServer.serverId()), 
             () -> {
                 if (pterodactylServer.isPresent()) {
+                    LOGGER.log(Level.INFO, String.format("Delete pterodactyl server for server %s", gameServer.serverId()));
                     pterodactylClient.deleteServer(pterodactylServer.get().pterodactylServerId());
                     gameServerRepository.deletePterodactylServer(pterodactylServer.get().serverId());
                 }
@@ -234,15 +235,19 @@ public class GameServerService implements ProductService {
             String.format("Delete c name record for server %s", gameServer.serverId()), 
             () -> {
                 if (dnsCNameRecord.isPresent()) {
+                    LOGGER.log(Level.INFO, String.format("Delete c name record for server %s", gameServer.serverId()));
                     cloudflareClient.deleteDNSRecord(dnsCNameRecord.get().zoneId(), dnsCNameRecord.get().cNameRecordId());
                     gameServerRepository.deleteDnsCNameRecord(dnsCNameRecord.get().serverId());
                 }
             }
         );
     
-        CompletableFuture<Void> deleteGameServer = Task.whenAllCompleteCritical(
+        CompletableFuture<Void> deleteGameServer = Task.whenAllCompleteNonCritical(
             String.format("Delete game server %s", gameServer.serverId()), 
-            () -> gameServerRepository.deleteGameServer(gameServer.serverId()),
+            () -> {
+                LOGGER.log(Level.INFO, String.format("Delete game server %s", gameServer.serverId()));
+                gameServerRepository.deleteGameServer(gameServer.serverId());
+            },
             deletePterodactyl, deleteDns
         );
 
@@ -252,6 +257,6 @@ public class GameServerService implements ProductService {
             deleteGameServer
         );
 
-        Task.awaitCompletion(destroyNode);
+        Task.awaitCompletion(destroyNode, deleteGameServer);
     }
 }
