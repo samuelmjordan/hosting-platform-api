@@ -107,7 +107,8 @@ public class StripeSubscriptionService {
             subscription.getItems().getData().getFirst().getPrice().getId(), 
             Instant.ofEpochMilli(subscription.getCurrentPeriodEnd()), 
             Instant.ofEpochMilli(subscription.getCurrentPeriodStart()), 
-            subscription.getCancelAtPeriodEnd()
+            subscription.getCancelAtPeriodEnd(),
+            subscription.getMetadata()
         );
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.PterodactylClient.AllocationAttributes;
 import com.mc_host.api.exceptions.resources.DeprovisioningException;
+import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.hetzner.HetznerRegion;
@@ -77,9 +78,17 @@ public class GameServerService implements SubscriptionService {
     @Override
     public void create(ContentSubscription subscription) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioning resources for new subscription", subscription.subscriptionId()));
+
+        HetznerRegion hetznerRegion;
+        try {
+            hetznerRegion = MarketingRegion.valueOf(subscription.metadata().get("region")).hetznerRegions.getFirst();
+        } catch (Exception e) {
+            hetznerRegion  = HetznerRegion.NBG1;
+        }
+
         Node node = createCloudNode();
         try {
-            HetznerNode hetznerNode = hetznerService.createCloudNode(node, HetznerRegion.NBG1, HetznerServerType.CAX11);
+            HetznerNode hetznerNode = hetznerService.createCloudNode(node, hetznerRegion, HetznerServerType.CAX11);
             DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
             PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord);
 
