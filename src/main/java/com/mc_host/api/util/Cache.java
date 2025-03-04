@@ -13,11 +13,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
-public class CacheService {
-    private static final Logger LOGGER = Logger.getLogger(CacheService.class.getName());
+@Component
+public class Cache {
+    private static final Logger LOGGER = Logger.getLogger(Cache.class.getName());
     private static final CacheNamespace API_NAMESPACE = CacheNamespace.API;
     private static final CacheNamespace QUEUE_NAMESPACE = CacheNamespace.QUEUE;
     private static final String DELIMITER = "::";
@@ -25,7 +25,7 @@ public class CacheService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public CacheService(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+    public Cache(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }

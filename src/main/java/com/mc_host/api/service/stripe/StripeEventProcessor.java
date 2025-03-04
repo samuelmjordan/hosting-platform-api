@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.util.Cache;
 import com.stripe.model.Event;
 import com.stripe.model.StripeObject;
 
@@ -26,12 +26,12 @@ public class StripeEventProcessor {
     private static final Boolean LOW_PRIORITY = false;
 
     private final StripeConfiguration stripeConfiguration;
-    private final CacheService cacheService;
+    private final Cache cacheService;
     private final ScheduledExecutorService delayedTaskScheduler;
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
-        CacheService cacheService,
+        Cache cacheService,
         ScheduledExecutorService delayedTaskScheduler
     ) {
         this.stripeConfiguration = stripeConfiguration;

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
-import com.mc_host.api.persistence.SubscriptionRepository;
+import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.product.SubscriptionServiceSupplier;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;

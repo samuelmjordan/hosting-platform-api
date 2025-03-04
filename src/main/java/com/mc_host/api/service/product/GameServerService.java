@@ -21,10 +21,10 @@ import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.model.node.Node;
 import com.mc_host.api.model.node.PterodactylNode;
 import com.mc_host.api.model.specification.SpecificationType;
-import com.mc_host.api.persistence.GameServerRepository;
-import com.mc_host.api.persistence.NodeRepository;
-import com.mc_host.api.persistence.PlanRepository;
-import com.mc_host.api.persistence.SubscriptionRepository;
+import com.mc_host.api.repository.GameServerRepository;
+import com.mc_host.api.repository.NodeRepository;
+import com.mc_host.api.repository.PlanRepository;
+import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.DnsService;
 import com.mc_host.api.service.resources.HetznerService;
 import com.mc_host.api.service.resources.PterodactylService;
@@ -65,10 +65,20 @@ public class GameServerService implements SubscriptionService {
     }
 
     @Override
+    public void update(ContentSubscription newSubscription, ContentSubscription oldSubsccription) {
+        if(!newSubscription.subscriptionId().equals(oldSubsccription.subscriptionId())) {
+            throw new IllegalStateException(String.format("Mismatched subscriptions for update: %s and %s", newSubscription.subscriptionId(), oldSubsccription.subscriptionId()));
+        }
+
+        LOGGER.log(Level.INFO, String.format("Update resources for subscription %s", newSubscription.subscriptionId()));
+        // update logic
+    }
+
+    @Override
     public void create(ContentSubscription subscription) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioning resources for new subscription", subscription.subscriptionId()));
+        Node node = createCloudNode();
         try {
-            Node node = createCloudNode();
             HetznerNode hetznerNode = hetznerService.createCloudNode(node, HetznerRegion.NBG1, HetznerServerType.CAX11);
             DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
             PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord);
@@ -84,7 +94,7 @@ public class GameServerService implements SubscriptionService {
         } catch (Exception e1) {
             try {
                 LOGGER.log(Level.SEVERE, String.format("[subscriptionId: %s] Error provisioning resources for new subscription. Initiating cleanup.", subscription.subscriptionId()));
-                delete(subscription);       
+                cleanup(subscription, node.nodeId());       
             } catch (Exception e2) {
                 throw new RuntimeException(String.format("[subscriptionId: %s] Error cleaning up after subscription provisioning failure", subscription.subscriptionId()), e2);
             }
@@ -94,12 +104,24 @@ public class GameServerService implements SubscriptionService {
 
     @Override
     public void delete(ContentSubscription subscription) {
-        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleting resources for existing subscription", subscription.subscriptionId()));
         GameServer gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId())
             .orElseThrow(() -> new IllegalStateException(String.format("[subscriptionId: %s] No game server associated with subscription", subscription.subscriptionId())));
 
         String gameServerId = gameServer.serverId();
         String nodeId = gameServer.nodeId();
+        deleteAll(subscription, gameServerId, nodeId);
+    }
+
+    public void cleanup(ContentSubscription subscription, String nodeId) {
+        String gameServerId = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId())
+            .map(GameServer::serverId)
+            .orElse(null);
+
+        deleteAll(subscription, gameServerId, nodeId);        
+    }
+
+    public void deleteAll(ContentSubscription subscription, String gameServerId, String nodeId) {
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleting resources for existing subscription", subscription.subscriptionId()));
 
         executeTasks(List.of(
             () -> pterodactylService.destroyServerWithGameServerId(gameServerId),
@@ -119,16 +141,6 @@ public class GameServerService implements SubscriptionService {
         ));
 
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleted resources for existing subscription", subscription.subscriptionId()));
-    }
-
-    @Override
-    public void update(ContentSubscription newSubscription, ContentSubscription oldSubsccription) {
-        if(!newSubscription.subscriptionId().equals(oldSubsccription.subscriptionId())) {
-            throw new IllegalStateException(String.format("Mismatched subscriptions for update: %s and %s", newSubscription.subscriptionId(), oldSubsccription.subscriptionId()));
-        }
-
-        LOGGER.log(Level.INFO, String.format("Update resources for subscription %s", newSubscription.subscriptionId()));
-        // update logic
     }
 
     private Node createCloudNode() {

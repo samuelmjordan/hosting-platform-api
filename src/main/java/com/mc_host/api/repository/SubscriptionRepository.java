@@ -1,4 +1,4 @@
-package com.mc_host.api.persistence;
+package com.mc_host.api.repository;
 
 import java.sql.Timestamp;
 import java.time.ZoneOffset;

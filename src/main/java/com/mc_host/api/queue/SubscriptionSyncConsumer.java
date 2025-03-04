@@ -12,7 +12,7 @@ import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
 import com.mc_host.api.service.stripe.StripeSubscriptionService;
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.util.Cache;
 
 @Service
 public class SubscriptionSyncConsumer extends AbstractQueueConsumer {
@@ -24,7 +24,7 @@ public class SubscriptionSyncConsumer extends AbstractQueueConsumer {
     public SubscriptionSyncConsumer(
             ScheduledExecutorService scheduledExecutor,
             ExecutorService taskExecutor,
-            CacheService cacheService,
+            Cache cacheService,
 
             StripeConfiguration stripeConfiguration,
             StripeSubscriptionService stripeSubscriptionService) {

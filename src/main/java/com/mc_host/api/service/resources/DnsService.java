@@ -13,8 +13,9 @@ import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.HetznerNode;
-import com.mc_host.api.persistence.GameServerRepository;
-import com.mc_host.api.persistence.NodeRepository;
+import com.mc_host.api.repository.GameServerRepository;
+import com.mc_host.api.repository.NodeRepository;
+import com.mc_host.api.util.PersistenceContext;
 
 @Service
 public class DnsService {
@@ -24,17 +25,20 @@ public class DnsService {
     private final CloudflareClient cloudflareClient;
     private final NodeRepository nodeRepository;
     private final GameServerRepository gameServerRepository;
+    private final PersistenceContext persistenceContext;
 
     public DnsService(
         CloudflareClient cloudflareClient,
         ApplicationConfiguration applicationConfiguration,
         NodeRepository nodeRepository,
-        GameServerRepository gameServerRepository
+        GameServerRepository gameServerRepository,
+        PersistenceContext persistenceContext
     ) {
         this.cloudflareClient = cloudflareClient;
         this.applicationConfiguration = applicationConfiguration;
         this.nodeRepository = nodeRepository;
         this.gameServerRepository = gameServerRepository;
+        this.persistenceContext = persistenceContext;
     }
 
     public DnsARecord createARecord(HetznerNode hetznerNode) {
@@ -62,8 +66,10 @@ public class DnsService {
     public void deleteARecord(DnsARecord dnsARecord) {
         LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Deleting DNS A record", dnsARecord.aRecordId()));
         try {
-            cloudflareClient.deleteDNSRecord(dnsARecord.zoneId(), dnsARecord.aRecordId());
-            nodeRepository.deleteDnsARecord(dnsARecord.aRecordId());
+            persistenceContext.inTransaction(() -> {
+                nodeRepository.deleteDnsARecord(dnsARecord.aRecordId());
+                cloudflareClient.deleteDNSRecord(dnsARecord.zoneId(), dnsARecord.aRecordId());
+            });
             LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Deleted DNS A record", dnsARecord.aRecordId()));
         } catch (Exception e) {
             throw new CloudflareException(String.format("[aRecordId: %s] Error deleting DNS A record", dnsARecord.aRecordId()), e);
@@ -106,8 +112,10 @@ public class DnsService {
     public void deleteCNameRecord(DnsCNameRecord dnsCNameRecord) {
         LOGGER.log(Level.INFO, String.format("[cNameRecordId: %s] Deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()));
         try {
-            cloudflareClient.deleteDNSRecord(dnsCNameRecord.zoneId(), dnsCNameRecord.cNameRecordId());
-            gameServerRepository.deleteDnsCNameRecord(dnsCNameRecord.cNameRecordId());
+            persistenceContext.inTransaction(() -> {
+                gameServerRepository.deleteDnsCNameRecord(dnsCNameRecord.cNameRecordId());
+                cloudflareClient.deleteDNSRecord(dnsCNameRecord.zoneId(), dnsCNameRecord.cNameRecordId());
+            });
             LOGGER.log(Level.INFO, String.format("[cNameRecordId: %s] Deleted DNS C NAME record", dnsCNameRecord.cNameRecordId()));
         } catch (Exception e) {
             throw new CloudflareException(String.format("[cNameRecordId: %s] Error deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()), e);

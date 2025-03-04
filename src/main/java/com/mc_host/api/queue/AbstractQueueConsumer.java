@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.util.Cache;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -28,12 +28,12 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
     
     protected final ScheduledExecutorService scheduledExecutor;
     protected final ExecutorService taskExecutor;
-    protected final CacheService cacheService;
+    protected final Cache cacheService;
     
     protected AbstractQueueConsumer(
             ScheduledExecutorService scheduledExecutor,
             ExecutorService taskExecutor,
-            CacheService cacheService) {
+            Cache cacheService) {
         this.scheduledExecutor = scheduledExecutor;
         this.taskExecutor = taskExecutor;
         this.cacheService = cacheService;

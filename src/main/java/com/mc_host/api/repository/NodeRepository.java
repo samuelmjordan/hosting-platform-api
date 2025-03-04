@@ -1,4 +1,4 @@
-package com.mc_host.api.persistence;
+package com.mc_host.api.repository;
 
 import java.util.List;
 import java.util.Optional;

@@ -12,7 +12,7 @@ import com.mc_host.api.model.ResourceType;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
 import com.mc_host.api.service.reconciliation.ResourceReconcilerSupplier;
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.util.Cache;
 
 @Service
 public class ReconciliationConsumer extends AbstractQueueConsumer {
@@ -24,7 +24,7 @@ public class ReconciliationConsumer extends AbstractQueueConsumer {
     public ReconciliationConsumer(
             ScheduledExecutorService scheduledExecutor,
             ExecutorService taskExecutor,
-            CacheService cacheService,
+            Cache cacheService,
             ResourceReconcilerSupplier resourceReconcilerSupplier) {
         super(scheduledExecutor, taskExecutor, cacheService);
         this.resourceReconcilerSupplier = resourceReconcilerSupplier;

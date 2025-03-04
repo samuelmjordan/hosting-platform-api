@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.cache.Queue;
 import com.mc_host.api.service.stripe.StripePriceService;
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.util.Cache;
 
 @Service
 public class PriceSyncConsumer extends AbstractQueueConsumer {
@@ -20,7 +20,7 @@ public class PriceSyncConsumer extends AbstractQueueConsumer {
     public PriceSyncConsumer(
             ScheduledExecutorService scheduledExecutor,
             ExecutorService taskExecutor,
-            CacheService cacheService,
+            Cache cacheService,
 
             StripePriceService stripePriceService) {
         super(scheduledExecutor, taskExecutor, cacheService);

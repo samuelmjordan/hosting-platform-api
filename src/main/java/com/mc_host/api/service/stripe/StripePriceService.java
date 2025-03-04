@@ -13,8 +13,8 @@ import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.PricePair;
 import com.mc_host.api.model.specification.SpecificationType;
-import com.mc_host.api.persistence.PriceRepository;
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.repository.PriceRepository;
+import com.mc_host.api.util.Cache;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Price;
@@ -24,11 +24,11 @@ import com.stripe.param.PriceListParams;
 public class StripePriceService {
     private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
 
-    private final CacheService cacheService;
+    private final Cache cacheService;
     private final PriceRepository priceRepository;
 
     public StripePriceService(
-        CacheService cacheService,
+        Cache cacheService,
         PriceRepository priceRepository
     ) {
         this.cacheService = cacheService;

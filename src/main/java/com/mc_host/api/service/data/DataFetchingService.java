@@ -15,20 +15,20 @@ import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.specification.SpecificationType;
-import com.mc_host.api.persistence.PlanRepository;
-import com.mc_host.api.persistence.UserRepository;
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.repository.PlanRepository;
+import com.mc_host.api.repository.UserRepository;
+import com.mc_host.api.util.Cache;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
-    private final CacheService cacheService;
+    private final Cache cacheService;
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
 
     public DataFetchingService(
-        CacheService cacheService,
+        Cache cacheService,
         PlanRepository planRepository,
         UserRepository userRepository
     ) {

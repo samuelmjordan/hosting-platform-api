@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import com.mc_host.api.model.ResourceType;
 import com.mc_host.api.model.cache.Queue;
-import com.mc_host.api.util.CacheService;
+import com.mc_host.api.util.Cache;
 import com.mc_host.api.util.Task;
 
 @Service
@@ -18,10 +18,10 @@ public class ScheduledReconciler {
     private static final Logger LOGGER = Logger.getLogger(ScheduledReconciler.class.getName());
     private static final Queue QUEUE = Queue.RESOURCE_RECONCILE;
 
-    private final CacheService cacheService;
+    private final Cache cacheService;
 
     public ScheduledReconciler(
-        CacheService cacheService
+        Cache cacheService
     ) {
         this.cacheService = cacheService;
     }

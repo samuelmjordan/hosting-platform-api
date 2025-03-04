@@ -12,7 +12,8 @@ import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.model.node.Node;
-import com.mc_host.api.persistence.NodeRepository;
+import com.mc_host.api.repository.NodeRepository;
+import com.mc_host.api.util.PersistenceContext;
 
 @Service
 public class HetznerService {
@@ -20,13 +21,16 @@ public class HetznerService {
 
     private final HetznerClient hetznerClient;
     private final NodeRepository nodeRepository;
+    private final PersistenceContext persistenceContext;
 
     public HetznerService(
         HetznerClient hetznerClient,
-        NodeRepository nodeRepository
+        NodeRepository nodeRepository,
+        PersistenceContext persistenceContext
     ) {
         this.hetznerClient = hetznerClient;
         this.nodeRepository = nodeRepository;
+        this.persistenceContext = persistenceContext;
     }
 
     public HetznerNode createCloudNode(Node node, HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
@@ -58,8 +62,10 @@ public class HetznerService {
     public void deleteNode(Long hetznerNodeId) {
         LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Deleting hetzner node", hetznerNodeId));
         try {
-            hetznerClient.deleteServer(hetznerNodeId);
-            nodeRepository.deleteHetznerNode(hetznerNodeId);
+            persistenceContext.inTransaction(() -> {
+                nodeRepository.deleteHetznerNode(hetznerNodeId);
+                hetznerClient.deleteServer(hetznerNodeId);
+            });
             LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Deleted hetzner node", hetznerNodeId));
         } catch (Exception e) {
             throw new HetznerException(String.format("[hetznerNodeId: %s] Error deleting hetzner node", hetznerNodeId), e);

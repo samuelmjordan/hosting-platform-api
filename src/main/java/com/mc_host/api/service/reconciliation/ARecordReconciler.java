@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.client.CloudflareClient;
 import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
 import com.mc_host.api.model.ResourceType;
-import com.mc_host.api.persistence.NodeRepository;
+import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.util.Task;
 
 
