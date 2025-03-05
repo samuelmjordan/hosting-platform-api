@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.client.PterodactylClient.AllocationAttributes;
 import com.mc_host.api.exceptions.resources.DeprovisioningException;
 import com.mc_host.api.model.MarketingRegion;
+import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.hetzner.HetznerRegion;
@@ -81,7 +82,7 @@ public class GameServerService implements SubscriptionService {
 
         HetznerRegion hetznerRegion;
         try {
-            hetznerRegion = MarketingRegion.valueOf(subscription.metadata().get("region")).hetznerRegions.getFirst();
+            hetznerRegion = MarketingRegion.valueOf(subscription.metadata().get(MetadataKey.REGION.name())).getHetznerRegions().getFirst();
         } catch (Exception e) {
             hetznerRegion  = HetznerRegion.NBG1;
         }

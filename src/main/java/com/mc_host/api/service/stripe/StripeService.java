@@ -21,6 +21,7 @@ import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.exceptions.ClerkException;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.entity.ApplicationUser;
 import com.mc_host.api.model.request.CheckoutRequest;
 import com.mc_host.api.repository.GameServerSpecRepository;
@@ -105,7 +106,7 @@ public class StripeService implements StripeResource {
                 .setSuccessUrl(request.success())
                 .setCancelUrl(request.cancel())
                 .setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
-                    .putMetadata("region", request.region().name())
+                    .putMetadata(MetadataKey.REGION.name(), request.region().name())
                     .build()) 
                 .addLineItem(SessionCreateParams.LineItem.builder()
                     .setPrice(priceId)

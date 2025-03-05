@@ -8,9 +8,7 @@ import lombok.Getter;
 public enum HetznerRegion {
     NBG1(MarketingRegion.WEST_EUROPE, 1),
     FSN1(MarketingRegion.WEST_EUROPE, 2),
-    HEL1(MarketingRegion.EAST_EUROPE, 3),
-    ASH(MarketingRegion.NORTH_AMERICA_EAST, 4),
-    HIL(MarketingRegion.NORTH_AMERICA_WEST, 5);
+    HEL1(MarketingRegion.EAST_EUROPE, 3);
 
     public final MarketingRegion marketingRegionMapping;
     public final Integer pterodactylLocationId;
