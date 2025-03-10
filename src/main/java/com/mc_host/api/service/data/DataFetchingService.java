@@ -14,6 +14,8 @@ import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.cache.CacheNamespace;
+import com.mc_host.api.model.entity.ContentSubscription;
+import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.UserRepository;
@@ -39,26 +41,41 @@ public class DataFetchingService implements DataFetchingResource  {
 
     @Override
     public ResponseEntity<AcceptedCurrency> getUserCurrency(String userId) {
-        return ResponseEntity.ok(getUserCurrencyInner(userId));
-    }
-
-    public AcceptedCurrency getUserCurrencyInner(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching currency for clerkId %s", userId));
 
         CacheNamespace cacheNamespace = CacheNamespace.USER_CURRENCY;
         Optional<AcceptedCurrency> cachedCurrency = cacheService.retrieve(cacheNamespace, userId, AcceptedCurrency.class);
         if (cachedCurrency.isPresent()) {
-            return cachedCurrency.get();
+            return ResponseEntity.ok(cachedCurrency.get());
         }
 
         Optional<AcceptedCurrency> currency = userRepository.selectUserCurrency(userId);
         if (currency.isPresent()) {
             cacheService.set(cacheNamespace, userId, currency.get());
-            return currency.get();
+            return ResponseEntity.ok(currency.get());
         }
 
-        cacheService.set(cacheNamespace, userId, AcceptedCurrency.XXX, Duration.ofSeconds(60));
-        return AcceptedCurrency.XXX;
+        AcceptedCurrency defaulAcceptedCurrency = AcceptedCurrency.XXX;
+        cacheService.set(cacheNamespace, userId, defaulAcceptedCurrency, Duration.ofHours(2));
+        return ResponseEntity.ok(defaulAcceptedCurrency);
+    }
+
+    @Override
+    public ResponseEntity<List<ContentSubscription>> getUserSubscriptions(String userId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getUserSubscriptions'");
+    }
+
+    @Override
+    public ResponseEntity<List<GameServer>> getUserServers(String userId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getUserServers'");
+    }
+
+    @Override
+    public ResponseEntity<List<Plan>> getUserPlans(String userId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getUserPlans'");
     }
 
     @Override
@@ -87,7 +104,6 @@ public class DataFetchingService implements DataFetchingResource  {
             }
             
             if (plans.isEmpty()) {
-                LOGGER.log(Level.WARNING, String.format("specType %s had no plans. Is this the correct Id?", specType));
                 throw new RuntimeException(String.format("specType %s had no plans. Is this the correct Id?", specType));
             }
             cacheService.set(cacheNamespace, specType.name(), plans);
