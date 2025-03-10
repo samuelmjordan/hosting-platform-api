@@ -5,7 +5,7 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.client.HetznerClient;
+import com.mc_host.api.client.HetznerCloudClient;
 import com.mc_host.api.exceptions.resources.HetznerException;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
@@ -19,12 +19,12 @@ import com.mc_host.api.util.PersistenceContext;
 public class HetznerService {
     private static final Logger LOGGER = Logger.getLogger(HetznerService.class.getName());
 
-    private final HetznerClient hetznerClient;
+    private final HetznerCloudClient hetznerClient;
     private final NodeRepository nodeRepository;
     private final PersistenceContext persistenceContext;
 
     public HetznerService(
-        HetznerClient hetznerClient,
+        HetznerCloudClient hetznerClient,
         NodeRepository nodeRepository,
         PersistenceContext persistenceContext
     ) {

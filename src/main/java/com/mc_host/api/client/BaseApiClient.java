@@ -45,7 +45,7 @@ public abstract class BaseApiClient {
                 body != null ? objectMapper.writeValueAsString(body) : ""));
             default -> throw new IllegalArgumentException("Unsupported HTTP method: " + method);
         }).build();
-
+        
         var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         
         if (response.statusCode() >= 400) {

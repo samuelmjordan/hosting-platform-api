@@ -12,7 +12,7 @@ public class ResourceReconcilerSupplier {
     private final Map<ResourceType, ResourceReconciler> reconcilerMap;
 
     public ResourceReconcilerSupplier(
-        HetznerNodeReconciler hetznerNodeReconciler,
+        HetznerCloudNodeReconciler hetznerNodeReconciler,
         ARecordReconciler aRecordReconciler
     ) {
         this.reconcilerMap = Map.of(

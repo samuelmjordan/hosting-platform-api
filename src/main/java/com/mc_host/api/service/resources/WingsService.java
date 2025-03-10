@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.configuration.HetznerConfiguration;
+import com.mc_host.api.configuration.SshConfiguration;
 import com.mc_host.api.exceptions.resources.SshException;
 import com.mc_host.api.model.node.DnsARecord;
 
@@ -29,23 +29,23 @@ public class WingsService {
     private static final int TIMEOUT = 300;
     private static final int DELAY = 3000;
 
-    private final HetznerConfiguration hetznerConfiguration;
+    private final SshConfiguration sshConfiguration;
     private final ObjectMapper objectMapper;
     private final ObjectMapper yamlMapper;
 
     WingsService(
-        HetznerConfiguration hetznerConfiguration,
+        SshConfiguration sshConfiguration,
         ObjectMapper objectMapper,
         ObjectMapper yamlMapper
     ) {
-        this.hetznerConfiguration = hetznerConfiguration;
+        this.sshConfiguration = sshConfiguration;
         this.objectMapper = objectMapper;
         this.yamlMapper = yamlMapper;
     }
 
     public void setupWings(DnsARecord dnsARecord, String jsonConfig) throws IOException {
         try (SSHClient ssh = new SSHClient()) {
-            String privateKey = hetznerConfiguration.getSshPrivateKey()
+            String privateKey = sshConfiguration.getPrivateKey()
                 .replace("\\n", "\n")
                 .replace("\r", "")
                 .trim();

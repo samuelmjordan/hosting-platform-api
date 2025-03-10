@@ -3,9 +3,8 @@ package com.mc_host.api.client;
 import java.net.http.HttpClient;
 import java.time.Duration;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.configuration.HetznerConfiguration;
+import com.mc_host.api.configuration.HetznerCloudConfiguration;
 import com.mc_host.api.model.hetzner.HetznerServerResponse;
 import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
 import com.mc_host.api.model.hetzner.HetznerServersResponse;
@@ -18,32 +17,32 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 @Service
-public class HetznerClient extends BaseApiClient{
-    private static final Logger LOGGER = Logger.getLogger(HetznerClient.class.getName());
+public class HetznerCloudClient extends BaseApiClient{
+    private static final Logger LOGGER = Logger.getLogger(HetznerCloudClient.class.getName());
 
     private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
     private static final Duration MAX_WAIT_TIME = Duration.ofMinutes(5);
 
-    private final HetznerConfiguration hetznerConfiguration;
+    private final HetznerCloudConfiguration hetznerCloudConfiguration;
 
-    public HetznerClient(
-        HetznerConfiguration hetznerConfiguration,
+    public HetznerCloudClient(
+        HetznerCloudConfiguration hetznerCloudConfiguration,
         HttpClient httpClient,
         ObjectMapper objectMapper
     ) {
         super(httpClient, objectMapper);
-        this.hetznerConfiguration = hetznerConfiguration;
+        this.hetznerCloudConfiguration = hetznerCloudConfiguration;
     }
 
     
     @Override
     protected String getApiBase() {
-        return hetznerConfiguration.getApiBase();
+        return hetznerCloudConfiguration.getApiBase();
     }
 
     @Override
     protected String getAuthorizationHeader() {
-        return "Bearer " + hetznerConfiguration.getApiToken();
+        return "Bearer " + hetznerCloudConfiguration.getApiToken();
     }
 
     public HetznerServerResponse createServer(String name, String serverType, String location, String image) throws Exception {

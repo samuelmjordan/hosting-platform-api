@@ -7,21 +7,21 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.client.HetznerClient;
+import com.mc_host.api.client.HetznerCloudClient;
 import com.mc_host.api.model.ResourceType;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.util.Task;
 
 
 @Service
-public class HetznerNodeReconciler implements ResourceReconciler {
-    private static final Logger LOGGER = Logger.getLogger(HetznerNodeReconciler.class.getName());
+public class HetznerCloudNodeReconciler implements ResourceReconciler {
+    private static final Logger LOGGER = Logger.getLogger(HetznerCloudNodeReconciler.class.getName());
 
-    private final HetznerClient hetznerClient;
+    private final HetznerCloudClient hetznerClient;
     private final NodeRepository nodeRepository;
 
-    HetznerNodeReconciler(
-        HetznerClient hetznerClient,
+    HetznerCloudNodeReconciler(
+        HetznerCloudClient hetznerClient,
         NodeRepository nodeRepository
     ) {
         this.hetznerClient = hetznerClient;

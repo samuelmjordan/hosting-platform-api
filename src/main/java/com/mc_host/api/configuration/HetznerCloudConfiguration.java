@@ -7,10 +7,8 @@ import lombok.Data;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "hetzner")
-public class HetznerConfiguration {
+@ConfigurationProperties(prefix = "hetzner.cloud")
+public class HetznerCloudConfiguration {
     private String apiBase;
     private String apiToken;
-    private String sshPrivateKey;
-    private String sshPublicKey;
 }

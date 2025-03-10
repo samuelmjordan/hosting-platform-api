@@ -50,10 +50,16 @@ pterodactyl:
   api-token: ${PANEL_SECRET_KEY}
 
 hetzner:
-  api-base: "https://api.hetzner.cloud/v1"
-  api-token: ${HETZNER_SECRET_KEY}
-  ssh-private-key: ${SSH_PRIVATE_KEY}
-  ssh-public-key: ${SSH_PUBLIC_KEY}
+  cloud:
+    api-base: "https://api.hetzner.cloud/v1"
+    api-token: ${HETZNER_SECRET_KEY}
+  robot:
+    api-base: "https://robot-ws.your-server.de"
+    api-token: ${HETZNER_SECRET_KEY}
+
+ssh:
+  private-key: ${SSH_PRIVATE_KEY}
+  public-key: ${SSH_PUBLIC_KEY}
 
 clerk:
   key: ${CLERK_SECRET_KEY}
