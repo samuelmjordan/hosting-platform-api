@@ -52,6 +52,22 @@ public class UserRepository {
         }
     }
 
+    public Optional<String> selectClerkIdByCustomerId(String customerId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT clerk_id
+                FROM user_
+                WHERE customer_id = ?
+                """,
+                (rs, rowNum) -> rs.getString("clerk_id"),
+                customerId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch clerk ID for customer ID: " + e.getMessage(), e);
+        }
+    }
+
     public Optional<AcceptedCurrency> selectUserCurrency(String userId) {
         try {
             return jdbcTemplate.query(

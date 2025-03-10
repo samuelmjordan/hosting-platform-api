@@ -22,11 +22,13 @@ import com.mc_host.api.exceptions.ClerkException;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.MetadataKey;
+import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ApplicationUser;
 import com.mc_host.api.model.request.CheckoutRequest;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.service.data.DataFetchingService;
+import com.mc_host.api.util.Cache;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -39,6 +41,7 @@ import com.stripe.param.checkout.SessionCreateParams;
 public class StripeService implements StripeResource {
     private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
     
+    private final Cache cacheService;
     private final StripeConfiguration stripeConfiguration;
     private final ClerkConfiguration clerkConfiguration;
     private final StripeEventProcessor stripeEventProcessor;
@@ -48,6 +51,7 @@ public class StripeService implements StripeResource {
     private final Executor virtualThreadExecutor;
 
     public StripeService(
+        Cache cacheService,
         StripeConfiguration stripeConfiguration,
         ClerkConfiguration clerkConfiguration,
         StripeEventProcessor eventProcessor,
@@ -56,6 +60,7 @@ public class StripeService implements StripeResource {
         DataFetchingService dataFetchingService,
         Executor virtualThreadExecutor
     ) {
+        this.cacheService = cacheService;
         this.stripeConfiguration = stripeConfiguration;
         this.clerkConfiguration = clerkConfiguration;
         this.stripeEventProcessor = eventProcessor;
@@ -135,6 +140,7 @@ public class StripeService implements StripeResource {
     }
 
     private String getPriceInCorrectCurrency(String priceId, String userId) {
+        cacheService.evict(CacheNamespace.USER_CURRENCY, userId);
         AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);
         if (currency.equals(AcceptedCurrency.XXX)) {
             return priceId;
@@ -144,15 +150,18 @@ public class StripeService implements StripeResource {
     }
 
     private String getCustomerId(String userId) throws CustomerNotFoundException {
-        Optional<String> stripeCustomerId = userRepository.selectCustomerIdByClerkId(userId);
+        CacheNamespace cacheNamespace = CacheNamespace.USER_CUSTOMER_ID;
+        Optional<String> stripeCustomerId = dataFetchingService.getUserCustomerId(userId);
         if (stripeCustomerId.isPresent()) {
             LOGGER.log(Level.INFO, "Completed fetching details - clerkId:  " + userId);
             return stripeCustomerId.get();
         }
+        cacheService.evict(cacheNamespace, userId);
 
         try {
             LOGGER.log(Level.INFO, "Creating new customer - clerkId: " + userId);
             String customerId = createNewStripeCustomer(userId);
+            cacheService.set(cacheNamespace, customerId, Optional.of(customerId));
             LOGGER.log(Level.INFO, "Completed creating new customer - clerkId: " + userId);
             return customerId;
         } catch (ClerkErrors | ClerkException e) {

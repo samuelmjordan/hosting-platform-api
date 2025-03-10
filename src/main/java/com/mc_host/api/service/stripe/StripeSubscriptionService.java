@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import java.util.logging.Level;
@@ -11,10 +12,13 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
 import com.mc_host.api.repository.SubscriptionRepository;
+import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.service.product.SubscriptionServiceSupplier;
+import com.mc_host.api.util.Cache;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
@@ -23,19 +27,27 @@ import com.stripe.model.Subscription;
 public class StripeSubscriptionService {
     private static final Logger LOGGER = Logger.getLogger(StripeSubscriptionService.class.getName());
 
+    private final Cache cache;
+    private final UserRepository userRepository;
     private final SubscriptionServiceSupplier productServiceSupplier;
     private final SubscriptionRepository subscriptionRepository;
 
     public StripeSubscriptionService(
+        Cache cache,
+        UserRepository userRepository,
         SubscriptionServiceSupplier productServiceSupplier,
         SubscriptionRepository subscriptionRepository
     ) {
+        this.cache = cache;
+        this.userRepository = userRepository;
         this.productServiceSupplier = productServiceSupplier;
         this.subscriptionRepository = subscriptionRepository;
     }
 
     public void handleCustomerSubscriptionSync(String customerId) {
         try {
+            evictCache(customerId);
+            
             List<ContentSubscription> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
             List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData().stream()
                 .map(subscription -> stripeSubscriptionToEntity(subscription, customerId)).toList();
@@ -110,5 +122,14 @@ public class StripeSubscriptionService {
             subscription.getCancelAtPeriodEnd(),
             subscription.getMetadata()
         );
+    }
+
+    private void evictCache(String customerId) {
+        Optional<String> userId = userRepository.selectClerkIdByCustomerId(customerId);
+        if (!userId.isPresent()) {
+            LOGGER.log(Level.SEVERE, String.format("customerId %s has no associated user", customerId));
+            return;
+        }
+        cache.evict(CacheNamespace.USER_SERVER_SUBSCRIPTIONS, userId.get());
     }
 }

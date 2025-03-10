@@ -54,6 +54,7 @@ public class StripeEventProcessor {
             if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
                 String customerId = extractValueFromEvent(event, "customer")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
+                cacheService.evict(CacheNamespace.USER_SERVER_SUBSCRIPTIONS, customerId);
                 queuePushDebounce(Queue.SUBSCRIPTION_SYNC, CacheNamespace.SUBSCRIPTION_SYNC_DEBOUNCE, LOW_PRIORITY, customerId);
             }
 

@@ -10,6 +10,7 @@ import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.game_server.GameServer;
+import com.mc_host.api.model.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.specification.SpecificationType;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,18 +25,8 @@ public interface DataFetchingResource {
         @PathVariable String userId
     );
 
-    @GetMapping("/user/{userId}/subscription")
-    public ResponseEntity<List<ContentSubscription>> getUserSubscriptions(
-        @PathVariable String userId
-    );
-
-    @GetMapping("/user/{userId}/subscription/server")
-    public ResponseEntity<List<GameServer>> getUserServers(
-        @PathVariable String userId
-    );
-
-    @GetMapping("/user/{userId}/subscription/server/plan")
-    public ResponseEntity<List<Plan>> getUserPlans(
+    @GetMapping("/user/{userId}/server-subscription")
+    public ResponseEntity<List<ServerSubscriptionResponse>> getUserServerSubscriptions(
         @PathVariable String userId
     );
 
