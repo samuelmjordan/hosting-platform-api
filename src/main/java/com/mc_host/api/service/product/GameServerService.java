@@ -34,8 +34,6 @@ import com.mc_host.api.service.resources.DnsService;
 import com.mc_host.api.service.resources.HetznerService;
 import com.mc_host.api.service.resources.PterodactylService;
 
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-
 @Service
 public class GameServerService implements SubscriptionService {
     private static final Logger LOGGER = Logger.getLogger(GameServerService.class.getName());
@@ -172,22 +170,24 @@ public class GameServerService implements SubscriptionService {
     public void deleteAll(ContentSubscription subscription, String gameServerId, String nodeId) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleting resources for existing subscription", subscription.subscriptionId()));
 
-        executeTasks(List.of(
+        List<Exception> cumulativeExceptions = new ArrayList<>();
+
+        cumulativeExceptions.addAll(executeTasks(List.of(
             () -> pterodactylService.destroyServerWithGameServerId(gameServerId),
             () -> dnsService.deleteCNameRecordWithGameServerId(gameServerId),
             () -> dnsService.deleteARecordWithGameServerId(nodeId),
             () -> hetznerService.deleteNodeWithGameServerId(nodeId)
-        ));
+        )));
 
-        executeTasks(List.of(
+        cumulativeExceptions.addAll(executeTasks(List.of(
             () -> pterodactylService.destroyNodeWithGameServerId(nodeId),
             () -> gameServerRepository.deleteGameServer(gameServerId)
-        ));
+        )));
 
         executeCriticalTasks(List.of(
             () -> nodeRepository.deleteNode(nodeId),
             () -> subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), subscription.customerId())
-        ));
+        ), cumulativeExceptions);
 
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleted resources for existing subscription", subscription.subscriptionId()));
     }
@@ -211,15 +211,15 @@ public class GameServerService implements SubscriptionService {
         return gameServer;
     }
 
-    private void executeTasks(List<Runnable> tasks) {
-        executeTasks(tasks, false);
+    private List<Exception> executeTasks(List<Runnable> tasks) {
+        return executeTasks(tasks, List.of(), false);
     }
 
-    private void executeCriticalTasks(List<Runnable> tasks) {
-        executeTasks(tasks, true);
+    private List<Exception> executeCriticalTasks(List<Runnable> tasks, List<Exception> prerequisiteExceptions) {
+        return executeTasks(tasks, prerequisiteExceptions, true);
     }
 
-    private void executeTasks(List<Runnable> tasks, Boolean critical) {
+    private List<Exception> executeTasks(List<Runnable> tasks, List<Exception> prerequisiteExceptions, Boolean critical) {
         List<CompletableFuture<Void>> futures = tasks.stream()
             .map(task -> CompletableFuture.runAsync(task))
             .toList();
@@ -228,25 +228,23 @@ public class GameServerService implements SubscriptionService {
             futures.toArray(new CompletableFuture[0])
         );
         
-        List<Exception> criticalTaskExceptions = new ArrayList<>();
+        List<Exception> newExceptions = new ArrayList<>();
         try {
             allTasks.join();
         } catch (CompletionException e) {
-            String message = String.format("Error executing tasks");
-            LOGGER.log(critical ? Level.SEVERE : Level.WARNING, message, e);
-            if (critical) {
-                criticalTaskExceptions.add(e);
-            }
+            newExceptions.add(e);
         }
 
-        if (critical && !criticalTaskExceptions.isEmpty()) {
-            Exception cause = criticalTaskExceptions.stream()
+        if (critical && !newExceptions.isEmpty()) {
+            prerequisiteExceptions.addAll(newExceptions);
+            Exception cause = prerequisiteExceptions.stream()
                 .reduce((primary, current) -> {
                     primary.addSuppressed(current);
                     return primary;
                 }).get();
             throw new DeprovisioningException("Critical error when deprovisioning resources", cause);
         }
+        return newExceptions;
     }
     
 }
