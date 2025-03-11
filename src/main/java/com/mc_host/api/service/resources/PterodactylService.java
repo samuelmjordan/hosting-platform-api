@@ -7,10 +7,13 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.client.PterodactylClient;
-import com.mc_host.api.client.PterodactylClient.AllocationAttributes;
-import com.mc_host.api.client.PterodactylClient.AllocationResponse;
-import com.mc_host.api.client.PterodactylClient.PterodactylServerResponse;
+import com.mc_host.api.client.PterodactylApplicationClient;
+import com.mc_host.api.client.PterodactylUserClient;
+import com.mc_host.api.client.PterodactylUserClient.PowerState;
+import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
+import com.mc_host.api.client.PterodactylApplicationClient.AllocationAttributes;
+import com.mc_host.api.client.PterodactylApplicationClient.AllocationResponse;
+import com.mc_host.api.client.PterodactylApplicationClient.PterodactylServerResponse;
 import com.mc_host.api.exceptions.resources.PterodactylException;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.game_server.PterodactylServer;
@@ -29,20 +32,23 @@ import com.mc_host.api.util.PersistenceContext;
 public class PterodactylService {
     private static final Logger LOGGER = Logger.getLogger(PterodactylService.class.getName());
 
-    private final PterodactylClient pterodactylClient;
+    private final PterodactylApplicationClient pterodactylApplicationClient;
+    private final PterodactylUserClient pterodactylUserClient;
     private final WingsService wingsService;
     private final NodeRepository nodeRepository;
     private final GameServerRepository gameServerRepository;
     private final PersistenceContext persistenceContext;
 
     public PterodactylService(
-        PterodactylClient pterodactylClient,
+        PterodactylApplicationClient pterodactylApplicationClient,
+        PterodactylUserClient pterodactylUserClient,
         WingsService wingsService,
         NodeRepository nodeRepository,
         GameServerRepository gameServerRepository,
         PersistenceContext persistenceContext
     ) {
-        this.pterodactylClient = pterodactylClient;
+        this.pterodactylApplicationClient = pterodactylApplicationClient;
+        this.pterodactylUserClient = pterodactylUserClient;
         this.wingsService = wingsService;
         this.nodeRepository = nodeRepository;
         this.gameServerRepository = gameServerRepository;
@@ -67,7 +73,7 @@ public class PterodactylService {
                 .daemonSftp(2022)
                 .daemonListen(8080)
                 .build();
-            PterodactylNodeResponse pterodactylNodeResponse = pterodactylClient.createNode(pterodactylNodeRequest);
+            PterodactylNodeResponse pterodactylNodeResponse = pterodactylApplicationClient.createNode(pterodactylNodeRequest);
             PterodactylNode pterodactylNode = new PterodactylNode(
                 dnsARecord.nodeId(),
                 pterodactylNodeResponse.attributes().id()
@@ -85,7 +91,7 @@ public class PterodactylService {
         try {
             persistenceContext.inTransaction(() -> {
                 nodeRepository.deletePterodactylNode(pterodactylNodeId);
-                pterodactylClient.deleteNode(pterodactylNodeId);
+                pterodactylApplicationClient.deleteNode(pterodactylNodeId);
             });
             LOGGER.log(Level.INFO, String.format("[pterodactylNodeId: %s] Deleted pterodactyl node", pterodactylNodeId));
         } catch (Exception e) {
@@ -113,7 +119,7 @@ public class PterodactylService {
     private String getNodeConfig(Long pterodactylNodeId) {
         LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetching wings config", pterodactylNodeId)));
         try {
-            String nodeConfigJson = pterodactylClient.getNodeConfiguration(pterodactylNodeId);
+            String nodeConfigJson = pterodactylApplicationClient.getNodeConfiguration(pterodactylNodeId);
             LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetched wings config", pterodactylNodeId)));
             return nodeConfigJson;
         } catch (Exception e) {
@@ -124,7 +130,7 @@ public class PterodactylService {
     public void createAllocation(Long pterodactylNodeId, String ipv4, Integer port) {
         LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Creating pterodactyl node allocation", pterodactylNodeId)));
         try {
-            pterodactylClient.createMultipleAllocations(
+            pterodactylApplicationClient.createMultipleAllocations(
                 pterodactylNodeId,
                 ipv4,
                 List.of(port),
@@ -139,7 +145,7 @@ public class PterodactylService {
     public AllocationAttributes getAllocation(Long pterodactylNodeId) {
         LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetching pterodactyl node allocation", pterodactylNodeId)));
         try {                
-            List<AllocationResponse> unassignedAllocations = pterodactylClient.getUnassignedAllocations(pterodactylNodeId);
+            List<AllocationResponse> unassignedAllocations = pterodactylApplicationClient.getUnassignedAllocations(pterodactylNodeId);
             LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetched pterodactyl node allocation", pterodactylNodeId)));
             return unassignedAllocations.get(0).attributes();
         } catch (Exception e) {
@@ -182,9 +188,10 @@ public class PterodactylService {
                 Map.entry("external_id", gameServer.serverId())
             );
             
-            PterodactylServerResponse response = pterodactylClient.createServer(serverDetails);
+            PterodactylServerResponse response = pterodactylApplicationClient.createServer(serverDetails);
             PterodactylServer pterodactylServer = new PterodactylServer(
                 gameServer.serverId(), 
+                response.attributes().uuid(),
                 response.attributes().id(), 
                 allocationAttributes.id(), 
                 allocationAttributes.port()
@@ -201,7 +208,7 @@ public class PterodactylService {
         LOGGER.log(Level.INFO, String.format("[pterodactylServerId: %s] Deleting pterodactyl server", pterodactylServerId));
         try {
             persistenceContext.inTransaction(() -> {
-                pterodactylClient.deleteServer(pterodactylServerId);
+                pterodactylApplicationClient.deleteServer(pterodactylServerId);
                 gameServerRepository.deletePterodactylServer(pterodactylServerId);
             });
             LOGGER.log(Level.INFO, String.format("[pterodactylServerId: %s] Deleted pterodactyl server", pterodactylServerId));
@@ -214,6 +221,32 @@ public class PterodactylService {
         PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(gameServerId)
             .orElseThrow(() -> new IllegalStateException(String.format("[gameServerId: %s] No pterodactyl server associated with game server", gameServerId)));
         destroyServer(pterodactylServer.pterodactylServerId());
+    }
+
+    public void startServer(String pterodactylServerUid) {   
+        try {
+            pterodactylUserClient.setPowerState(pterodactylServerUid, PowerState.START);
+            LOGGER.log(Level.INFO, String.format("[pterodactylServerUid: %s] Started pterodactyl server", pterodactylServerUid));
+        } catch (Exception e) {
+            throw new PterodactylException(String.format("[pterodactylServerUid: %s] Error starting pterodactyl server", pterodactylServerUid), e);
+        }
+    }
+
+    public void acceptEula(String pterodactylServerUid) {      
+        try {
+            pterodactylUserClient.acceptMinecraftEula(pterodactylServerUid);
+            LOGGER.log(Level.INFO, String.format("[pterodactylServerUid: %s] Accepting EULA for pterodactyl server", pterodactylServerUid));
+        } catch (Exception e) {
+            throw new PterodactylException(String.format("[pterodactylServerUid: %s] Error accepting EULA for pterodactyl server", pterodactylServerUid), e);
+        }
+    }
+
+    public ServerStatus getServerStatus(String pterodactylServerUid) {   
+        try {
+            return pterodactylUserClient.getServerStatus(pterodactylServerUid);
+        } catch (Exception e) {
+            throw new PterodactylException(String.format("[pterodactylServerUid: %s] Error checking pterodactyl server status", pterodactylServerUid), e);
+        }
     }
     
 }

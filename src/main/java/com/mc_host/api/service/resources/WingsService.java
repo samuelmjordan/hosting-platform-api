@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.SshConfiguration;
 import com.mc_host.api.exceptions.resources.SshException;
@@ -80,7 +81,7 @@ public class WingsService {
 
             String yamlConfig;
             try {
-                Map<String, Object> configMap = objectMapper.readValue(jsonConfig, Map.class);
+                Map<String, Object> configMap = objectMapper.readValue(jsonConfig, new TypeReference<Map<String, Object>>() {});
                 yamlConfig =  yamlMapper.writeValueAsString(configMap);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Failed to convert JSON to YAML", e);

@@ -32,17 +32,22 @@ public abstract class BaseApiClient {
         var builder = HttpRequest.newBuilder()
             .uri(URI.create(getApiBase() + path))
             .header("Authorization", getAuthorizationHeader())
-            .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .timeout(REQUEST_TIMEOUT);
+
+        String requestBody;
+        if (body instanceof String) {
+            requestBody = (String)body;
+        } else {
+            requestBody = body != null ? objectMapper.writeValueAsString(body) : "";
+            builder.header("Content-Type", "application/json");
+        }
 
         var request = (switch (method) {
             case "GET" -> builder.GET();
             case "DELETE" -> builder.DELETE();
-            case "POST" -> builder.POST(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
-            case "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(
-                body != null ? objectMapper.writeValueAsString(body) : ""));
+            case "POST" -> builder.POST(HttpRequest.BodyPublishers.ofString(requestBody));
+            case "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(requestBody));
             default -> throw new IllegalArgumentException("Unsupported HTTP method: " + method);
         }).build();
         

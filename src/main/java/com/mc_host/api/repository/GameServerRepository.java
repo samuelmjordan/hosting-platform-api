@@ -110,13 +110,15 @@ public class GameServerRepository {
             return jdbcTemplate.update("""
                 INSERT INTO pterodactyl_server_ (
                     server_id,
+                    pterodactyl_server_uid,
                     pterodactyl_server_id,
                     allocation_id,
                     port
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 pterodactylServer.serverId(),
+                pterodactylServer.pterodactylServerUid(),
                 pterodactylServer.pterodactylServerId(),
                 pterodactylServer.allocationId(),
                 pterodactylServer.port()
@@ -132,6 +134,7 @@ public class GameServerRepository {
                 """
                 SELECT
                     server_id,
+                    pterodactyl_server_uid,
                     pterodactyl_server_id,
                     allocation_id,
                     port
@@ -140,6 +143,7 @@ public class GameServerRepository {
                 """,
                 (rs, rowNum) -> new PterodactylServer(
                     rs.getString("server_id"),
+                    rs.getString("pterodactyl_server_uid"),
                     rs.getLong("pterodactyl_server_id"),
                     rs.getLong("allocation_id"),
                     rs.getInt("port")),

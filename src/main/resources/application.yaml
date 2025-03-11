@@ -48,6 +48,7 @@ cloudflare:
 pterodactyl:
   api-base: ${PANEL_HOST}
   api-token: ${PANEL_SECRET_KEY}
+  client-api-token: ${PANEL_ADMIN_CLIENT_SECRET_KEY}
 
 hetzner:
   cloud:

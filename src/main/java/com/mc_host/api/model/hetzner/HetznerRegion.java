@@ -10,14 +10,14 @@ public enum HetznerRegion {
     FSN1(MarketingRegion.WEST_EUROPE, 2),
     HEL1(MarketingRegion.EAST_EUROPE, 3);
 
-    public final MarketingRegion marketingRegionMapping;
-    public final Integer pterodactylLocationId;
+    private final MarketingRegion marketingRegion;
+    private final Integer pterodactylLocationId;
 
     HetznerRegion(
         MarketingRegion regionMapping,
         Integer pterodactylLocationId
     ) {
-        this.marketingRegionMapping = regionMapping;
+        this.marketingRegion = regionMapping;
         this.pterodactylLocationId = pterodactylLocationId;
     }
 
@@ -27,6 +27,10 @@ public enum HetznerRegion {
     }
 
     public static HetznerRegion lookup(String string)  {
-        return HetznerRegion.valueOf(string.toUpperCase());
+        try {
+            return HetznerRegion.valueOf(string.toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format("Cannot lookup HetznerRegion from string '%s'", string));
+        }
     }
 }

@@ -11,4 +11,5 @@ import lombok.Data;
 public class PterodactylConfiguration {
     private String apiBase;
     private String apiToken;
+    private String clientApiToken;
 }

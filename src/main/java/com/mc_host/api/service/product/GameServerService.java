@@ -10,12 +10,15 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.client.PterodactylClient.AllocationAttributes;
+import com.mc_host.api.client.PterodactylApplicationClient.AllocationAttributes;
+import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
 import com.mc_host.api.exceptions.resources.DeprovisioningException;
+import com.mc_host.api.exceptions.resources.PterodactylException;
 import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.game_server.GameServer;
+import com.mc_host.api.model.game_server.PterodactylServer;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.DnsARecord;
@@ -30,6 +33,8 @@ import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.DnsService;
 import com.mc_host.api.service.resources.HetznerService;
 import com.mc_host.api.service.resources.PterodactylService;
+
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 
 @Service
 public class GameServerService implements SubscriptionService {
@@ -82,8 +87,9 @@ public class GameServerService implements SubscriptionService {
 
         HetznerRegion hetznerRegion;
         try {
-            hetznerRegion = MarketingRegion.valueOf(subscription.metadata().get(MetadataKey.REGION.name())).getHetznerRegions().getFirst();
+            hetznerRegion = MarketingRegion.valueOf(subscription.metadata().get(MetadataKey.REGION.name())).getHetznerRegion();
         } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, String.format("[subscriptionId: %s] region metdata is invalid / unsupported", subscription.subscriptionId()));
             hetznerRegion  = HetznerRegion.NBG1;
         }
 
@@ -97,8 +103,41 @@ public class GameServerService implements SubscriptionService {
             pterodactylService.createAllocation(pterodactylNode.pterodactylNodeId(), dnsARecord.content(), 25565);
             AllocationAttributes allocationAttributes = pterodactylService.getAllocation(pterodactylNode.pterodactylNodeId());
             pterodactylService.configureNode(pterodactylNode.pterodactylNodeId(), dnsARecord);
-            pterodactylService.createServer(gameServer, allocationAttributes);
+            PterodactylServer pterodactylServer = pterodactylService.createServer(gameServer, allocationAttributes);
             dnsService.createCNameRecord(gameServer, gameServer.serverId().replace("-", ""));
+
+            int retries = 0;
+            int MAX_RETRIES = 5;
+            double BACKOFF = 1.5;
+            int delay = 2000;
+            while (true) {
+                Thread.sleep(delay);
+                ServerStatus serverStatus = pterodactylService.getServerStatus(pterodactylServer.pterodactylServerUid());
+                LOGGER.info(serverStatus.name());
+                if (List.of(ServerStatus.STOPPING, ServerStatus.STOPPED, ServerStatus.OFFLINE).contains(serverStatus)) {
+                    try {
+                        pterodactylService.startServer(pterodactylServer.pterodactylServerUid());
+                        Thread.sleep(delay);
+                        pterodactylService.acceptEula(pterodactylServer.pterodactylServerUid());
+                    } catch (Exception e) {
+                        delay *= BACKOFF;
+                        if (retries++ >= MAX_RETRIES) {
+                            throw new PterodactylException(String.format("[pterodactylServerUid: %s] Server failed to start", pterodactylServer.pterodactylServerUid()), e);
+                        }
+                        continue;
+                    }
+                } else if (ServerStatus.RUNNING.equals(serverStatus)) {
+                    break;
+                } else if (ServerStatus.STARTING.equals(serverStatus)) {
+                    continue;
+                } else {
+                    throw new IllegalStateException(String.format("Invalid server status %s", serverStatus));
+                }
+                delay *= BACKOFF;
+                if (retries++ >= MAX_RETRIES) {
+                    throw new RuntimeException(String.format("[pterodactylServerUid: %s] Server failed to start", pterodactylServer.pterodactylServerUid()));
+                }
+            }
 
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioned resources for new subscription", subscription.subscriptionId()));        
         } catch (Exception e1) {

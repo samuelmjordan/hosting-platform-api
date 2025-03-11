@@ -13,12 +13,12 @@ import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
 import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
 
 @Service
-public class PterodactylClient extends BaseApiClient {
-    private static final Logger LOGGER = Logger.getLogger(PterodactylClient.class.getName());
+public class PterodactylApplicationClient extends BaseApiClient {
+    private static final Logger LOGGER = Logger.getLogger(PterodactylApplicationClient.class.getName());
 
     private final PterodactylConfiguration pterodactylConfiguration;
 
-    PterodactylClient(
+    PterodactylApplicationClient(
         PterodactylConfiguration pterodactylConfiguration,
         HttpClient httpClient,
         ObjectMapper objectMapper
@@ -58,11 +58,6 @@ public class PterodactylClient extends BaseApiClient {
 
     public void deleteServer(Long serverId) throws Exception {
         sendRequest("DELETE", "/api/application/servers/" + serverId);
-    }
-
-    public void setPowerState(String serverId, PowerState state) throws Exception {
-        var action = Map.of("signal", state.toString().toLowerCase());
-        sendRequest("POST", "/api/client/servers/" + serverId + "/power", action);
     }
 
     // NODES
@@ -150,9 +145,6 @@ public class PterodactylClient extends BaseApiClient {
         Long node_id
     ) {}
 
-    public enum PowerState {
-        START, STOP, RESTART, KILL
-    }
     public record PterodactylServerResponse(ServerAttributes attributes) {}
     public record ServerAttributes(
         Long id, 

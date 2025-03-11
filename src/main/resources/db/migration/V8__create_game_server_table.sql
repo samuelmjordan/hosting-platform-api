@@ -20,6 +20,7 @@ CREATE TABLE game_server_ (
 CREATE TABLE pterodactyl_server_ (
     id BIGSERIAL PRIMARY KEY,
     server_id TEXT NOT NULL,
+    pterodactyl_server_uid TEXT NOT NULL,
     pterodactyl_server_id BIGINT NOT NULL,
     allocation_id BIGINT,
     port BIGINT,
@@ -27,7 +28,8 @@ CREATE TABLE pterodactyl_server_ (
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pterodactyl_server_server_id_fk FOREIGN KEY (server_id) 
         REFERENCES game_server_(server_id),
-    CONSTRAINT pterodactyl_server_pterodactyl_server_id_unique UNIQUE (pterodactyl_server_id)
+    CONSTRAINT pterodactyl_server_pterodactyl_server_id_unique UNIQUE (pterodactyl_server_id),
+    CONSTRAINT pterodactyl_server_pterodactyl_server_uid_unique UNIQUE (pterodactyl_server_uid)
 );
 
 -- DNS CNAME record details
