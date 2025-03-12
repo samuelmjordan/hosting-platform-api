@@ -2,6 +2,7 @@ package com.mc_host.api.service.product;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -70,33 +71,46 @@ public class GameServerService implements SubscriptionService {
     }
 
     @Override
-    public void update(ContentSubscription newSubscription, ContentSubscription oldSubsccription) {
-        if(!newSubscription.subscriptionId().equals(oldSubsccription.subscriptionId())) {
-            throw new IllegalStateException(String.format("Mismatched subscriptions for update: %s and %s", newSubscription.subscriptionId(), oldSubsccription.subscriptionId()));
-        }
-
-        LOGGER.log(Level.INFO, String.format("Update resources for subscription %s", newSubscription.subscriptionId()));
-        // update logic
-    }
-
-    @Override
     public void create(ContentSubscription subscription) {
-        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioning resources for new subscription", subscription.subscriptionId()));
-
-        HetznerRegion hetznerRegion;
-        try {
-            hetznerRegion = MarketingRegion.valueOf(subscription.metadata().get(MetadataKey.REGION.name())).getHetznerRegion();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, String.format("[subscriptionId: %s] region metdata is invalid / unsupported", subscription.subscriptionId()));
-            hetznerRegion  = HetznerRegion.NBG1;
+        final int MAX_ATTEMPTS = 3;
+        String subscriptionId = subscription.subscriptionId();
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioning resources for new subscription", subscriptionId));
+    
+        HetznerRegion hetznerRegion = resolveHetznerRegion(subscription);
+        
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                provisionResources(subscription, hetznerRegion);
+                LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioned resources for new subscription", subscriptionId));
+                return;
+            } catch (Exception e) {
+                if (attempt >= MAX_ATTEMPTS) {
+                    throw new RuntimeException(String.format("[subscriptionId: %s] Error provisioning resources for new subscription", subscriptionId), e);
+                }
+                LOGGER.log(Level.WARNING, String.format("[subscriptionId: %s] Attempt %d failed, retrying...", subscriptionId, attempt), e);
+            }
         }
-
-        Node node = createCloudNode();
+    }
+    
+    private HetznerRegion resolveHetznerRegion(ContentSubscription subscription) {
         try {
+            return MarketingRegion.valueOf(subscription.metadata().get(MetadataKey.REGION.name())).getHetznerRegion();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, String.format("[subscriptionId: %s] region metadata is invalid/unsupported", subscription.subscriptionId()));
+            return HetznerRegion.NBG1;
+        }
+    }
+    
+    private void provisionResources(ContentSubscription subscription, HetznerRegion hetznerRegion) throws Exception {
+        Node node = null;
+        try {
+            // Step 1: Set up infrastructure
+            node = createCloudNode();
             HetznerNode hetznerNode = hetznerService.createCloudNode(node, hetznerRegion, HetznerServerType.CAX11);
             DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
             PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord);
-
+            
+            // Step 2: Configure pterodactyl and server resources
             GameServer gameServer = createGameServer(subscription, node.nodeId());
             pterodactylService.createAllocation(pterodactylNode.pterodactylNodeId(), dnsARecord.content(), 25565);
             AllocationAttributes allocationAttributes = pterodactylService.getAllocation(pterodactylNode.pterodactylNodeId());
@@ -104,60 +118,17 @@ public class GameServerService implements SubscriptionService {
             PterodactylServer pterodactylServer = pterodactylService.createServer(gameServer, allocationAttributes);
             dnsService.createCNameRecord(gameServer, gameServer.serverId().replace("-", ""));
             startNewPterodactylServer(pterodactylServer);
-
-            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioned resources for new subscription", subscription.subscriptionId()));        
-        } catch (Exception e1) {
-            try {
-                LOGGER.log(Level.SEVERE, String.format("[subscriptionId: %s] Error provisioning resources for new subscription. Initiating cleanup.", subscription.subscriptionId()));
-                cleanup(subscription, node.nodeId());       
-            } catch (Exception e2) {
-                throw new RuntimeException(String.format("[subscriptionId: %s] Error cleaning up after subscription provisioning failure", subscription.subscriptionId()), e2);
+        } catch (Exception e) {
+            if (node != null) {
+                try {
+                    LOGGER.log(Level.SEVERE, String.format("[subscriptionId: %s] Error provisioning resources. Initiating cleanup.", subscription.subscriptionId()));
+                    cleanupSubscriptionResources(subscription);
+                } catch (Exception cleanupException) {
+                    LOGGER.log(Level.SEVERE, String.format("[subscriptionId: %s] Error cleaning up after provisioning failure", subscription.subscriptionId()), cleanupException);
+                }
             }
-            throw new RuntimeException(String.format("[subscriptionId: %s] Error provisioning resources for new subscription", subscription.subscriptionId()), e1);     
+            throw e;
         }
-    }
-
-    @Override
-    public void delete(ContentSubscription subscription) {
-        GameServer gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId())
-            .orElseThrow(() -> new IllegalStateException(String.format("[subscriptionId: %s] No game server associated with subscription", subscription.subscriptionId())));
-
-        String gameServerId = gameServer.serverId();
-        String nodeId = gameServer.nodeId();
-        deleteAll(subscription, gameServerId, nodeId);
-    }
-
-    public void cleanup(ContentSubscription subscription, String nodeId) {
-        String gameServerId = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId())
-            .map(GameServer::serverId)
-            .orElse(null);
-
-        deleteAll(subscription, gameServerId, nodeId);        
-    }
-
-    public void deleteAll(ContentSubscription subscription, String gameServerId, String nodeId) {
-        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleting resources for existing subscription", subscription.subscriptionId()));
-
-        List<Exception> cumulativeExceptions = new ArrayList<>();
-
-        cumulativeExceptions.addAll(executeTasks(List.of(
-            () -> pterodactylService.destroyServerWithGameServerId(gameServerId),
-            () -> dnsService.deleteCNameRecordWithGameServerId(gameServerId),
-            () -> dnsService.deleteARecordWithGameServerId(nodeId),
-            () -> hetznerService.deleteNodeWithGameServerId(nodeId)
-        )));
-
-        cumulativeExceptions.addAll(executeTasks(List.of(
-            () -> pterodactylService.destroyNodeWithGameServerId(nodeId),
-            () -> gameServerRepository.deleteGameServer(gameServerId)
-        )));
-
-        executeCriticalTasks(List.of(
-            () -> nodeRepository.deleteNode(nodeId),
-            () -> subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), subscription.customerId())
-        ), cumulativeExceptions);
-
-        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleted resources for existing subscription", subscription.subscriptionId()));
     }
 
     private Node createCloudNode() {
@@ -251,6 +222,43 @@ public class GameServerService implements SubscriptionService {
         }
     }
 
+    @Override
+    public void delete(ContentSubscription subscription) {
+        cleanupSubscriptionResources(subscription);
+        subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), subscription.customerId());
+    }
+
+    public void cleanupSubscriptionResources(ContentSubscription subscription) {
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleting resources for existing subscription", subscription.subscriptionId()));
+
+        Optional<GameServer> gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId());
+        String gameServerId = gameServer.map(GameServer::serverId).orElse(null);
+        String nodeId = gameServer.map(GameServer::nodeId).orElse(null);
+
+        List<Exception> cumulativeExceptions = new ArrayList<>();
+
+        cumulativeExceptions.addAll(executeTasks(List.of(
+            () -> pterodactylService.destroyServerWithGameServerId(gameServerId),
+            () -> dnsService.deleteCNameRecordWithGameServerId(gameServerId),
+            () -> dnsService.deleteARecordWithGameServerId(nodeId),
+            () -> hetznerService.deleteNodeWithGameServerId(nodeId)
+        )));
+
+        cumulativeExceptions.addAll(executeTasks(List.of(
+            () -> pterodactylService.destroyNodeWithGameServerId(nodeId)
+        )));
+
+        executeCriticalTasks(List.of(
+            () -> gameServerRepository.deleteGameServer(gameServerId)
+        ), cumulativeExceptions);
+
+        executeCriticalTasks(List.of(
+            () -> nodeRepository.deleteNode(nodeId)
+        ), cumulativeExceptions);
+
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Deleted resources for existing subscription", subscription.subscriptionId()));
+    }
+
     private List<Exception> executeTasks(List<Runnable> tasks) {
         return executeTasks(tasks, List.of(), false);
     }
@@ -285,6 +293,16 @@ public class GameServerService implements SubscriptionService {
             throw new DeprovisioningException("Critical error when deprovisioning resources", cause);
         }
         return newExceptions;
+    }
+
+    @Override
+    public void update(ContentSubscription newSubscription, ContentSubscription oldSubsccription) {
+        if(!newSubscription.subscriptionId().equals(oldSubsccription.subscriptionId())) {
+            throw new IllegalStateException(String.format("Mismatched subscriptions for update: %s and %s", newSubscription.subscriptionId(), oldSubsccription.subscriptionId()));
+        }
+
+        LOGGER.log(Level.INFO, String.format("Update resources for subscription %s", newSubscription.subscriptionId()));
+        // update logic
     }
     
 }
