@@ -248,5 +248,13 @@ public class PterodactylService {
             throw new PterodactylException(String.format("[pterodactylServerUid: %s] Error checking pterodactyl server status", pterodactylServerUid), e);
         }
     }
+
+    public void reinstallServer(Long pterodactylServerId) {
+        try {
+            pterodactylApplicationClient.reinstallServer(pterodactylServerId);
+        } catch (Exception e) {
+            throw new PterodactylException(String.format("[pterodactylServerId: %s] Error reinstalling pterodactyl server", pterodactylServerId), e);
+        }       
+    }
     
 }

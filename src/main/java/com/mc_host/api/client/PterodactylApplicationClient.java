@@ -60,6 +60,10 @@ public class PterodactylApplicationClient extends BaseApiClient {
         sendRequest("DELETE", "/api/application/servers/" + serverId);
     }
 
+    public void reinstallServer(Long serverId) throws Exception {
+        sendRequest("POST", "/api/application/servers/" + serverId + "/reinstall");
+    }
+
     // NODES
     public PterodactylNodeResponse createNode(PterodactylCreateNodeRequest nodeDetails) throws Exception {
         String response = sendRequest("POST", "/api/application/nodes", nodeDetails);

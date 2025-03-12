@@ -103,39 +103,7 @@ public class GameServerService implements SubscriptionService {
             pterodactylService.configureNode(pterodactylNode.pterodactylNodeId(), dnsARecord);
             PterodactylServer pterodactylServer = pterodactylService.createServer(gameServer, allocationAttributes);
             dnsService.createCNameRecord(gameServer, gameServer.serverId().replace("-", ""));
-
-            int retries = 0;
-            int MAX_RETRIES = 5;
-            double BACKOFF = 1.5;
-            int delay = 2000;
-            while (true) {
-                Thread.sleep(delay);
-                ServerStatus serverStatus = pterodactylService.getServerStatus(pterodactylServer.pterodactylServerUid());
-                LOGGER.info(serverStatus.name());
-                if (List.of(ServerStatus.STOPPING, ServerStatus.STOPPED, ServerStatus.OFFLINE).contains(serverStatus)) {
-                    try {
-                        pterodactylService.startServer(pterodactylServer.pterodactylServerUid());
-                        Thread.sleep(delay);
-                        pterodactylService.acceptEula(pterodactylServer.pterodactylServerUid());
-                    } catch (Exception e) {
-                        delay *= BACKOFF;
-                        if (retries++ >= MAX_RETRIES) {
-                            throw new PterodactylException(String.format("[pterodactylServerUid: %s] Server failed to start", pterodactylServer.pterodactylServerUid()), e);
-                        }
-                        continue;
-                    }
-                } else if (ServerStatus.RUNNING.equals(serverStatus)) {
-                    break;
-                } else if (ServerStatus.STARTING.equals(serverStatus)) {
-                    continue;
-                } else {
-                    throw new IllegalStateException(String.format("Invalid server status %s", serverStatus));
-                }
-                delay *= BACKOFF;
-                if (retries++ >= MAX_RETRIES) {
-                    throw new RuntimeException(String.format("[pterodactylServerUid: %s] Server failed to start", pterodactylServer.pterodactylServerUid()));
-                }
-            }
+            startNewPterodactylServer(pterodactylServer);
 
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Provisioned resources for new subscription", subscription.subscriptionId()));        
         } catch (Exception e1) {
@@ -209,6 +177,78 @@ public class GameServerService implements SubscriptionService {
         );
         gameServerRepository.insertGameServer(gameServer);
         return gameServer;
+    }
+
+    private void startNewPterodactylServer(PterodactylServer pterodactylServer) throws InterruptedException {
+        startNewPterodactylServer(pterodactylServer, 0);
+    }
+    
+    private void startNewPterodactylServer(PterodactylServer pterodactylServer, int reinstalls) throws InterruptedException {
+        final int MAX_REINSTALLS = 3;
+        final int MAX_RETRIES = 5;
+        final double BACKOFF_FACTOR = 1.5;
+        final int INITIAL_DELAY_MS = 2000;
+        final List<ServerStatus> STOPPABLE_STATUSES = List.of(ServerStatus.STOPPING, ServerStatus.STOPPED, ServerStatus.OFFLINE);
+
+        LOGGER.log(Level.INFO, String.format("[pterodactylServerId: %s] Attempting to start new pterodactyl server, attempt %s", pterodactylServer.pterodactylServerId(), reinstalls + 1));
+        
+        if (reinstalls >= MAX_REINSTALLS) {
+            throw new RuntimeException(String.format(
+                "[pterodactylServerUid: %s] Server failed to start after %s reinstalls", 
+                pterodactylServer.pterodactylServerUid(), 
+                reinstalls
+            ));
+        }
+    
+        int retries = 0;
+        int delay = INITIAL_DELAY_MS;
+        String serverUid = pterodactylServer.pterodactylServerUid();
+        try {
+            while (retries <= MAX_RETRIES) {
+                Thread.sleep(delay);
+                ServerStatus serverStatus = pterodactylService.getServerStatus(serverUid);
+
+                if (ServerStatus.RUNNING.equals(serverStatus)) {
+                    return;
+                } 
+                else if (ServerStatus.STARTING.equals(serverStatus)) {
+                    continue;
+                } 
+                else if (STOPPABLE_STATUSES.contains(serverStatus)) {
+                    try {
+                        pterodactylService.startServer(serverUid);
+                        Thread.sleep(delay);
+                        pterodactylService.acceptEula(serverUid);
+                    } catch (Exception e) {
+                        delay = (int)(delay * BACKOFF_FACTOR);
+                        retries++;
+                        if (retries > MAX_RETRIES) {
+                            throw new PterodactylException(
+                                String.format("[pterodactylServerUid: %s] Server failed to start", serverUid), 
+                                e
+                            );
+                        }
+                        continue;
+                    }
+                } 
+                else {
+                    throw new IllegalStateException(String.format("Invalid server status %s", serverStatus));
+                }
+                
+                delay = (int)(delay * BACKOFF_FACTOR);
+                retries++;
+            }
+            
+            throw new RuntimeException(String.format(
+                "[pterodactylServerUid: %s] Server failed to start after %d retries", 
+                serverUid, 
+                MAX_RETRIES
+            ));
+        } catch (Exception e) {
+            pterodactylService.reinstallServer(pterodactylServer.pterodactylServerId());
+            Thread.sleep(delay);
+            startNewPterodactylServer(pterodactylServer, reinstalls + 1);
+        }
     }
 
     private List<Exception> executeTasks(List<Runnable> tasks) {
