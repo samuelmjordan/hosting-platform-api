@@ -23,7 +23,7 @@ public interface DataFetchingResource {
         @PathVariable String userId
     );
 
-    @GetMapping("/user/{userId}/server-subscription")
+    @GetMapping("/user/{userId}/subscription/server")
     public ResponseEntity<List<ServerSubscriptionResponse>> getUserServerSubscriptions(
         @PathVariable String userId
     );
