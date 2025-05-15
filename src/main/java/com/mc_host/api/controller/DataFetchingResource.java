@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
-import com.mc_host.api.model.entity.ContentSubscription;
-import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.specification.SpecificationType;
 

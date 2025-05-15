@@ -16,6 +16,8 @@ public class PterodactylCreateNodeRequest {
     private final Boolean public_;
     private final String fqdn;
     private final String scheme;
+    @JsonProperty("behind_proxy")
+    private final Boolean behindProxy;
     private final Integer memory;
     @JsonProperty("memory_overallocate")
     private final Integer memoryOverallocate;
