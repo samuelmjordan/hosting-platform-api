@@ -65,7 +65,7 @@ public class PterodactylService {
                 .public_(true)
                 .fqdn(dnsARecord.recordName())
                 .scheme("https")
-                .behindProxy(true)
+                .behindProxy(false)
                 .memory(1024)
                 .memoryOverallocate(0)
                 .disk(50000)
