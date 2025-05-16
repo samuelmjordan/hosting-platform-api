@@ -161,7 +161,7 @@ public class StripeService implements StripeResource {
         try {
             LOGGER.log(Level.INFO, "Creating new customer - clerkId: " + userId);
             String customerId = createNewStripeCustomer(userId);
-            cacheService.set(cacheNamespace, customerId, Optional.of(customerId));
+            cacheService.set(cacheNamespace, userId, Optional.of(customerId));
             LOGGER.log(Level.INFO, "Completed creating new customer - clerkId: " + userId);
             return customerId;
         } catch (ClerkErrors | ClerkException e) {
