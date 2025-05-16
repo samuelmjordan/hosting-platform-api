@@ -78,22 +78,14 @@ public class DataFetchingService implements DataFetchingResource  {
     public ResponseEntity<List<ServerSubscriptionResponse>> getUserServerSubscriptions(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching server subscriptions for clerkId %s", userId));
 
-        CacheNamespace cacheNamespace = CacheNamespace.USER_SERVER_SUBSCRIPTIONS;
-        Optional<List<ServerSubscriptionResponse>> cachedServerSubscriptions = cacheService.retrieve(cacheNamespace, userId, new TypeReference<List<ServerSubscriptionResponse>>() {});
-        if (cachedServerSubscriptions.isPresent()) {
-            return ResponseEntity.ok(cachedServerSubscriptions.get());
-        }
-
         Optional<String> customerId = getUserCustomerId(userId);
         if (!customerId.isPresent()) {
-            cacheService.set(cacheNamespace, userId, List.of(), Duration.ofHours(2));
             return ResponseEntity.ok(List.of());
         }
         
         List<ServerSubscriptionResponse> serverSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId.get()).stream()
             .map(this::getServerSubscriptionResponse)
             .toList();
-        cacheService.set(cacheNamespace, userId, serverSubscriptions);
         return ResponseEntity.ok(serverSubscriptions);
     }
 

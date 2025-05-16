@@ -302,6 +302,7 @@ public class GameServerService implements SubscriptionService {
         }
 
         LOGGER.log(Level.INFO, String.format("Update resources for subscription %s", newSubscription.subscriptionId()));
+        LOGGER.log(Level.WARNING, String.format("Update logic is unimplemented!", newSubscription.subscriptionId()));
         // update logic
     }
     

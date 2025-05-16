@@ -14,6 +14,5 @@ public enum CacheNamespace {
 
     USER_CUSTOMER_ID,
     USER_CURRENCY,
-    USER_SERVER_SUBSCRIPTIONS,
     SPECIFICATION_PLANS
 }
