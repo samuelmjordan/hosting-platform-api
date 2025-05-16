@@ -63,9 +63,9 @@ public class PterodactylService {
                 .description(dnsARecord.nodeId())
                 .locationId(HetznerRegion.NBG1.getPterodactylLocationId())
                 .public_(true)
-                .fqdn(dnsARecord.recordName() + "?ssl=false")
+                .fqdn(dnsARecord.recordName())
                 .scheme("https")
-                .behindProxy(false)
+                .behindProxy(true)
                 .memory(1024)
                 .memoryOverallocate(0)
                 .disk(50000)
@@ -109,7 +109,6 @@ public class PterodactylService {
     public void configureNode(Long pterodactylNodeId, DnsARecord dnsARecord) {
         LOGGER.log(Level.INFO, String.format(String.format("[aRecordId: %s] Setting up wings", dnsARecord.aRecordId())));
         String wingsConfigJson = getNodeConfig(pterodactylNodeId);
-        LOGGER.info(wingsConfigJson);
         try {
             wingsService.setupWings(dnsARecord, wingsConfigJson);
             LOGGER.log(Level.INFO, String.format(String.format("[aRecordId: %s] Set up wings", dnsARecord.aRecordId())));
@@ -123,10 +122,7 @@ public class PterodactylService {
         try {
             String nodeConfigJson = pterodactylApplicationClient.getNodeConfiguration(pterodactylNodeId);
             LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetched wings config", pterodactylNodeId)));
-            return nodeConfigJson
-                .replace("letsencrypt\\/live", "pterodactyl")
-                .replace("privkey.pem", "cert.key")
-                .replace("fullchain.pem", "cert.pem");
+            return nodeConfigJson;
         } catch (Exception e) {
             throw new PterodactylException(String.format("[pterodactylNodeId: %s] Error fetching wings config", pterodactylNodeId), e);
         }
