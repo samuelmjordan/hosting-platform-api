@@ -12,8 +12,10 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.cache.CacheNamespace;
+import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
@@ -21,6 +23,7 @@ import com.mc_host.api.model.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.PlanRepository;
+import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.util.Cache;
@@ -30,6 +33,7 @@ public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final Cache cacheService;
+    private final PriceRepository priceRepository;
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
@@ -37,12 +41,14 @@ public class DataFetchingService implements DataFetchingResource  {
 
     public DataFetchingService(
         Cache cacheService,
+        PriceRepository priceRepository,
         PlanRepository planRepository,
         UserRepository userRepository,
         SubscriptionRepository subscriptionRepository,
         GameServerRepository gameServerRepository
     ) {
         this.cacheService = cacheService;
+        this.priceRepository = priceRepository;
         this.planRepository = planRepository;
         this.userRepository = userRepository;
         this.subscriptionRepository = subscriptionRepository;
@@ -103,12 +109,25 @@ public class DataFetchingService implements DataFetchingResource  {
 
     private ServerSubscriptionResponse getServerSubscriptionResponse(ContentSubscription subscription) {
         Optional<GameServer> gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId());
-        if (!gameServer.isPresent()) {
-            return new ServerSubscriptionResponse(subscription, null, null);
-        }
+        Optional<ContentPrice> price = priceRepository.selectPrice(subscription.priceId());
 
-        DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(gameServer.get().serverId()).orElse(null);
-        return new ServerSubscriptionResponse(subscription, gameServer.get(), dnsCNameRecord);
+        String dnsCNameRecordName;
+        if (!gameServer.isPresent()) {
+            dnsCNameRecordName = null;
+        } else {
+            dnsCNameRecordName = gameServerRepository.selectDnsCNameRecord(gameServer.get().serverId()).map(DnsCNameRecord::recordName).orElse(null);
+        }
+        return new ServerSubscriptionResponse(
+            "MyServer",
+            subscription.status(),
+            subscription.currentPeriodEnd(),
+            subscription.currentPeriodStart(),
+            subscription.cancelAtPeriodEnd(),
+            price.get().currency(),
+            price.get().minorAmount(),
+            MarketingRegion.valueOf(subscription.metadata().get("REGION")),
+            dnsCNameRecordName
+        );
     }
 
     @Override

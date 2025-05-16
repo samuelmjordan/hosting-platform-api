@@ -1,11 +1,7 @@
 package com.mc_host.api.repository;
 
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -93,6 +89,33 @@ public class PriceRepository {
                 ),
                 productId
             );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<ContentPrice> selectPrice(String priceId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT 
+                    price_id, 
+                    product_id,
+                    active, 
+                    currency, 
+                    minor_amount
+                FROM price_
+                WHERE price_id = ?
+                """,
+                (rs, rowNum) -> new ContentPrice(
+                    rs.getString("price_id"),
+                    rs.getString("product_id"),
+                    rs.getBoolean("active"),
+                    AcceptedCurrency.fromCode(rs.getString("currency")),
+                    rs.getLong("minor_amount")
+                ),
+                priceId
+            ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to fetch prices for product: " + e.getMessage(), e);
         }
