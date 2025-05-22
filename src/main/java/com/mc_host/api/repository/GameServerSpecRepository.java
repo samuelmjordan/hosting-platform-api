@@ -1,5 +1,6 @@
 package com.mc_host.api.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
@@ -8,6 +9,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.Plan;
+import com.mc_host.api.model.entity.ContentPrice;
+import com.mc_host.api.model.specification.JavaServerSpecification;
+import com.mc_host.api.model.specification.Specification;
 
 @Service
 public class GameServerSpecRepository {
@@ -39,21 +44,32 @@ public class GameServerSpecRepository {
         }
     }
 
-    public Optional<String> selectSpecificationTitleFromPriceId(String priceId) {
+    public Optional<JavaServerSpecification> selectSpecification(String specification_id) {
         try {
             return jdbcTemplate.query(
                 """
-                SELECT gss_.title
-                FROM game_server_specification_ gss_
-                JOIN plan_ ON plan_.specification_id = gss_.specification_id
-                JOIN price_ ON price_.price_id = plan_.price_id
-                WHERE price_.price_id = ?
+                SELECT 
+                    specification_id,
+                    title,
+                    caption,
+                    ram_gb,
+                    vcpu,
+                    ssd_gb
+                FROM game_server_specification_
+                WHERE specification_id = ?
                 """,
-                (rs, rowNum) -> rs.getString("title"),
-                priceId
+                (rs, rowNum) -> new JavaServerSpecification(
+                    rs.getString("specification_id"),
+                    rs.getString("title"),
+                    rs.getString("caption"),
+                    rs.getString("ram_gb"),
+                    rs.getString("vcpu"),
+                    rs.getString("ssd_gb")
+                ),
+                specification_id
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch plan id for price id: " + priceId, e);
+            throw new RuntimeException("Failed to fetch specification", e);
         }
     }
 }

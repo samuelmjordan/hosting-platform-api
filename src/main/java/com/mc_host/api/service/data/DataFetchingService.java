@@ -21,6 +21,8 @@ import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.response.ServerSubscriptionResponse;
+import com.mc_host.api.model.specification.JavaServerSpecification;
+import com.mc_host.api.model.specification.Specification;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.GameServerSpecRepository;
@@ -113,8 +115,14 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     private ServerSubscriptionResponse getServerSubscriptionResponse(ContentSubscription subscription) {
-        String title = subscriptionRepository.selectSubscriptionUserMetadataBySubscriptionId(subscription.subscriptionId()).map(SubscriptionUserMetadata::title).orElse(null);
-        String specificationTitle = gameServerSpecRepository.selectSpecificationTitleFromPriceId(subscription.priceId()).orElse(null);
+        ContentPrice price = priceRepository.selectPrice(subscription.priceId()).orElseThrow(
+            () -> new IllegalStateException("Couldnt find price for price " + subscription.priceId()));
+        String specificationId = planRepository.selectSpecificationId(subscription.priceId()).orElseThrow(
+            () -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
+        JavaServerSpecification gameSeverSpecification = gameServerSpecRepository.selectSpecification(specificationId).orElseThrow(
+            () -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));;
+
+        String serverTitle = subscriptionRepository.selectSubscriptionUserMetadataBySubscriptionId(subscription.subscriptionId()).map(SubscriptionUserMetadata::title).orElse(null);
 
         String dnsCNameRecordName;
         Optional<GameServer> gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId());
@@ -124,19 +132,19 @@ public class DataFetchingService implements DataFetchingResource  {
             dnsCNameRecordName = gameServerRepository.selectDnsCNameRecord(gameServer.get().serverId()).map(DnsCNameRecord::recordName).orElse(null);
         }
 
-        Optional<ContentPrice> price = priceRepository.selectPrice(subscription.priceId());
-
         return new ServerSubscriptionResponse(
-            title,
-            specificationTitle,
+            serverTitle,
+            gameSeverSpecification.title(),
+            gameSeverSpecification.ram_gb(),
+            gameSeverSpecification.vcpu(),
             MarketingRegion.valueOf(subscription.metadata().get("REGION")),
             dnsCNameRecordName,
             subscription.status(),
             subscription.currentPeriodEnd(),
             subscription.currentPeriodStart(),
             subscription.cancelAtPeriodEnd(),
-            price.get().currency(),
-            price.get().minorAmount()
+            price.currency(),
+            price.minorAmount()
         );
     }
 

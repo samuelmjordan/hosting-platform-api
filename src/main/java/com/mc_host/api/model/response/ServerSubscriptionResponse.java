@@ -8,6 +8,8 @@ import com.mc_host.api.model.MarketingRegion;
 public record ServerSubscriptionResponse(
     String serverName,
     String specificationTitle,
+    String ramGb,
+    String vcpu,
     MarketingRegion regionCode,
     String cnameRecordName,
     String subscriptionStatus,
