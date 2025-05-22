@@ -38,4 +38,22 @@ public class GameServerSpecRepository {
             throw new RuntimeException(String.format("Failed to validate currency for price %s and currency %s", priceId, currency), e);
         }
     }
+
+    public Optional<String> selectSpecificationTitleFromPriceId(String priceId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT gss_.title
+                FROM game_server_specification_ gss_
+                JOIN plan_ ON plan_.specification_id = gss_.specification_id
+                JOIN price_ ON price_.price_id = plan_.price_id
+                WHERE price_.price_id = ?
+                """,
+                (rs, rowNum) -> rs.getString("title"),
+                priceId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch plan id for price id: " + priceId, e);
+        }
+    }
 }

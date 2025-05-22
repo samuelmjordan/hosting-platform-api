@@ -5,6 +5,7 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TimeZone;
 
 import org.postgresql.util.PGobject;
@@ -15,7 +16,10 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
+import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 
 @Service
 public class SubscriptionRepository {
@@ -26,6 +30,11 @@ public class SubscriptionRepository {
     public SubscriptionRepository(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
+    }
+
+    public void insertSubscriptionWithMetadata(ContentSubscription subscriptionEntity, SubscriptionUserMetadata subscriptionUserMetadata) {
+        insertSubscription(subscriptionEntity);
+        insertSubscriptionMetadata(subscriptionUserMetadata);
     }
 
     public void insertSubscription(ContentSubscription subscriptionEntity) {
@@ -76,6 +85,31 @@ public class SubscriptionRepository {
             });
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to save subscription to database: " + e.getMessage(), e);
+        }
+    }
+
+    public void insertSubscriptionMetadata(SubscriptionUserMetadata subscriptionUserMetadata) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    INSERT INTO subscription_user_metadata_ (
+                        subscription_id, 
+                        title, 
+                        caption
+                    )
+                    VALUES (?, ?, ?)
+                    ON CONFLICT (subscription_id) DO UPDATE SET
+                        subscription_id = EXCLUDED.subscription_id,
+                        title = EXCLUDED.title,
+                        caption = EXCLUDED.caption
+                    """);
+                ps.setString(1, subscriptionUserMetadata.subscriptionId());
+                ps.setString(2, subscriptionUserMetadata.title());
+                ps.setString(3, subscriptionUserMetadata.caption());
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to save subscription metadata to database: " + e.getMessage(), e);
         }
     }
 
@@ -141,6 +175,29 @@ public class SubscriptionRepository {
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to fetch subscriptions for customer: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<SubscriptionUserMetadata> selectSubscriptionUserMetadataBySubscriptionId(String subscriptionId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT 
+                    subscription_id,
+                    title,
+                    caption
+                FROM subscription_user_metadata_
+                WHERE subscription_id = ?
+                """,
+                (rs, rowNum) -> new SubscriptionUserMetadata(
+                    rs.getString("subscription_id"),
+                    rs.getString("title"),
+                    rs.getString("caption")
+                ),
+                subscriptionId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch subscription metadata for subscription: " + subscriptionId, e);
         }
     }
 

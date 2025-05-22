@@ -1,6 +1,7 @@
 package com.mc_host.api.service.stripe;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
+import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.product.SubscriptionServiceSupplier;
 import com.mc_host.api.util.Task;
@@ -65,7 +67,12 @@ public class StripeSubscriptionService {
                 .map(subscription -> Task.alwaysAttempt(
                     "Create subscription " + subscription.subscriptionId(),
                     () -> {
-                        subscriptionRepository.insertSubscription(subscription);
+                        subscriptionRepository.insertSubscriptionWithMetadata(
+                            subscription, 
+                            new SubscriptionUserMetadata(
+                                subscription.subscriptionId(), 
+                                "My New Server", 
+                                "Created " + LocalDateTime.now()));
                         productServiceSupplier.supply(subscription).create(subscription);
                     }
                 )).toList();

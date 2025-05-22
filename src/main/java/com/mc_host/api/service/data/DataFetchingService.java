@@ -17,11 +17,13 @@ import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
+import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.repository.GameServerRepository;
+import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
@@ -38,6 +40,7 @@ public class DataFetchingService implements DataFetchingResource  {
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final GameServerRepository gameServerRepository;
+    private final GameServerSpecRepository gameServerSpecRepository;
 
     public DataFetchingService(
         Cache cacheService,
@@ -45,7 +48,8 @@ public class DataFetchingService implements DataFetchingResource  {
         PlanRepository planRepository,
         UserRepository userRepository,
         SubscriptionRepository subscriptionRepository,
-        GameServerRepository gameServerRepository
+        GameServerRepository gameServerRepository,
+        GameServerSpecRepository gameServerSpecRepository
     ) {
         this.cacheService = cacheService;
         this.priceRepository = priceRepository;
@@ -53,6 +57,7 @@ public class DataFetchingService implements DataFetchingResource  {
         this.userRepository = userRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.gameServerRepository = gameServerRepository;
+        this.gameServerSpecRepository = gameServerSpecRepository;
     }
 
     @Override
@@ -108,25 +113,30 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     private ServerSubscriptionResponse getServerSubscriptionResponse(ContentSubscription subscription) {
-        Optional<GameServer> gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId());
-        Optional<ContentPrice> price = priceRepository.selectPrice(subscription.priceId());
+        String title = subscriptionRepository.selectSubscriptionUserMetadataBySubscriptionId(subscription.subscriptionId()).map(SubscriptionUserMetadata::title).orElse(null);
+        String specificationTitle = gameServerSpecRepository.selectSpecificationTitleFromPriceId(subscription.priceId()).orElse(null);
 
         String dnsCNameRecordName;
+        Optional<GameServer> gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId());
         if (!gameServer.isPresent()) {
             dnsCNameRecordName = null;
         } else {
             dnsCNameRecordName = gameServerRepository.selectDnsCNameRecord(gameServer.get().serverId()).map(DnsCNameRecord::recordName).orElse(null);
         }
+
+        Optional<ContentPrice> price = priceRepository.selectPrice(subscription.priceId());
+
         return new ServerSubscriptionResponse(
-            "MyServer",
+            title,
+            specificationTitle,
+            MarketingRegion.valueOf(subscription.metadata().get("REGION")),
+            dnsCNameRecordName,
             subscription.status(),
             subscription.currentPeriodEnd(),
             subscription.currentPeriodStart(),
             subscription.cancelAtPeriodEnd(),
             price.get().currency(),
-            price.get().minorAmount(),
-            MarketingRegion.valueOf(subscription.metadata().get("REGION")),
-            dnsCNameRecordName
+            price.get().minorAmount()
         );
     }
 

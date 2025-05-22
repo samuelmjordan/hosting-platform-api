@@ -6,14 +6,15 @@ import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.MarketingRegion;
 
 public record ServerSubscriptionResponse(
-    String name,
+    String serverName,
+    String specificationTitle,
+    MarketingRegion regionCode,
+    String cnameRecordName,
     String subscriptionStatus,
     Instant currentPeriodEnd,
-    Instant CurrentPeriodStart,
+    Instant currentPeriodStart,
     Boolean cancelAtPeriodEnd,
     AcceptedCurrency currency,
-    Long minorAmount,
-    MarketingRegion regionCode,
-    String cnameRecordName
+    Long minorAmount
 ) {
 }
