@@ -133,6 +133,7 @@ public class DataFetchingService implements DataFetchingResource  {
         }
 
         return new ServerSubscriptionResponse(
+            subscription.subscriptionId(),
             serverTitle,
             gameSeverSpecification.title(),
             gameSeverSpecification.ram_gb(),

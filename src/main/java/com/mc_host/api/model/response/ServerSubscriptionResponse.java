@@ -6,6 +6,7 @@ import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.MarketingRegion;
 
 public record ServerSubscriptionResponse(
+    String subscriptionId,
     String serverName,
     String specificationTitle,
     String ramGb,
