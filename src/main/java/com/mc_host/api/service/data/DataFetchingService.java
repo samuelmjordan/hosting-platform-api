@@ -1,7 +1,11 @@
 package com.mc_host.api.service.data;
 
 import java.time.Duration;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -10,6 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.mc_host.api.configuration.PaymentMethodConfiguration;
+import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.MarketingRegion;
@@ -18,15 +25,19 @@ import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.CustomerInvoice;
+import com.mc_host.api.model.entity.CustomerPaymentMethod;
 import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
+import com.mc_host.api.model.response.PaymentMethodResponse;
+import com.mc_host.api.model.response.PaymentMethodResponse.DisplayField;
 import com.mc_host.api.model.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.specification.JavaServerSpecification;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.InvoiceRepository;
+import com.mc_host.api.repository.PaymentMethodRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
@@ -38,6 +49,7 @@ public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final Cache cacheService;
+    private final PaymentMethodConfiguration paymentMethodConfiguration;
     private final PriceRepository priceRepository;
     private final PlanRepository planRepository;
     private final UserRepository userRepository;
@@ -45,18 +57,22 @@ public class DataFetchingService implements DataFetchingResource  {
     private final GameServerRepository gameServerRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
     private final InvoiceRepository invoiceRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
 
     public DataFetchingService(
         Cache cacheService,
+        PaymentMethodConfiguration paymentMethodConfiguration,
         PriceRepository priceRepository,
         PlanRepository planRepository,
         UserRepository userRepository,
         SubscriptionRepository subscriptionRepository,
         GameServerRepository gameServerRepository,
         GameServerSpecRepository gameServerSpecRepository,
-        final InvoiceRepository invoiceRepository
+        InvoiceRepository invoiceRepository,
+        PaymentMethodRepository paymentMethodRepository
     ) {
         this.cacheService = cacheService;
+        this.paymentMethodConfiguration = paymentMethodConfiguration;
         this.priceRepository = priceRepository;
         this.planRepository = planRepository;
         this.userRepository = userRepository;
@@ -64,6 +80,7 @@ public class DataFetchingService implements DataFetchingResource  {
         this.gameServerRepository = gameServerRepository;
         this.gameServerSpecRepository = gameServerSpecRepository;
         this.invoiceRepository = invoiceRepository;
+        this.paymentMethodRepository = paymentMethodRepository;
     }
 
     @Override
@@ -94,9 +111,79 @@ public class DataFetchingService implements DataFetchingResource  {
     @Override
     public ResponseEntity<List<CustomerInvoice>> getUserInvoices(String userId) {
         LOGGER.log(Level.INFO, String.format("Fetching invoices for clerkId %s", userId));
-        String customerId = getUserCustomerId(userId).orElse(null);
+        String customerId = getUserCustomerId(userId)
+            .orElseThrow(() -> new IllegalStateException("User does not have a customer ID"));
         List<CustomerInvoice> invoices = invoiceRepository.selectInvoicesByCustomerId(customerId);
         return ResponseEntity.ok(invoices);
+    }
+
+    @Override
+    public ResponseEntity<List<PaymentMethodResponse>> getUserPaymentMethods(String userId) {
+        LOGGER.log(Level.INFO, String.format("Fetching payment methods for clerkId %s", userId));
+        String customerId = getUserCustomerId(userId)
+            .orElseThrow(() -> new IllegalStateException("User does not have a customer ID"));
+        
+        List<CustomerPaymentMethod> paymentMethods = paymentMethodRepository.selectPaymentMethodsByCustomerId(customerId);
+        
+        List<PaymentMethodResponse> dtos = paymentMethods.stream()
+            .map(this::toPaymentMethodDto)
+            .toList();
+        
+        return ResponseEntity.ok(dtos);
+    }
+
+    private PaymentMethodResponse toPaymentMethodDto(CustomerPaymentMethod paymentMethod) {
+        var displayFields = getDisplayFields(paymentMethod);
+        
+        return new PaymentMethodResponse(
+            paymentMethod.paymentMethodId(),
+            paymentMethod.paymentMethodType().name().toLowerCase(),
+            paymentMethod.displayName(),
+            paymentMethod.isDefault(),
+            paymentMethod.isActive(),
+            displayFields
+        );
+    }
+
+    public Map<String, DisplayField> getDisplayFields(CustomerPaymentMethod paymentMethod) {
+        var typeConfig = paymentMethodConfiguration.getFieldsForType(paymentMethod.paymentMethodType());
+        
+        return typeConfig.entrySet().stream()
+            .sorted(Map.Entry.comparingByValue(
+                Comparator.comparing(FieldConfig::getOrder)
+            ))
+            .collect(LinkedHashMap::new, (map, entry) -> {
+                var fieldName = entry.getKey();
+                var fieldConfig = entry.getValue();
+                var value = extractValue(paymentMethod.paymentData(), fieldName);
+                if (value != null) {
+                    map.put(fieldName, new DisplayField(
+                        value, 
+                        fieldConfig.getLabel(), 
+                        fieldConfig.getDisplayType()
+                    ));
+                }
+            }, LinkedHashMap::putAll);
+    }
+    
+    private String extractValue(JsonNode data, String fieldName) {
+        return switch (fieldName) {
+            case "brand" -> data.path("brand").asText();
+            case "last_four" -> data.path("last_four").asText();
+            case "exp_display" -> formatExpiry(data);
+            case "card_brand" -> data.path("card_brand").asText();
+            case "card_last_four" -> data.path("card_last_four").asText();
+            case "wallet_type" -> data.path("wallet_type").asText();
+            case "bank_name" -> data.path("bank_name").asText();
+            case "country" -> data.path("country").asText();
+            default -> null;
+        };
+    }
+    
+    private String formatExpiry(JsonNode data) {
+        var month = data.path("exp_month").asInt();
+        var year = data.path("exp_year").asInt();
+        return String.format("%02d/%d", month, year % 100);
     }
 
     @Override

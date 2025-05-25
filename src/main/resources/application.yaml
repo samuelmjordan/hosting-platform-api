@@ -116,50 +116,65 @@ payment:
         brand:
           label: ""
           display_type: "brand_icon"
+          order: 1
         last_four:
           label: "ending in"
           display_type: "masked"
+          order: 2
         exp_display:
           label: "expires"
           display_type: "text"
+          order: 3
       apple_pay:
         wallet_type:
           label: ""
-          display_type: "wallet_type"
+          display_type: "wallet_icon"
+          order: 1
         card_brand:
           label: ""
           display_type: "brand_icon"
+          order: 2
         card_last_four:
           label: "ending in"
           display_type: "masked"
+          order: 3
       google_pay:
         wallet_type:
           label: ""
-          display_type: "wallet_type"
+          display_type: "wallet_icon"
+          order: 1
         card_brand:
           label: ""
           display_type: "brand_icon"
+          order: 2
         card_last_four:
           label: "ending in"
           display_type: "masked"
+          order: 3
       samsung_pay:
         wallet_type:
           label: ""
-          display_type: "wallet_type"
+          display_type: "wallet_icon"
+          order: 1
         card_brand:
           label: ""
           display_type: "brand_icon"
+          order: 3
         card_last_four:
           label: "ending in"
           display_type: "masked"
+          order: 3
       sepa:
-        bank_name:
-          label: "bank"
-          display_type: "text"
-        last_four:
-          label: "ending in"
-          display_type: "masked"
         country:
           label: ""
           display_type: "country_flag"
+          order: 1
+        bank_name:
+          label: "bank"
+          display_type: "text"
+          order: 2
+        last_four:
+          label: "ending in"
+          display_type: "masked"
+          order: 3
   

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.entity.CustomerInvoice;
+import com.mc_host.api.model.response.PaymentMethodResponse;
 import com.mc_host.api.model.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.specification.SpecificationType;
 
@@ -26,6 +27,11 @@ public interface DataFetchingResource {
 
     @GetMapping("/user/{userId}/invoice")
     public ResponseEntity<List<CustomerInvoice>> getUserInvoices(
+        @PathVariable String userId
+    );
+
+    @GetMapping("/user/{userId}/payment-method")
+    public ResponseEntity<List<PaymentMethodResponse>> getUserPaymentMethods(
         @PathVariable String userId
     );
 
