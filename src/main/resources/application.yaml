@@ -108,6 +108,11 @@ stripe:
     - price.created
     - price.deleted
     - price.updated
+  payment-method-events:
+    - payment_method.attached
+    - payment_method.detached
+    - payment_method.updated
+    - payment_method.automatically_updated
 
 payment:
   method:
