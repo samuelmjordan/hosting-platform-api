@@ -44,13 +44,16 @@ public class ReconciliationConsumer extends AbstractQueueConsumer {
                     Duration.ofMinutes(30))) {
                 resourceReconcilerSupplier.supply(ResourceType.valueOf(resourceType)).reconcile();
                 cacheService.evict(IN_PROGRESS_FLAG, resourceType);
+                resetBackoff();
             } else {
                 cacheService.queueLeftPush(this.getQueue(), resourceType);
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error reconciling resource " + resourceType, e);
             cacheService.evict(IN_PROGRESS_FLAG, resourceType);
-            cacheService.queueLeftPush(this.getQueue(), resourceType);
+            applyBackoff();
+            requeueItem(resourceType);
+            throw new RuntimeException("Failed to reconcile resource: " + resourceType, e);
         }
     }    
 }

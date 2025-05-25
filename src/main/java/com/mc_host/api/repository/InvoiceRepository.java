@@ -39,7 +39,7 @@ public class InvoiceRepository {
                         invoice_created_at,
                         link
                     )
-                    VALUES (?, ?, ?, ?, ?, ? , ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (invoice_id) DO UPDATE SET
                         customer_id = EXCLUDED.customer_id,
                         subscription_id = EXCLUDED.subscription_id,

@@ -18,11 +18,11 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
     private static final Logger LOGGER = Logger.getLogger(AbstractQueueConsumer.class.getName());
 
     protected static final long INITIAL_DELAY_MS = 100;
-    protected static final long MAX_DELAY_MS = 5000;
+    protected static final long MAX_DELAY_MS = 10000;
     
     private static final RateLimiter GLOBAL_RATE_LIMITER = new RateLimiter(1000);
     
-    private final AtomicInteger consecutiveEmptyPolls = new AtomicInteger(0);
+    private final AtomicInteger consecutiveBackoffs = new AtomicInteger(0);
     private final AtomicLong currentDelayMs = new AtomicLong(INITIAL_DELAY_MS);
     private final AtomicBoolean running = new AtomicBoolean(false);
     
@@ -55,6 +55,27 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
             LOGGER.info("Stopping consumer for queue: " + getQueue().name());
         }
     }
+
+    @Override
+    public void requeueItem(String item) {
+        if (item != null) {
+            LOGGER.warning("Requeuing item: " + item + " for queue: " + getQueue().name());
+            cacheService.queueLeftPush(getQueue(), item);
+        }
+    }
+
+    protected void resetBackoff() {
+        consecutiveBackoffs.set(0);
+        currentDelayMs.set(INITIAL_DELAY_MS);
+    }
+    
+    protected void applyBackoff() {
+        int backoffCount = consecutiveBackoffs.incrementAndGet();
+        if (backoffCount > 1) {
+            long newDelay = Math.min(currentDelayMs.get() * 2, MAX_DELAY_MS);
+            currentDelayMs.set(newDelay);
+        }
+    }
     
     private void scheduleNextPoll() {
         if (running.get()) {
@@ -63,6 +84,7 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
     }
     
     private void poll() {
+        String item = null;
         try {
             if (!GLOBAL_RATE_LIMITER.tryAcquire()) {
                 LOGGER.fine("Rate limited, delaying poll for queue: " + getQueue().name());
@@ -70,14 +92,15 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
                 return;
             }
             
-            String item = cacheService.queueRead(getQueue());
-            if (item != null) {
-                resetBackoff();
-                final String finalItem = item;
-                taskExecutor.submit(() -> processItem(finalItem));
-            } else {
+            item = cacheService.queueRead(getQueue());
+            if (item == null) {
                 applyBackoff();
+                return;
             }
+
+            final String finalItem = item;
+            taskExecutor.submit(() -> processItem(finalItem));
+
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error polling queue: " + getQueue().name(), e);
             applyBackoff();
@@ -85,17 +108,5 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
             scheduleNextPoll();
         }
     }
-    
-    private void resetBackoff() {
-        consecutiveEmptyPolls.set(0);
-        currentDelayMs.set(INITIAL_DELAY_MS);
-    }
-    
-    private void applyBackoff() {
-        int emptyCount = consecutiveEmptyPolls.incrementAndGet();
-        if (emptyCount > 1) {
-            long newDelay = Math.min(currentDelayMs.get() * 2, MAX_DELAY_MS);
-            currentDelayMs.set(newDelay);
-        }
-    }
+
 }

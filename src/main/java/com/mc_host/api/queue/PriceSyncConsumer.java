@@ -35,9 +35,12 @@ public class PriceSyncConsumer extends AbstractQueueConsumer {
     public void processItem(String productId) {
         try {
             stripePriceService.syncPriceData(productId);
+            resetBackoff();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error processing product " + productId, e);
-            cacheService.queueLeftPush(this.getQueue(), productId);
+            applyBackoff();
+            requeueItem(productId);
+            throw new RuntimeException("Failed to process price for product: " + productId, e);
         }
     }
 }

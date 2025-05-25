@@ -47,13 +47,16 @@ public class SubscriptionSyncConsumer extends AbstractQueueConsumer {
                     Duration.ofMinutes(stripeConfiguration.getSubscriptionSyncTimeoutMinutes()))) {
                 stripeSubscriptionService.handleCustomerSubscriptionSync(customerId);
                 cacheService.evict(CacheNamespace.SUBSCRIPTION_SYNC_IN_PROGRESS, customerId);
+                resetBackoff();
             } else {
                 cacheService.queueLeftPush(this.getQueue(), customerId);
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error processing customer " + customerId, e);
             cacheService.evict(CacheNamespace.SUBSCRIPTION_SYNC_IN_PROGRESS, customerId);
-            cacheService.queueLeftPush(this.getQueue(), customerId);
+            applyBackoff();
+            requeueItem(customerId);
+            throw new RuntimeException("Failed to process subscription sync for customer: " + customerId, e);
         }
     }
 }

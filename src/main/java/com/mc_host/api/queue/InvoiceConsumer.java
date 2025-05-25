@@ -35,9 +35,12 @@ public class InvoiceConsumer extends AbstractQueueConsumer {
     public void processItem(String customerId) {
         try {
             stripeInvoiceService.syncInvoiceData(customerId);
+            resetBackoff();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error processing customer " + customerId, e);
-            cacheService.queueLeftPush(this.getQueue(), customerId);
+            applyBackoff();
+            requeueItem(customerId);
+            throw new RuntimeException("Failed to process invoice for customer: " + customerId, e);
         }
     }
 }
