@@ -108,4 +108,58 @@ stripe:
     - price.created
     - price.deleted
     - price.updated
+
+payment:
+  method:
+    display:
+      card:
+        brand:
+          label: ""
+          display_type: "brand_icon"
+        last_four:
+          label: "ending in"
+          display_type: "masked"
+        exp_display:
+          label: "expires"
+          display_type: "text"
+      apple_pay:
+        wallet_type:
+          label: ""
+          display_type: "wallet_type"
+        card_brand:
+          label: ""
+          display_type: "brand_icon"
+        card_last_four:
+          label: "ending in"
+          display_type: "masked"
+      google_pay:
+        wallet_type:
+          label: ""
+          display_type: "wallet_type"
+        card_brand:
+          label: ""
+          display_type: "brand_icon"
+        card_last_four:
+          label: "ending in"
+          display_type: "masked"
+      samsung_pay:
+        wallet_type:
+          label: ""
+          display_type: "wallet_type"
+        card_brand:
+          label: ""
+          display_type: "brand_icon"
+        card_last_four:
+          label: "ending in"
+          display_type: "masked"
+      sepa:
+        bank_name:
+          label: "bank"
+          display_type: "text"
+        last_four:
+          label: "ending in"
+          display_type: "masked"
+        country:
+          label: ""
+          display_type: "country_flag"
   

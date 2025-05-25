@@ -5,6 +5,8 @@ public enum CacheNamespace {
 
     QUEUE,
 
+    PAYMENT_METHOD_SYNC_DEBOUNCE,
+
     INVOICE_SYNC_DEBOUNCE,
 
     SUBSCRIPTION_SYNC_DEBOUNCE,

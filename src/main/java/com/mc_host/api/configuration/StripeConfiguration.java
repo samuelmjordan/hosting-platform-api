@@ -23,6 +23,7 @@ public class StripeConfiguration {
     private List<String> subscriptionEvents;
     private List<String> priceEvents;
     private List<String> invoiceEvents;
+    private List<String> paymentMethodEvents;
 
     @PostConstruct
     public void init() {
@@ -41,7 +42,15 @@ public class StripeConfiguration {
         return (eventType) -> invoiceEvents.contains(eventType);
     }
 
+    public Predicate<String> isPaymentMethodEvent() {
+        return (eventType) -> paymentMethodEvents.contains(eventType);
+    }
+
     public Predicate<String> isAcceptableEvent() {
-        return (eventType) -> isSubscriptionEvent().or(isPriceEvent()).or(isInvoiceEvent()).test(eventType);
+        return (eventType) -> isSubscriptionEvent()
+            .or(isPriceEvent())
+            .or(isInvoiceEvent())
+            .or(isPaymentMethodEvent())
+            .test(eventType);
     }
 }

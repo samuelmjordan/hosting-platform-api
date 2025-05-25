@@ -69,6 +69,12 @@ public class StripeEventProcessor {
                 queuePushDebounce(Queue.PRICE_SYNC, CacheNamespace.PRICE_SYNC_DEBOUNCE, HIGH_PRIORITY, productId);
             }
 
+            if (stripeConfiguration.isPaymentMethodEvent().test(event.getType())) {
+                String customerId = extractValueFromEvent(event, "customer")
+                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
+                queuePushDebounce(Queue.PAYMENT_METHOD_SYNC, CacheNamespace.PAYMENT_METHOD_SYNC_DEBOUNCE, LOW_PRIORITY, customerId);
+            }
+
             LOGGER.log(Level.INFO, String.format(
                 "[Thread: %s] Pushed event %s, type %s",
                 Thread.currentThread().getName(),
