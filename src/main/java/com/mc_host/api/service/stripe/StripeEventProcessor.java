@@ -51,6 +51,12 @@ public class StripeEventProcessor {
                 return;
             }
 
+            if (stripeConfiguration.isInvoiceEvent().test(event.getType())) {
+                String customerId = extractValueFromEvent(event, "customer")
+                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
+                queuePushDebounce(Queue.INVOICE_SYNC, CacheNamespace.INVOICE_SYNC_DEBOUNCE, LOW_PRIORITY, customerId);
+            }
+
             if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
                 String customerId = extractValueFromEvent(event, "customer")
                     .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));

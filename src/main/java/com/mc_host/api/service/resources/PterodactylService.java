@@ -209,8 +209,8 @@ public class PterodactylService {
         LOGGER.log(Level.INFO, String.format("[pterodactylServerId: %s] Deleting pterodactyl server", pterodactylServerId));
         try {
             persistenceContext.inTransaction(() -> {
-                pterodactylApplicationClient.deleteServer(pterodactylServerId);
                 gameServerRepository.deletePterodactylServer(pterodactylServerId);
+                pterodactylApplicationClient.deleteServer(pterodactylServerId);
             });
             LOGGER.log(Level.INFO, String.format("[pterodactylServerId: %s] Deleted pterodactyl server", pterodactylServerId));
         } catch (Exception e) {

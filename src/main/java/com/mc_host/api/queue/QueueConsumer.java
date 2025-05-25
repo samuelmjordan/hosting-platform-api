@@ -7,5 +7,4 @@ public interface QueueConsumer {
     void stop();
     void processItem(String item);
     Queue getQueue();
-    
 }

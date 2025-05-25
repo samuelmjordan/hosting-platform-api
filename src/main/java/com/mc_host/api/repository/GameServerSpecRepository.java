@@ -1,6 +1,5 @@
 package com.mc_host.api.repository;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
@@ -9,10 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.AcceptedCurrency;
-import com.mc_host.api.model.Plan;
-import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.specification.JavaServerSpecification;
-import com.mc_host.api.model.specification.Specification;
 
 @Service
 public class GameServerSpecRepository {

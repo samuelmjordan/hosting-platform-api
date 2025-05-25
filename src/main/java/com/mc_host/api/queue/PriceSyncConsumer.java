@@ -21,7 +21,6 @@ public class PriceSyncConsumer extends AbstractQueueConsumer {
             ScheduledExecutorService scheduledExecutor,
             ExecutorService taskExecutor,
             Cache cacheService,
-
             StripePriceService stripePriceService) {
         super(scheduledExecutor, taskExecutor, cacheService);
         this.stripePriceService = stripePriceService;

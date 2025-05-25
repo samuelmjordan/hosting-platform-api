@@ -71,6 +71,16 @@ stripe:
   active-java-product-id: prod_RiiVxhDuwyX0qD
   event-debounce-ttl-ms: 5000
   subscription-sync-timeout-minutes: 15
+  invoice-events:
+    - invoice.created
+    - invoice.finalized
+    - invoice.voided
+    - invoice.marked_uncollectible
+    - invoice.paid
+    - invoice.updated
+    - invoice.payment_failed
+    - invoice.payment_action_required
+    - invoice.upcoming
   subscription-events:
     - checkout.session.completed
     - customer.subscription.created
@@ -82,16 +92,18 @@ stripe:
     - customer.subscription.pending_update
     - customer.subscription.pending_update_applied
     - customer.subscription.pending_update_expired
+    - payment_intent.succeeded
+    - payment_intent.payment_failed
+    - payment_intent.canceled
+    - invoice.created
+    - invoice.finalized
+    - invoice.voided
+    - invoice.marked_uncollectible
     - invoice.paid
     - invoice.updated
     - invoice.payment_failed
     - invoice.payment_action_required
     - invoice.upcoming
-    - invoice.marked_uncollectible
-    - invoice.payment_succeeded
-    - payment_intent.succeeded
-    - payment_intent.payment_failed
-    - payment_intent.canceled
   price-events:
     - price.created
     - price.deleted

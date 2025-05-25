@@ -22,6 +22,7 @@ public class StripeConfiguration {
     private Long subscriptionSyncTimeoutMinutes;
     private List<String> subscriptionEvents;
     private List<String> priceEvents;
+    private List<String> invoiceEvents;
 
     @PostConstruct
     public void init() {
@@ -36,7 +37,11 @@ public class StripeConfiguration {
         return (eventType) -> priceEvents.contains(eventType);
     }
 
+    public Predicate<String> isInvoiceEvent() {
+        return (eventType) -> invoiceEvents.contains(eventType);
+    }
+
     public Predicate<String> isAcceptableEvent() {
-        return (eventType) -> isSubscriptionEvent().or(isPriceEvent()).test(eventType);
+        return (eventType) -> isSubscriptionEvent().or(isPriceEvent()).or(isInvoiceEvent()).test(eventType);
     }
 }

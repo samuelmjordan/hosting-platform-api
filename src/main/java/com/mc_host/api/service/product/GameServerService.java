@@ -240,7 +240,10 @@ public class GameServerService implements SubscriptionService {
         cumulativeExceptions.addAll(executeTasks(List.of(
             () -> pterodactylService.destroyServerWithGameServerId(gameServerId),
             () -> dnsService.deleteCNameRecordWithGameServerId(gameServerId),
-            () -> dnsService.deleteARecordWithGameServerId(nodeId),
+            () -> dnsService.deleteARecordWithGameServerId(nodeId)
+        )));
+
+        cumulativeExceptions.addAll(executeTasks(List.of(
             () -> hetznerService.deleteNodeWithGameServerId(nodeId)
         )));
 
