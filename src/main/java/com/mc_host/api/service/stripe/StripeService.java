@@ -1,5 +1,6 @@
 package com.mc_host.api.service.stripe;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -161,7 +162,7 @@ public class StripeService implements StripeResource {
         try {
             LOGGER.log(Level.INFO, "Creating new customer - clerkId: " + userId);
             String customerId = createNewStripeCustomer(userId);
-            cacheService.set(cacheNamespace, userId, Optional.of(customerId));
+            cacheService.set(cacheNamespace, userId, Optional.of(customerId), Duration.ofMinutes(10));
             LOGGER.log(Level.INFO, "Completed creating new customer - clerkId: " + userId);
             return customerId;
         } catch (ClerkErrors | ClerkException e) {

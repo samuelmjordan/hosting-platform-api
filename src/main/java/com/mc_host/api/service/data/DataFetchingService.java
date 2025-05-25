@@ -17,15 +17,16 @@ import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
+import com.mc_host.api.model.entity.CustomerInvoice;
 import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.specification.JavaServerSpecification;
-import com.mc_host.api.model.specification.Specification;
 import com.mc_host.api.model.specification.SpecificationType;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.GameServerSpecRepository;
+import com.mc_host.api.repository.InvoiceRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
@@ -43,6 +44,7 @@ public class DataFetchingService implements DataFetchingResource  {
     private final SubscriptionRepository subscriptionRepository;
     private final GameServerRepository gameServerRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
+    private final InvoiceRepository invoiceRepository;
 
     public DataFetchingService(
         Cache cacheService,
@@ -51,7 +53,8 @@ public class DataFetchingService implements DataFetchingResource  {
         UserRepository userRepository,
         SubscriptionRepository subscriptionRepository,
         GameServerRepository gameServerRepository,
-        GameServerSpecRepository gameServerSpecRepository
+        GameServerSpecRepository gameServerSpecRepository,
+        final InvoiceRepository invoiceRepository
     ) {
         this.cacheService = cacheService;
         this.priceRepository = priceRepository;
@@ -60,6 +63,7 @@ public class DataFetchingService implements DataFetchingResource  {
         this.subscriptionRepository = subscriptionRepository;
         this.gameServerRepository = gameServerRepository;
         this.gameServerSpecRepository = gameServerSpecRepository;
+        this.invoiceRepository = invoiceRepository;
     }
 
     @Override
@@ -78,13 +82,21 @@ public class DataFetchingService implements DataFetchingResource  {
 
         Optional<AcceptedCurrency> currency = userRepository.selectUserCurrency(userId);
         if (currency.isPresent()) {
-            cacheService.set(cacheNamespace, userId, currency.get());
+            cacheService.set(cacheNamespace, userId, currency.get(), Duration.ofMinutes(10));
             return currency.get();
         }
 
         AcceptedCurrency defaulAcceptedCurrency = AcceptedCurrency.XXX;
         cacheService.set(cacheNamespace, userId, defaulAcceptedCurrency, Duration.ofHours(2));
         return defaulAcceptedCurrency;
+    }
+
+    @Override
+    public ResponseEntity<List<CustomerInvoice>> getUserInvoices(String userId) {
+        LOGGER.log(Level.INFO, String.format("Fetching invoices for clerkId %s", userId));
+        String customerId = getUserCustomerId(userId).orElse(null);
+        List<CustomerInvoice> invoices = invoiceRepository.selectInvoicesByCustomerId(customerId);
+        return ResponseEntity.ok(invoices);
     }
 
     @Override
@@ -110,7 +122,7 @@ public class DataFetchingService implements DataFetchingResource  {
         }
 
         Optional<String> customerId = userRepository.selectCustomerIdByClerkId(userId);
-        cacheService.set(cacheNamespace, userId, customerId, Duration.ofHours(2));
+        cacheService.set(cacheNamespace, userId, customerId, Duration.ofMinutes(10));
         return customerId;
     }
 
@@ -177,7 +189,7 @@ public class DataFetchingService implements DataFetchingResource  {
             if (plans.isEmpty()) {
                 throw new RuntimeException(String.format("specType %s had no plans. Is this the correct Id?", specType));
             }
-            cacheService.set(cacheNamespace, specType.name(), plans);
+            cacheService.set(cacheNamespace, specType.name(), plans, Duration.ofMinutes(10));
             
             return ResponseEntity.ok(plans);
         } catch (RuntimeException e) {

@@ -89,7 +89,7 @@ public class InvoiceRepository {
                     link
                 FROM invoice_
                 WHERE customer_id = ?
-                ORDER BY invoice_created_at, invoice_paid_at, invoice_id DESC
+                ORDER BY invoice_created_at, invoice_id DESC
                 """,
                 (rs, rowNum) -> new CustomerInvoice(
                     rs.getString("invoice_id"),
@@ -130,7 +130,7 @@ public class InvoiceRepository {
                     link
                 FROM invoice_
                 WHERE invoice_id = ?
-                ORDER BY invoice_created_at, invoice_paid_at, invoice_id DESC
+                ORDER BY invoice_created_at, invoice_id DESC
                 """,
                 (rs, rowNum) -> new CustomerInvoice(
                     rs.getString("invoice_id"),
