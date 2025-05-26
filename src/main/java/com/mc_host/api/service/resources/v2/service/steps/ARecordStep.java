@@ -2,6 +2,8 @@ package com.mc_host.api.service.resources.v2.service.steps;
 
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.model.node.DnsARecord;
+import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.DnsService;
@@ -32,7 +34,10 @@ public class ARecordStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        // TODO Auto-generated method stub
+        HetznerNode hetznerNode = nodeRepository.selectHetznerNodeFromSubscriptionId(context.getSubscriptionId())
+            .orElseThrow(() -> new IllegalStateException("Hetzner node not found for subscription: " + context.getSubscriptionId()));
+        DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
+        nodeRepository.insertDnsARecord(dnsARecord);
         throw new UnsupportedOperationException("Unimplemented method 'create'");
     }
 

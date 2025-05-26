@@ -7,7 +7,6 @@ import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.HetznerNode;
-import com.mc_host.api.model.node.Node;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;

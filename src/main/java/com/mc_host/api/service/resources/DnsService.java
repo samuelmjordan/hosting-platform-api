@@ -1,5 +1,6 @@
 package com.mc_host.api.service.resources;
 
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,24 +43,23 @@ public class DnsService {
     }
 
     public DnsARecord createARecord(HetznerNode hetznerNode) {
-        LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Creating DNS A record", hetznerNode.hetznerNodeId()));
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS A record", hetznerNode.subscriptionId()));
         try {
             String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getDomain());
-            String recordName = hetznerNode.nodeId().replace("-", "");
+            String recordName = UUID.randomUUID().toString().replace("-", "");
             DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(zoneId, recordName, hetznerNode.ipv4(), false);
             DnsARecord dnsARecord = new DnsARecord(
-                hetznerNode.nodeId(), 
+                hetznerNode.subscriptionId(), 
                 dnsARecordResponse.id(), 
                 zoneId, 
                 applicationConfiguration.getDomain(), 
                 dnsARecordResponse.name(), 
                 dnsARecordResponse.content()
             );
-            nodeRepository.insertDnsARecord(dnsARecord);
-            LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Created DNS A record", hetznerNode.hetznerNodeId()));
+            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Created DNS A record", hetznerNode.subscriptionId()));
             return dnsARecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[hetznerNodeId: %s] Error Creating DNS A record", hetznerNode.hetznerNodeId()), e);
+            throw new CloudflareException(String.format("[subscriptionId: %s] Error Creating DNS A record", hetznerNode.subscriptionId()), e);
         }
     }
 

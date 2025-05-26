@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.hetzner.HetznerRegion;
-import com.mc_host.api.model.node.Node;
 import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.model.node.PterodactylNode;
 import com.mc_host.api.model.node.DnsARecord;
@@ -27,7 +26,7 @@ public class NodeRepository {
         try {
             String hetznerRegion = hetznerNode.hetznerRegion() == null ? null : hetznerNode.hetznerRegion().toString();
             return jdbcTemplate.update("""
-                INSERT INTO hetzner_node_ (
+                INSERT INTO cloud_node_ (
                     node_id,
                     hetzner_region,
                     ipv4
@@ -39,31 +38,31 @@ public class NodeRepository {
                 hetznerNode.ipv4()
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to create hetzner node: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to create cloud node: " + e.getMessage(), e);
         }
     }
     
-    public Optional<HetznerNode> selectHetznerNode(String nodeId) {
+    public Optional<HetznerNode> selectHetznerNodeFromSubscriptionId(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
                 SELECT
+                    subscription_id,
                     node_id,
-                    hetzner_node_id,
                     hetzner_region,
                     ipv4
-                FROM hetzner_node_
+                FROM cloud_node_
                 WHERE node_id = ?
                 """,
                 (rs, rowNum) -> new HetznerNode(
-                    rs.getString("node_id"),
-                    rs.getLong("hetzner_node_id"),
+                    rs.getString("subscription_id"),
+                    rs.getLong("node_id"),
                     HetznerRegion.lookup(rs.getString("hetzner_region")),
                     rs.getString("ipv4")),
-                    nodeId
+                    subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch hetzner node for node id %s", nodeId), e);
+            throw new RuntimeException(String.format("Failed to fetch cloud node for subscriptionId: %s", subscriptionId), e);
         }
     }
 
@@ -72,39 +71,26 @@ public class NodeRepository {
             return jdbcTemplate.query(
                 """
                 SELECT
-                    hetzner_node_id
-                FROM hetzner_node_
+                    node_id
+                FROM cloud_node_
                 """,
-                (rs, rowNum) -> rs.getLong("hetzner_node_id")
+                (rs, rowNum) -> rs.getLong("node_id")
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch all hetzner nodes"), e);
+            throw new RuntimeException(String.format("Failed to fetch all cloud nodes"), e);
         }
     }
-    
-    public int deleteHetznerNodewithNodeId(String nodeId) {
+
+    public int deleteHetznerNode(Long nodeId) {
         try {
             return jdbcTemplate.update("""
-                DELETE FROM hetzner_node_
-                WHERE node_id = ?
+                DELETE FROM cloud_node_
+                WHERE hetzner_node_id = ?
                 """,
                 nodeId
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to delete hetzner node: " + e.getMessage(), e);
-        }
-    }
-
-    public int deleteHetznerNode(Long hetznerNodeId) {
-        try {
-            return jdbcTemplate.update("""
-                DELETE FROM hetzner_node_
-                WHERE hetzner_node_id = ?
-                """,
-                hetznerNodeId
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to delete hetzner node: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to delete cloud node: " + nodeId, e);
         }
     }
     
@@ -179,7 +165,7 @@ public class NodeRepository {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO dns_a_record_ (
-                    node_id,
+                    subscription_id,
                     a_record_id,
                     zone_id,
                     zone_name,
@@ -188,7 +174,7 @@ public class NodeRepository {
                 )
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                dnsARecord.nodeId(),
+                dnsARecord.subscriptionId(),
                 dnsARecord.aRecordId(),
                 dnsARecord.zoneId(),
                 dnsARecord.zoneName(),
@@ -200,31 +186,31 @@ public class NodeRepository {
         }
     }
     
-    public Optional<DnsARecord> selectDnsARecord(String nodeId) {
+    public Optional<DnsARecord> selectDnsARecord(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
                 SELECT
-                    node_id,
+                    subscription_id,
                     a_record_id,
                     zone_id,
                     zone_name,
                     record_name,
                     content
                 FROM dns_a_record_
-                WHERE node_id = ?
+                WHERE subscription_id = ?
                 """,
                 (rs, rowNum) -> new DnsARecord(
-                    rs.getString("node_id"),
+                    rs.getString("subscription_id"),
                     rs.getString("a_record_id"),
                     rs.getString("zone_id"),
                     rs.getString("zone_name"),
                     rs.getString("record_name"),
                     rs.getString("content")),
-                    nodeId
+                    subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch DNS A record for node id %s", nodeId), e);
+            throw new RuntimeException(String.format("Failed to fetch DNS A record for subscription id %s", subscriptionId), e);
         }
     }
 
@@ -233,7 +219,7 @@ public class NodeRepository {
             return jdbcTemplate.query(
                 """
                 SELECT
-                    node_id,
+                    subscription_id,
                     a_record_id,
                     zone_id,
                     zone_name,
@@ -242,7 +228,7 @@ public class NodeRepository {
                 FROM dns_a_record_
                 """,
                 (rs, rowNum) -> new DnsARecord(
-                    rs.getString("node_id"),
+                    rs.getString("subscription_id"),
                     rs.getString("a_record_id"),
                     rs.getString("zone_id"),
                     rs.getString("zone_name"),
@@ -254,13 +240,13 @@ public class NodeRepository {
         }
     }
     
-    public int deleteDnsARecord(String nodeId) {
+    public int deleteDnsARecord(String aRecordId) {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM dns_a_record_
                 WHERE a_record_id = ?
                 """,
-                nodeId
+                aRecordId
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete DNS A record: " + e.getMessage(), e);
