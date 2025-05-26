@@ -1,5 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
+import org.springframework.stereotype.Service;
+
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.DnsService;
@@ -7,6 +9,7 @@ import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 
+@Service
 public class ARecordStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;

@@ -1,5 +1,6 @@
 package com.mc_host.api.service.resources.v2.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -9,6 +10,7 @@ import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Status;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.steps.ARecordStep;
 import com.mc_host.api.service.resources.v2.service.steps.AllocateNodeStep;
 import com.mc_host.api.service.resources.v2.service.steps.CloudNodeStep;
 import com.mc_host.api.service.resources.v2.service.steps.NewStep;
@@ -18,27 +20,23 @@ import com.mc_host.api.service.resources.v2.service.steps.Step;
 public class ServerExecutor {
     private static final Logger LOGGER = Logger.getLogger(ServerExecutor.class.getName());
 
-    private final NewStep newStep;
-    private final AllocateNodeStep allocateNodeStep;
-    private final CloudNodeStep cloudNodeStep;
+    private List<Step> steps = new ArrayList<Step>();
 
     public ServerExecutor(
         NewStep newStep,
         AllocateNodeStep allocateNodeStep,
-        CloudNodeStep cloudNodeStep
+        CloudNodeStep cloudNodeStep,
+        ARecordStep aRecordStep
     ) {
-        this.newStep = newStep;
-        this.allocateNodeStep = allocateNodeStep;
-        this.cloudNodeStep = cloudNodeStep;
+        steps.addAll(List.of(
+            newStep,
+            allocateNodeStep,
+            cloudNodeStep,
+            aRecordStep
+        ));
     }
 
     private Step supply(StepType stepType) {
-        List<Step> steps = List.of(
-            newStep,
-            allocateNodeStep,
-            cloudNodeStep
-        );
-
         return steps.stream()
             .filter(step -> step.getType().equals(stepType))
             .findFirst()

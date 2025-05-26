@@ -15,8 +15,11 @@ CREATE TABLE subscription_ (
     current_period_end TIMESTAMP NOT NULL,
     cancel_at_period_end BOOLEAN NOT NULL,
 
-    -- Metadata
-    metadata JSONB DEFAULT '{}'::jsonb,
+    -- Server execution params
+    -- Not a source of truth, but rather a desired state
+    region TEXT NOT NULL,
+    title TEXT NOT NULL,
+    caption TEXT NOT NULL,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
