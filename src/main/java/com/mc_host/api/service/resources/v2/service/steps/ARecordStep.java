@@ -38,7 +38,8 @@ public class ARecordStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Hetzner node not found for subscription: " + context.getSubscriptionId()));
         DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
         nodeRepository.insertDnsARecord(dnsARecord);
-        throw new UnsupportedOperationException("Unimplemented method 'create'");
+        
+        return inProgress(context, StepType.PTERODACTYL_NODE);
     }
 
     @Override
