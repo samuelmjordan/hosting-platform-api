@@ -45,7 +45,7 @@ public class SubscriptionSyncConsumer extends AbstractQueueConsumer {
                     CacheNamespace.SUBSCRIPTION_SYNC_IN_PROGRESS, 
                     customerId,    
                     Duration.ofMinutes(stripeConfiguration.getSubscriptionSyncTimeoutMinutes()))) {
-                stripeSubscriptionService.handleCustomerSubscriptionSync(customerId);
+                stripeSubscriptionService.handleCustomerSubscriptionSyncV2(customerId);
                 cacheService.evict(CacheNamespace.SUBSCRIPTION_SYNC_IN_PROGRESS, customerId);
                 resetBackoff();
             } else {

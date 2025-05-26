@@ -16,8 +16,6 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.model.AcceptedCurrency;
-import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 
@@ -215,6 +213,36 @@ public class SubscriptionRepository {
             ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to fetch subscription metadata for subscription: " + subscriptionId, e);
+        }
+    }
+
+    public Optional<Map<String, String>> selectSubscriptionStripeMetadata(String subscriptionId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT 
+                    metadata
+                FROM subscription_
+                WHERE subscription_id = ?
+                """,
+                (rs, rowNum) -> {
+                    Map<String, String> metadata = new HashMap<>();
+                    try {
+                        String metadataJson = rs.getString("metadata");
+                        if (metadataJson != null && !metadataJson.isEmpty() && !metadataJson.equals("{}")) {
+                            metadata = objectMapper.readValue(metadataJson, 
+                                new TypeReference<Map<String, String>>() {});
+                        }
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException("Failed to deserialize metadata: " + e.getMessage(), e);
+                    }
+                    
+                    return metadata;
+                },
+                subscriptionId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch subscriptions for customer: " + e.getMessage(), e);
         }
     }
 
