@@ -3,8 +3,8 @@ package com.mc_host.api.model.node;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 
 public record HetznerNode(
-    String nodeId,
-    Long hetznerNodeId,
+    String subscriptionId,
+    Long nodeId,
     HetznerRegion hetznerRegion,
     String ipv4
 ) {}

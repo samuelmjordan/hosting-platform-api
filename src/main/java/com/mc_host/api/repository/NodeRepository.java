@@ -21,75 +21,20 @@ public class NodeRepository {
     public NodeRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
-
-    // --- Core Node operations ---
-
-    public int insertNode(Node node) {
-        try {
-            return jdbcTemplate.update("""
-                INSERT INTO node_ (
-                    node_id,
-                    dedicated
-                )
-                VALUES (?, ?)
-                """,
-                node.nodeId(),
-                node.dedicated()
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to create node: " + e.getMessage(), e);
-        }
-    }
-
-    public Optional<Node> selectNode(String nodeId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT
-                    node_id,
-                    dedicated
-                FROM node_
-                WHERE node_id = ?
-                """,
-                (rs, rowNum) -> new Node(
-                    rs.getString("node_id"), 
-                    rs.getBoolean("dedicated")),
-                    nodeId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch node for node id %s", nodeId), e);
-        }
-    }
-
-    public int deleteNode(String nodeId) {
-        try {
-            return jdbcTemplate.update("""
-                DELETE FROM node_
-                WHERE node_id = ?
-                """,
-                nodeId
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to delete node: " + e.getMessage(), e);
-        }
-    }
     
     // --- Hetzner Node operations ---
-    
     public int insertHetznerNode(HetznerNode hetznerNode) {
         try {
             String hetznerRegion = hetznerNode.hetznerRegion() == null ? null : hetznerNode.hetznerRegion().toString();
             return jdbcTemplate.update("""
                 INSERT INTO hetzner_node_ (
                     node_id,
-                    hetzner_node_id,
                     hetzner_region,
                     ipv4
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?)
                 """,
                 hetznerNode.nodeId(),
-                hetznerNode.hetznerNodeId(),
                 hetznerRegion,
                 hetznerNode.ipv4()
             );

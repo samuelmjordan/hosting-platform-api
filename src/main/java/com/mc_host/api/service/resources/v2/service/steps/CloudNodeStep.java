@@ -6,6 +6,7 @@ import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
+import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.model.node.Node;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
@@ -41,15 +42,14 @@ public class CloudNodeStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        Node node = Node.newCloudNode();
         HetznerRegion hetznerRegion = MarketingRegion.valueOf(
             subscriptionRepository.selectSubscriptionStripeMetadata(context.getSubscriptionId())
                 .orElseThrow(() -> new IllegalStateException("Subscription not found: " + context.getSubscriptionId()))
                 .getOrDefault(MetadataKey.REGION.name(), MarketingRegion.WEST_EUROPE.name())
             ).getHetznerRegion();
 
-        nodeRepository.insertNode(node);
-        hetznerService.createCloudNode(node, hetznerRegion, HetznerServerType.CAX11);
+        HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), hetznerRegion, HetznerServerType.CAX11);
+        nodeRepository.insertHetznerNode(hetznerNode);
 
         return inProgress(context, StepType.A_RECORD);
     }

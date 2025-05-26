@@ -1,5 +1,6 @@
 package com.mc_host.api.service.resources;
 
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,29 +34,29 @@ public class HetznerService {
         this.persistenceContext = persistenceContext;
     }
 
-    public HetznerNode createCloudNode(Node node, HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
-        LOGGER.log(Level.INFO, String.format("[nodeId: %s] Creating hetzner cloud node", node.nodeId()));
+    public HetznerNode createCloudNode(String subscriptionId, HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
         try {
+            String uuid = UUID.randomUUID().toString();
             Server hetznerServer = hetznerClient.createServer(
-                node.nodeId(),
+                uuid,
                 hetznerServerType.toString(),
                 hetznerRegion.toString(),
                 "ubuntu-24.04"
             ).server;
             HetznerNode hetznerNode = new HetznerNode(
-                node.nodeId(), 
+                subscriptionId,
                 hetznerServer.id, 
                 hetznerRegion, 
-                hetznerServer.public_net.ipv4.ip);
-            nodeRepository.insertHetznerNode(hetznerNode);
+                hetznerServer.public_net.ipv4.ip
+            );
             
             if (!hetznerClient.waitForServerStatus(hetznerServer.id, "running")) {
-                throw new RuntimeException(String.format("[nodeId: %s] Timed-out creating hetzner cloud node", node.nodeId()));
+                throw new RuntimeException(String.format("[subscriptionId: %s] [nodeId: %s] Timed-out creating hetzner cloud node", subscriptionId, hetznerServer.id));
             }
-            LOGGER.log(Level.INFO, String.format("[nodeId: %s] Created hetzner cloud node", node.nodeId()));
+            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] [nodeId: %s] Created hetzner cloud node", subscriptionId, hetznerServer.id));
             return hetznerNode; 
         } catch (Exception e) {
-            throw new HetznerException(String.format("[nodeId: %s] Error creating hetzner cloud node", node.nodeId()), e);
+            throw new HetznerException(String.format("[subscriptionId: %s] Error creating hetzner cloud node", subscriptionId), e);
         }       
     }
 
@@ -70,12 +71,6 @@ public class HetznerService {
         } catch (Exception e) {
             throw new HetznerException(String.format("[hetznerNodeId: %s] Error deleting hetzner node", hetznerNodeId), e);
         }  
-    }
-
-    public void deleteNodeWithGameServerId(String nodeId) {
-        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(nodeId)
-            .orElseThrow(() -> new IllegalStateException(String.format("[gameServerId: %s] No hetzner node associated with node", nodeId)));
-        deleteNode(hetznerNode.hetznerNodeId());
     }
     
 }
