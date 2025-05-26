@@ -4,15 +4,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.controller.UserActionsResource;
+import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.model.request.UpdateAddressRequest;
 import com.mc_host.api.model.request.UpdateRegionRequest;
 import com.mc_host.api.model.request.UpdateTitleRequest;
+import com.mc_host.api.repository.SubscriptionRepository;
 
 @Service
 public class UserActionsService implements UserActionsResource {
 
-    public UserActionsService() {
+    private final SubscriptionRepository subscriptionRepository;
 
+    public UserActionsService(
+        SubscriptionRepository subscriptionRepository
+    ) {
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     @Override
@@ -29,8 +35,8 @@ public class UserActionsService implements UserActionsResource {
 
     @Override
     public ResponseEntity<Void> updateSubscriptionTitle(String userId, String subscriptionId, UpdateTitleRequest title) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'updateSubscriptionTitle'");
+        subscriptionRepository.updateSubscriptionTitle(subscriptionId, title.title());
+        return ResponseEntity.ok().build();
     }
 
     @Override

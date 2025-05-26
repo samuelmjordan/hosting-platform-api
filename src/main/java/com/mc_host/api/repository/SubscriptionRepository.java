@@ -34,7 +34,7 @@ public class SubscriptionRepository {
 
     public void insertSubscriptionWithMetadata(ContentSubscription subscriptionEntity, SubscriptionUserMetadata subscriptionUserMetadata) {
         insertSubscription(subscriptionEntity);
-        insertSubscriptionMetadata(subscriptionUserMetadata);
+        upsertSubscriptionMetadata(subscriptionUserMetadata);
     }
 
     public void insertSubscription(ContentSubscription subscriptionEntity) {
@@ -88,7 +88,7 @@ public class SubscriptionRepository {
         }
     }
 
-    public void insertSubscriptionMetadata(SubscriptionUserMetadata subscriptionUserMetadata) {
+    public void upsertSubscriptionMetadata(SubscriptionUserMetadata subscriptionUserMetadata) {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
@@ -110,6 +110,23 @@ public class SubscriptionRepository {
             });
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to save subscription metadata to database: " + e.getMessage(), e);
+        }
+    }
+
+        public void updateSubscriptionTitle(String subscriptionId, String title) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE subscription_user_metadata_ 
+                    SET title = ?
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, title);
+                ps.setString(2, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
         }
     }
 
