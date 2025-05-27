@@ -7,7 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.game_server.DnsCNameRecord;
-import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.game_server.PterodactylServer;
 
 @Service
@@ -18,90 +17,6 @@ public class GameServerRepository {
     public GameServerRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
-
-    // --- Core Game Server operations ---
-
-    public int insertGameServer(GameServer gameServer) {
-        try {
-            return jdbcTemplate.update("""
-                INSERT INTO game_server_ (
-                    server_id, 
-                    subscription_id,
-                    plan_id,
-                    node_id
-                )
-                VALUES (?, ?, ?, ?)
-                """,
-                gameServer.serverId(),
-                gameServer.subscriptionId(),
-                gameServer.planId(),
-                gameServer.nodeId()
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to create game server: " + e.getMessage(), e);
-        }
-    }
-
-    public Optional<GameServer> selectGameServer(String serverId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT
-                    server_id,
-                    subscription_id,
-                    plan_id,
-                    node_id
-                FROM game_server_
-                WHERE server_id = ?
-                """,
-                (rs, rowNum) -> new GameServer(
-                    rs.getString("server_id"), 
-                    rs.getString("subscription_id"), 
-                    rs.getString("plan_id"),
-                    rs.getString("node_id")),
-                serverId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch game server for server id %s", serverId), e);
-        }
-    }
-
-    public Optional<GameServer> selectGameServerFromSubscription(String subscriptionId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT
-                    server_id,
-                    subscription_id,
-                    plan_id,
-                    node_id
-                FROM game_server_
-                WHERE subscription_id = ?
-                """,
-                (rs, rowNum) -> new GameServer(
-                    rs.getString("server_id"), 
-                    rs.getString("subscription_id"), 
-                    rs.getString("plan_id"),
-                    rs.getString("node_id")),
-                subscriptionId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch game server for subscription id %s", subscriptionId), e);
-        }
-    }
-
-    public int deleteGameServer(String serverId) {
-        try {
-            return jdbcTemplate.update("""
-                DELETE FROM game_server_
-                WHERE server_id = ?
-                """,
-                serverId
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to delete game server: " + e.getMessage(), e);
-        }
-    }
     
     // --- Pterodactyl Server operations ---
     
@@ -109,14 +24,14 @@ public class GameServerRepository {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO pterodactyl_server_ (
-                    server_id,
+                    subscription_id,
                     pterodactyl_server_uid,
                     pterodactyl_server_id,
                     allocation_id
                 )
                 VALUES (?, ?, ?, ?)
                 """,
-                pterodactylServer.serverId(),
+                pterodactylServer.subscriptionId(),
                 pterodactylServer.pterodactylServerUid(),
                 pterodactylServer.pterodactylServerId(),
                 pterodactylServer.allocationId()
@@ -126,37 +41,37 @@ public class GameServerRepository {
         }
     }
     
-    public Optional<PterodactylServer> selectPterodactylServer(String serverId) {
+    public Optional<PterodactylServer> selectPterodactylServer(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
                 SELECT
-                    server_id,
+                    subscription_id,
                     pterodactyl_server_uid,
                     pterodactyl_server_id,
                     allocation_id
                 FROM pterodactyl_server_
-                WHERE server_id = ?
+                WHERE subscription_id = ?
                 """,
                 (rs, rowNum) -> new PterodactylServer(
-                    rs.getString("server_id"),
+                    rs.getString("subscription_id"),
                     rs.getString("pterodactyl_server_uid"),
                     rs.getLong("pterodactyl_server_id"),
                     rs.getLong("allocation_id")),
-                serverId
+                subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch pterodactyl server for server id %s", serverId), e);
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl server for subscription id %s", subscriptionId), e);
         }
     }
     
-    public int deletePterodactylServer(String serverId) {
+    public int deletePterodactylServer(String subscriptionId) {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM pterodactyl_server_
-                WHERE server_id = ?
+                WHERE subscription_id = ?
                 """,
-                serverId
+                subscriptionId
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete pterodactyl server: " + e.getMessage(), e);

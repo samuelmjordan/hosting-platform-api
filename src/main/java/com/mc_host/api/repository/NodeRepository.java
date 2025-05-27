@@ -167,21 +167,48 @@ public class NodeRepository {
             return jdbcTemplate.update("""
                 INSERT INTO pterodactyl_allocation_ (
                     allocation_id,
-                    pterodactyl_node_id,
+                    subscription_id,
                     ip,
                     port,
                     alias
                 )
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                pterodactylAllocation.allocation_id(),
-                pterodactylAllocation.pterodactyl_node_id(),
+                pterodactylAllocation.allocationId(),
+                pterodactylAllocation.subscriptionId(),
                 pterodactylAllocation.ip(),
                 pterodactylAllocation.port(),
                 pterodactylAllocation.alias()
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to insert pterodactyl allocation: " + pterodactylAllocation.allocation_id(), e);
+            throw new RuntimeException("Failed to insert pterodactyl allocation: " + pterodactylAllocation.allocationId(), e);
+        }
+    }
+
+        public Optional<PterodactylAllocation> selectPterodactylAllocation(String subscriptionId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    subscription_id,
+                    allocation_id,
+                    ip,
+                    port,
+                    alias
+                FROM pterodactyl_allocation_
+                WHERE subscription_id = ?
+                """,
+                (rs, rowNum) -> new PterodactylAllocation(
+                    rs.getLong("allocation_id"),
+                    rs.getString("subscription_id"),
+                    rs.getString("ip"),
+                    rs.getInt("port"),
+                    rs.getString("alias")
+                ),
+                    subscriptionId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for subscription id %s", subscriptionId), e);
         }
     }
     

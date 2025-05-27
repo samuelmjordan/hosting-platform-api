@@ -16,7 +16,6 @@ import com.mc_host.api.client.PterodactylApplicationClient.AllocationAttributes;
 import com.mc_host.api.client.PterodactylApplicationClient.AllocationResponse;
 import com.mc_host.api.client.PterodactylApplicationClient.PterodactylServerResponse;
 import com.mc_host.api.exceptions.resources.PterodactylException;
-import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.game_server.PterodactylServer;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.node.DnsARecord;
@@ -81,7 +80,6 @@ public class PterodactylService {
                 dnsARecord.subscriptionId(),
                 pterodactylNodeResponse.attributes().id()
             );
-            nodeRepository.insertPterodactylNode(pterodactylNode);
             LOGGER.log(Level.INFO, String.format("[gameServerId: %s] [pterodactylNodeId: %s] Created pterodactyl node", dnsARecord.aRecordId(), pterodactylNodeResponse.attributes().id()));
             return pterodactylNode;
         } catch (Exception e) {
@@ -145,7 +143,7 @@ public class PterodactylService {
         }
     }
 
-    public PterodactylAllocation getAllocation(Long pterodactylNodeId) {
+    public PterodactylAllocation getAllocation(String subscriptionId, Long pterodactylNodeId) {
         LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetching pterodactyl node allocation", pterodactylNodeId)));
         try {                
             List<AllocationResponse> unassignedAllocations = pterodactylApplicationClient.getUnassignedAllocations(pterodactylNodeId);
@@ -153,7 +151,7 @@ public class PterodactylService {
             AllocationAttributes allocationAttributes = unassignedAllocations.get(0).attributes();
             return new PterodactylAllocation(
                 allocationAttributes.id(),
-                pterodactylNodeId,
+                subscriptionId,
                 allocationAttributes.ip(),
                 allocationAttributes.port(),
                 allocationAttributes.alias()
@@ -163,11 +161,11 @@ public class PterodactylService {
         }
     }
 
-    public PterodactylServer createServer(GameServer gameServer, AllocationAttributes allocationAttributes) {
-        LOGGER.log(Level.INFO, String.format("[gameServerId: %s] Creating pterodactyl server", gameServer.serverId()));
+    public PterodactylServer createServer(String subscriptionId, PterodactylAllocation allocation) {
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating pterodactyl server", subscriptionId));
         try {
             Map<String, Object> serverDetails = Map.ofEntries(
-                Map.entry("name", "Minecraft - " + gameServer.serverId()),
+                Map.entry("name", "Minecraft - " + subscriptionId),
                 Map.entry("user", 1),
                 Map.entry("egg", Egg.VANILLA_MINECRAFT.getId()),
                 Map.entry("docker_image", "ghcr.io/pterodactyl/yolks:java_21"),
@@ -192,24 +190,23 @@ public class PterodactylService {
                     "backups", 3
                 )),
                 Map.entry("allocation", Map.of(
-                    "default", allocationAttributes.id()
+                    "default", allocation.subscriptionId()
                 )),
                 Map.entry("nest", Nest.MINECRAFT.getId()),
-                Map.entry("external_id", gameServer.serverId())
+                Map.entry("external_id", subscriptionId)
             );
             
             PterodactylServerResponse response = pterodactylApplicationClient.createServer(serverDetails);
             PterodactylServer pterodactylServer = new PterodactylServer(
-                gameServer.serverId(), 
+                subscriptionId, 
                 response.attributes().uuid(),
                 response.attributes().id(), 
-                allocationAttributes.id()
+                allocation.allocationId()
             );
-            gameServerRepository.insertPterodactylServer(pterodactylServer);
-            LOGGER.log(Level.INFO, String.format("[gameServerId: %s] [pterodactylServerId: %s] Created pterodactyl server", gameServer.serverId(), response.attributes().id()));
+            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] [pterodactylServerId: %s] Created pterodactyl server", subscriptionId, response.attributes().id()));
             return pterodactylServer;
         } catch (Exception e) {
-            throw new PterodactylException(String.format("[gameServerId: %s] Error creating pterodactyl server", gameServer.serverId()), e);
+            throw new PterodactylException(String.format("[subscriptionId: %s] Error creating pterodactyl server", subscriptionId), e);
         }
     }
 
