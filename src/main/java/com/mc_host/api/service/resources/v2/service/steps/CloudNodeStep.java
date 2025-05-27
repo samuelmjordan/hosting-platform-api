@@ -14,6 +14,7 @@ import com.mc_host.api.service.resources.HetznerService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 @Service
 public class CloudNodeStep extends AbstractStep {
@@ -24,11 +25,12 @@ public class CloudNodeStep extends AbstractStep {
 
     protected CloudNodeStep(
         ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService,
         NodeRepository nodeRepository,
         SubscriptionRepository subscriptionRepository,
         HetznerService hetznerService
     ) {
-        super(contextRepository);
+        super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.hetznerService = hetznerService;
@@ -50,12 +52,12 @@ public class CloudNodeStep extends AbstractStep {
         HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), hetznerRegion, HetznerServerType.CAX11);
         nodeRepository.insertHetznerNode(hetznerNode);
 
-        return inProgress(context, StepType.A_RECORD);
+        return transitionService.persistAndProgress(context, StepType.A_RECORD);
     }
 
     @Override
     public StepTransition destroy(Context context) {
-        return inProgress(context, StepType.NEW);
+        return transitionService.persistAndProgress(context, StepType.NEW);
     }
 
     @Override

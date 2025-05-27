@@ -9,6 +9,7 @@ import com.mc_host.api.service.resources.PterodactylService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 public class PterodactylAllocationStep extends AbstractStep {
 
@@ -17,10 +18,11 @@ public class PterodactylAllocationStep extends AbstractStep {
 
     protected PterodactylAllocationStep(
         ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService,
         NodeRepository nodeRepository,
         PterodactylService pterodactylService
     ) {
-        super(contextRepository);
+        super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
         this.pterodactylService = pterodactylService;
     }
@@ -40,7 +42,7 @@ public class PterodactylAllocationStep extends AbstractStep {
         PterodactylAllocation pterodactylAllocation = pterodactylService.getAllocation(pterodactylNode.pterodactylNodeId());
         nodeRepository.insertPterodactylAllocation(pterodactylAllocation);
 
-        return inProgress(context, StepType.PTERODACTYL_SERVER);
+        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }
 
     @SuppressWarnings("unused")
@@ -49,9 +51,9 @@ public class PterodactylAllocationStep extends AbstractStep {
         // TODO: identify is server is hosted on a dedicated or cloud node
         // For now, we assume that the server is hosted on a cloud node
         if (false) {
-            return inProgress(context, StepType.DEDICATED_NODE);
+            return transitionService.persistAndProgress(context, StepType.DEDICATED_NODE);
         }
-        return inProgress(context, StepType.PTERODACTYL_NODE);
+        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);
     }
 
     @Override

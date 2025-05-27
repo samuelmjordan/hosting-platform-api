@@ -6,28 +6,20 @@ import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
-import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 public abstract class AbstractStep implements Step {
     protected static final Logger LOGGER = Logger.getLogger(AbstractStep.class.getName());
 
     protected final ServerExecutionContextRepository contextRepository;
+    protected final TransitionService transitionService;
 
     protected AbstractStep(
-        ServerExecutionContextRepository contextRepository
+        ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService
     ) {
         this.contextRepository = contextRepository;
-    }
-
-    protected StepTransition complete(Context context) {
-        contextRepository.upsertSubscription(context.completed());
-        return new StepTransition(context, context.getStepType());
-    }
-
-    protected StepTransition inProgress(Context context, StepType nextStepType) {
-        Context nextContext = context.inProgress().withStepType(nextStepType);
-        contextRepository.upsertSubscription(nextContext);
-        return new StepTransition(nextContext, nextStepType);
+        this.transitionService = transitionService;
     }
 
     @Override

@@ -10,6 +10,7 @@ import com.mc_host.api.service.resources.DnsService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 @Service
 public class ARecordStep extends AbstractStep {
@@ -19,10 +20,11 @@ public class ARecordStep extends AbstractStep {
 
     protected ARecordStep(
         ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService,
         NodeRepository nodeRepository,
         DnsService dnsService
     ) {
-        super(contextRepository);
+        super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
         this.dnsService = dnsService;
     }
@@ -39,12 +41,12 @@ public class ARecordStep extends AbstractStep {
         DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
         nodeRepository.insertDnsARecord(dnsARecord);
         
-        return inProgress(context, StepType.PTERODACTYL_NODE);
+        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);
     }
 
     @Override
     public StepTransition destroy(Context context) {
-        return inProgress(context, StepType.CLOUD_NODE);
+        return transitionService.persistAndProgress(context, StepType.CLOUD_NODE);
     }
 
     @Override

@@ -8,6 +8,7 @@ import com.mc_host.api.service.resources.PterodactylService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 public class PterodactylNodeStep extends AbstractStep {
 
@@ -16,10 +17,11 @@ public class PterodactylNodeStep extends AbstractStep {
 
     protected PterodactylNodeStep(
         ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService,
         NodeRepository nodeRepository,
         PterodactylService pterodactylService
     ) {
-        super(contextRepository);
+        super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
         this.pterodactylService = pterodactylService;
     }
@@ -36,12 +38,12 @@ public class PterodactylNodeStep extends AbstractStep {
         PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord);
         nodeRepository.insertPterodactylNode(pterodactylNode);
 
-        return inProgress(context, StepType.CONFIGURE_NODE);
+        return transitionService.persistAndProgress(context, StepType.CONFIGURE_NODE);
     }
 
     @Override
     public StepTransition destroy(Context context) {
-        return inProgress(context, StepType.A_RECORD);
+        return transitionService.persistAndProgress(context, StepType.A_RECORD);
     }
 
     @Override

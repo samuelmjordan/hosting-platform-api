@@ -5,26 +5,37 @@ import lombok.Getter;
 import lombok.With;
 
 @Getter
+@With
 @AllArgsConstructor
 public class Context {
-
-    String subscriptionId;
-    @With StepType stepType;
-    Mode mode;
-    Status status;
+    private final String subscriptionId;
+    private final StepType stepType;
+    private final Mode mode;
+    private final Status status;
 
     public Context inProgress() {
-        this.status = Status.IN_PROGRESS;
-        return this;
+        return this.withStatus(Status.IN_PROGRESS);
     }
 
     public Context completed() {
-        this.status = Status.COMPLETED;
-        return this;
+        return this.withStatus(Status.COMPLETED);
     }
 
     public Context failed() {
-        this.status = Status.FAILED;
-        return this;
+        return this.withStatus(Status.FAILED);
+    }
+    
+    public Context transitionTo(StepType nextStep) {
+        return this.withStepType(nextStep).inProgress();
+    }
+    
+    // convenience factory method
+    public static Context create(String subscriptionId, Mode mode) {
+        return new Context(
+            subscriptionId,
+            StepType.NEW,
+            mode,
+            Status.IN_PROGRESS
+        );
     }
 }

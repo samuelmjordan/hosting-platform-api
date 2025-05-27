@@ -4,13 +4,15 @@ import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 public class CNameRecordStep extends AbstractStep {
 
     protected CNameRecordStep(
-        ServerExecutionContextRepository contextRepository
+        ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService
     ) {
-        super(contextRepository);
+        super(contextRepository, transitionService);
     }
 
     @Override
@@ -20,12 +22,12 @@ public class CNameRecordStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        return inProgress(context, StepType.READY);
+        return transitionService.persistAndProgress(context, StepType.READY);
     }
 
     @Override
     public StepTransition destroy(Context context) {
-        return inProgress(context, StepType.PTERODACTYL_SERVER);
+        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }
 
     @Override

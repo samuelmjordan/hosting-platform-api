@@ -8,6 +8,7 @@ import com.mc_host.api.service.resources.PterodactylService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 public class ConfigureNodeStep extends AbstractStep {
 
@@ -16,10 +17,11 @@ public class ConfigureNodeStep extends AbstractStep {
 
     protected ConfigureNodeStep(
         ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService,
         NodeRepository nodeRepository,
         PterodactylService pterodactylService
     ) {
-        super(contextRepository);
+        super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
         this.pterodactylService = pterodactylService;
     }
@@ -37,7 +39,7 @@ public class ConfigureNodeStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found for subscription: " + context.getSubscriptionId()));
         pterodactylService.configureNode(pterodactylNode.pterodactylNodeId(), dnsARecord);
 
-        return inProgress(context, StepType.PTERODACTYL_ALLOCATION);
+        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_ALLOCATION);
     }
 
     @Override

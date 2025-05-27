@@ -6,14 +6,16 @@ import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
+import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 @Service
 public class AllocateNodeStep extends AbstractStep {
 
     protected AllocateNodeStep(
-        ServerExecutionContextRepository contextRepository
+        ServerExecutionContextRepository contextRepository,
+        TransitionService transitionService
     ) {
-        super(contextRepository);
+        super(contextRepository, transitionService);
     }
 
     @Override
@@ -26,9 +28,9 @@ public class AllocateNodeStep extends AbstractStep {
     public StepTransition create(Context context) {
         // TODO: use dedicated node if available
         if (false) {
-            return inProgress(context, StepType.DEDICATED_NODE);
+            return transitionService.persistAndProgress(context, StepType.DEDICATED_NODE);
         }
-        return inProgress(context, StepType.CLOUD_NODE);
+        return transitionService.persistAndProgress(context, StepType.CLOUD_NODE);
     }
 
     @Override
