@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.MetadataKey;
+import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
@@ -28,7 +29,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
 
 @Service
-public class StripeSubscriptionService {
+public class StripeSubscriptionService implements StripeEventService {
     private static final Logger LOGGER = Logger.getLogger(StripeSubscriptionService.class.getName());
 
     private final ServerExecutor serverExecutor;
@@ -45,7 +46,11 @@ public class StripeSubscriptionService {
         this.serverExecutionContextRepository = serverExecutionContextRepository;
     }
 
-    public void handleCustomerSubscriptionSyncV2(String customerId) {
+    public StripeEventType getType() {
+        return StripeEventType.SUBSCRIPTION;
+    }
+
+    public void process(String customerId) {
         try {
             List<ContentSubscription> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
             List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData().stream()

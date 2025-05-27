@@ -3,7 +3,6 @@ package com.mc_host.api.service.resources.v2.service.steps;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.MarketingRegion;
-import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;

@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.entity.CustomerInvoice;
 import com.mc_host.api.repository.InvoiceRepository;
 import com.mc_host.api.util.Cache;
@@ -14,7 +15,7 @@ import com.stripe.model.Invoice;
 import com.stripe.param.InvoiceListParams;
 
 @Service
-public class StripeInvoiceService {
+public class StripeInvoiceService implements StripeEventService{
     private static final Logger LOGGER = Logger.getLogger(StripeInvoiceService.class.getName());
 
     private final Cache cacheService;
@@ -28,7 +29,11 @@ public class StripeInvoiceService {
         this.invoiceRepository = invoiceRepository;
     }
 
-    public void syncInvoiceData(String customerId) {
+    public StripeEventType getType() {
+        return StripeEventType.INVOICE;
+    }
+
+    public void process(String customerId) {
         try {
             LOGGER.info("Syncing invoice data for customer: " + customerId);
 

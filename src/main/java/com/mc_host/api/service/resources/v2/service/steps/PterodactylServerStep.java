@@ -12,7 +12,6 @@ import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
-import com.stripe.model.tax.Registration.CountryOptions.Pt;
 
 @Service
 public class PterodactylServerStep extends AbstractStep {

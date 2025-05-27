@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.cache.CacheNamespace;
+import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.PricePair;
 import com.mc_host.api.model.specification.SpecificationType;
@@ -21,7 +22,7 @@ import com.stripe.model.Price;
 import com.stripe.param.PriceListParams;
 
 @Service
-public class StripePriceService {
+public class StripePriceService implements StripeEventService{
     private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
 
     private final Cache cacheService;
@@ -35,7 +36,11 @@ public class StripePriceService {
         this.priceRepository = priceRepository;
     }
 
-    public void syncPriceData(String productId) {
+    public StripeEventType getType() {
+        return StripeEventType.PRICE;
+    }
+
+    public void process(String productId) {
         try {
             PriceListParams priceListParams = PriceListParams.builder()
                 .setProduct(productId)

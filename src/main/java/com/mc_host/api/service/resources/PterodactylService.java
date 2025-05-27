@@ -268,7 +268,7 @@ public class PterodactylService {
             final int MAX_REINSTALLS = 3;
             final int MAX_START_ATTEMPTS = 5;
             final int MAX_WAIT_CYCLES = 30;
-            final int POLL_INTERVAL_MS = 2000;
+            final int POLL_INTERVAL_MS = 5000;
             
             Long serverId = pterodactylServer.pterodactylServerId();
             String serverUid = pterodactylServer.pterodactylServerUid();
@@ -278,7 +278,7 @@ public class PterodactylService {
                     LOGGER.info(String.format("[serverId: %s] reinstalling server (attempt %d/%d)", 
                         serverId, reinstall, MAX_REINSTALLS));
                     reinstallServer(serverId);
-                    Thread.sleep(POLL_INTERVAL_MS * 2);
+                    Thread.sleep(POLL_INTERVAL_MS);
                 }
                 
                 for (int attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt++) {
@@ -309,6 +309,7 @@ public class PterodactylService {
                             }
                         }
                         
+
                     } catch (Exception e) {
                         LOGGER.warning(String.format("[serverId: %s] start attempt %d failed: %s", 
                             serverId, attempt, e.getMessage()));

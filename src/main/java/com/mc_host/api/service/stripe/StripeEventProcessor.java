@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
+import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.util.Cache;
 import com.stripe.model.Event;
 import com.stripe.model.StripeObject;
@@ -22,12 +24,15 @@ import com.stripe.model.StripeObject;
 @Service
 public class StripeEventProcessor {
     private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
-    private static final Boolean HIGH_PRIORITY = true;
-    private static final Boolean LOW_PRIORITY = false;
+    private static final Queue QUEUE_NAME = Queue.STRIPE_EVENT;
 
     private final StripeConfiguration stripeConfiguration;
     private final Cache cacheService;
     private final ScheduledExecutorService delayedTaskScheduler;
+
+    private final Map<Predicate<String>, EventConfig> eventHandlers;
+
+    private record EventConfig(StripeEventType type, CacheNamespace debounceFlag, String fieldName) {}
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
@@ -36,7 +41,14 @@ public class StripeEventProcessor {
     ) {
         this.stripeConfiguration = stripeConfiguration;
         this.cacheService = cacheService;
-        this. delayedTaskScheduler = delayedTaskScheduler;
+        this.delayedTaskScheduler = delayedTaskScheduler;
+        
+        this.eventHandlers = Map.of(
+            stripeConfiguration.isInvoiceEvent(), new EventConfig(StripeEventType.INVOICE, CacheNamespace.INVOICE_DEBOUNCE, "customer"),
+            stripeConfiguration.isSubscriptionEvent(), new EventConfig(StripeEventType.SUBSCRIPTION, CacheNamespace.SUBSCRIPTION_DEBOUNCE, "customer"),
+            stripeConfiguration.isPriceEvent(), new EventConfig(StripeEventType.PRICE, CacheNamespace.PRICE_DEBOUNCE, "product"),
+            stripeConfiguration.isPaymentMethodEvent(), new EventConfig(StripeEventType.PAYMENT_METHOD, CacheNamespace.PAYMENT_METHOD_DEBOUNCE, "customer")
+        );
     }
     
     public void processEvent(Event event) {
@@ -51,29 +63,17 @@ public class StripeEventProcessor {
                 return;
             }
 
-            if (stripeConfiguration.isInvoiceEvent().test(event.getType())) {
-                String customerId = extractValueFromEvent(event, "customer")
-                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-                queuePushDebounce(Queue.INVOICE_SYNC, CacheNamespace.INVOICE_SYNC_DEBOUNCE, LOW_PRIORITY, customerId);
-            }
-
-            if (stripeConfiguration.isSubscriptionEvent().test(event.getType())) {
-                String customerId = extractValueFromEvent(event, "customer")
-                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-                queuePushDebounce(Queue.SUBSCRIPTION_SYNC, CacheNamespace.SUBSCRIPTION_SYNC_DEBOUNCE, LOW_PRIORITY, customerId);
-            }
-
-            if (stripeConfiguration.isPriceEvent().test(event.getType())) {
-                String productId = extractValueFromEvent(event, "product")
-                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get productId - eventType: %s", event.getType())));
-                queuePushDebounce(Queue.PRICE_SYNC, CacheNamespace.PRICE_SYNC_DEBOUNCE, HIGH_PRIORITY, productId);
-            }
-
-            if (stripeConfiguration.isPaymentMethodEvent().test(event.getType())) {
-                String customerId = extractValueFromEvent(event, "customer")
-                    .orElseThrow(() -> new IllegalStateException(String.format("Failed to get customerId - eventType: %s", event.getType())));
-                queuePushDebounce(Queue.PAYMENT_METHOD_SYNC, CacheNamespace.PAYMENT_METHOD_SYNC_DEBOUNCE, LOW_PRIORITY, customerId);
-            }
+            eventHandlers.entrySet().stream()
+                .filter(entry -> entry.getKey().test(event.getType()))
+                .findFirst()
+                .ifPresent(entry -> {
+                    EventConfig config = entry.getValue();
+                    String extractedId = extractValueFromEvent(event, config.fieldName())
+                        .orElseThrow(() -> new IllegalStateException(
+                            String.format("Failed to get %s - eventType: %s", config.fieldName(), event.getType())
+                        ));
+                    queuePushDebounce(config, extractedId);
+                });
 
             LOGGER.log(Level.INFO, String.format(
                 "[Thread: %s] Pushed event %s, type %s",
@@ -110,16 +110,18 @@ public class StripeEventProcessor {
         }
     }
 
-    public void queuePushDebounce(Queue queue, CacheNamespace debounceFlag, Boolean priority, String value) {
+    public void queuePushDebounce(EventConfig eventConfig, String flag) {
         if (cacheService.flagIfAbsent(
-            debounceFlag,
-            value,
-            Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs()))) {
-        delayedTaskScheduler.schedule(
-            priority
-            ? () -> cacheService.queueRightPush(queue, value)
-            : () -> cacheService.queueLeftPush(queue, value),
-            stripeConfiguration.getEventDebounceTtlMs(), TimeUnit.MILLISECONDS);
+                eventConfig.debounceFlag(),
+                flag,
+                Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs())
+            )
+        ) {
+            delayedTaskScheduler.schedule(
+                () -> cacheService.queueLeftPush(QUEUE_NAME, String.join(":", eventConfig.type().name(), flag)),
+                stripeConfiguration.getEventDebounceTtlMs(), 
+                TimeUnit.MILLISECONDS
+            );
         }
     }
 }

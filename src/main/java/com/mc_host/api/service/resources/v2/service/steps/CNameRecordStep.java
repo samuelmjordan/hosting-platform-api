@@ -1,5 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.game_server.DnsCNameRecord;
@@ -42,7 +44,7 @@ public class CNameRecordStep extends AbstractStep {
     public StepTransition create(Context context) {
         DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
             .orElseThrow(() -> new IllegalStateException("DNS A record not found for subscription: " + context.getSubscriptionId()));
-        DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord, dnsARecord.subscriptionId().replace("-", ""));
+        DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord, UUID.randomUUID().toString().replace("-", ""));
         gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
 
         return transitionService.persistAndProgress(context, StepType.START_SERVER);
