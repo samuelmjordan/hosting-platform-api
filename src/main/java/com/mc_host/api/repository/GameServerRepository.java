@@ -112,16 +112,14 @@ public class GameServerRepository {
                     server_id,
                     pterodactyl_server_uid,
                     pterodactyl_server_id,
-                    allocation_id,
-                    port
+                    allocation_id
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?)
                 """,
                 pterodactylServer.serverId(),
                 pterodactylServer.pterodactylServerUid(),
                 pterodactylServer.pterodactylServerId(),
-                pterodactylServer.allocationId(),
-                pterodactylServer.port()
+                pterodactylServer.allocationId()
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to create pterodactyl server: " + e.getMessage(), e);
@@ -136,8 +134,7 @@ public class GameServerRepository {
                     server_id,
                     pterodactyl_server_uid,
                     pterodactyl_server_id,
-                    allocation_id,
-                    port
+                    allocation_id
                 FROM pterodactyl_server_
                 WHERE server_id = ?
                 """,
@@ -145,8 +142,7 @@ public class GameServerRepository {
                     rs.getString("server_id"),
                     rs.getString("pterodactyl_server_uid"),
                     rs.getLong("pterodactyl_server_id"),
-                    rs.getLong("allocation_id"),
-                    rs.getInt("port")),
+                    rs.getLong("allocation_id")),
                 serverId
             ).stream().findFirst();
         } catch (DataAccessException e) {

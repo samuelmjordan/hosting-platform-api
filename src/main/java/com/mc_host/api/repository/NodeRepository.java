@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.node.HetznerNode;
+import com.mc_host.api.model.node.PterodactylAllocation;
 import com.mc_host.api.model.node.PterodactylNode;
 import com.mc_host.api.model.node.DnsARecord;
 
@@ -85,7 +86,7 @@ public class NodeRepository {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM cloud_node_
-                WHERE hetzner_node_id = ?
+                WHERE node_id = ?
                 """,
                 nodeId
             );
@@ -100,12 +101,12 @@ public class NodeRepository {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO pterodactyl_node_ (
-                    node_id,
+                    subscription_id,
                     pterodactyl_node_id
                 )
                 VALUES (?, ?)
                 """,
-                pterodactylNode.nodeId(),
+                pterodactylNode.subscriptionId(),
                 pterodactylNode.pterodactylNodeId()
             );
         } catch (DataAccessException e) {
@@ -113,33 +114,33 @@ public class NodeRepository {
         }
     }
     
-    public Optional<PterodactylNode> selectPterodactylNode(String nodeId) {
+    public Optional<PterodactylNode> selectPterodactylNode(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
                 SELECT
-                    node_id,
+                    subscription_id,
                     pterodactyl_node_id
                 FROM pterodactyl_node_
-                WHERE node_id = ?
+                WHERE subscription_id = ?
                 """,
                 (rs, rowNum) -> new PterodactylNode(
-                    rs.getString("node_id"),
+                    rs.getString("subscription_id"),
                     rs.getLong("pterodactyl_node_id")),
-                    nodeId
+                    subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for node id %s", nodeId), e);
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for subscription id %s", subscriptionId), e);
         }
     }
     
-    public int deletePterodactylNodeFromNodeId(String nodeId) {
+    public int deletePterodactylNodeFromNodeId(String subscriptionId) {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM pterodactyl_node_
-                WHERE node_id = ?
+                WHERE subscription_id = ?
                 """,
-                nodeId
+                subscriptionId
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete pterodactyl node: " + e.getMessage(), e);
@@ -156,6 +157,31 @@ public class NodeRepository {
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete pterodactyl node: " + e.getMessage(), e);
+        }
+    }
+
+    // --- Pterodactyl allocation operations ---
+
+    public int insertPterodactylAllocation(PterodactylAllocation pterodactylAllocation) {
+        try {
+            return jdbcTemplate.update("""
+                INSERT INTO pterodactyl_allocation_ (
+                    allocation_id,
+                    pterodactyl_node_id,
+                    ip,
+                    port,
+                    alias
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                pterodactylAllocation.allocation_id(),
+                pterodactylAllocation.pterodactyl_node_id(),
+                pterodactylAllocation.ip(),
+                pterodactylAllocation.port(),
+                pterodactylAllocation.alias()
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to insert pterodactyl allocation: " + pterodactylAllocation.allocation_id(), e);
         }
     }
     

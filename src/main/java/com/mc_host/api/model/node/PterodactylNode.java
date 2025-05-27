@@ -1,6 +1,6 @@
 package com.mc_host.api.model.node;
 
 public record PterodactylNode(
-    String nodeId,
+    String subscriptionId,
     Long pterodactylNodeId
 ) {}

@@ -2,6 +2,7 @@ package com.mc_host.api.service.resources;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,6 +20,7 @@ import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.game_server.PterodactylServer;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.node.DnsARecord;
+import com.mc_host.api.model.node.PterodactylAllocation;
 import com.mc_host.api.model.node.PterodactylNode;
 import com.mc_host.api.model.pterodactyl.games.Egg;
 import com.mc_host.api.model.pterodactyl.games.Nest;
@@ -59,8 +61,8 @@ public class PterodactylService {
         LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Creating pterodactyl node", dnsARecord.aRecordId()));
         try {
             PterodactylCreateNodeRequest pterodactylNodeRequest = PterodactylCreateNodeRequest.builder()
-                .name(dnsARecord.nodeId())
-                .description(dnsARecord.nodeId())
+                .name(UUID.randomUUID().toString())
+                .description(dnsARecord.subscriptionId())
                 .locationId(HetznerRegion.NBG1.getPterodactylLocationId())
                 .public_(true)
                 .fqdn(dnsARecord.recordName())
@@ -76,7 +78,7 @@ public class PterodactylService {
                 .build();
             PterodactylNodeResponse pterodactylNodeResponse = pterodactylApplicationClient.createNode(pterodactylNodeRequest);
             PterodactylNode pterodactylNode = new PterodactylNode(
-                dnsARecord.nodeId(),
+                dnsARecord.subscriptionId(),
                 pterodactylNodeResponse.attributes().id()
             );
             nodeRepository.insertPterodactylNode(pterodactylNode);
@@ -143,12 +145,19 @@ public class PterodactylService {
         }
     }
 
-    public AllocationAttributes getAllocation(Long pterodactylNodeId) {
+    public PterodactylAllocation getAllocation(Long pterodactylNodeId) {
         LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetching pterodactyl node allocation", pterodactylNodeId)));
         try {                
             List<AllocationResponse> unassignedAllocations = pterodactylApplicationClient.getUnassignedAllocations(pterodactylNodeId);
             LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetched pterodactyl node allocation", pterodactylNodeId)));
-            return unassignedAllocations.get(0).attributes();
+            AllocationAttributes allocationAttributes = unassignedAllocations.get(0).attributes();
+            return new PterodactylAllocation(
+                allocationAttributes.id(),
+                pterodactylNodeId,
+                allocationAttributes.ip(),
+                allocationAttributes.port(),
+                allocationAttributes.alias()
+            );
         } catch (Exception e) {
             throw new PterodactylException(String.format("[pterodactylNodeId: %s] Error fetching pterodactyl node allocation", pterodactylNodeId), e);
         }
@@ -194,8 +203,7 @@ public class PterodactylService {
                 gameServer.serverId(), 
                 response.attributes().uuid(),
                 response.attributes().id(), 
-                allocationAttributes.id(), 
-                allocationAttributes.port()
+                allocationAttributes.id()
             );
             gameServerRepository.insertPterodactylServer(pterodactylServer);
             LOGGER.log(Level.INFO, String.format("[gameServerId: %s] [pterodactylServerId: %s] Created pterodactyl server", gameServer.serverId(), response.attributes().id()));

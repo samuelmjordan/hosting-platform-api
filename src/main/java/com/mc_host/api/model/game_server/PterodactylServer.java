@@ -4,6 +4,5 @@ public record PterodactylServer(
     String serverId,
     String pterodactylServerUid,
     Long pterodactylServerId,
-    Long allocationId,
-    Integer port
+    Long allocationId
 ) {}

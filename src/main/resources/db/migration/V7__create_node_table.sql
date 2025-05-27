@@ -7,24 +7,42 @@ CREATE TABLE cloud_node_ (
     ipv4 TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT cloud_node_subscription_id_fk FOREIGN KEY (subscription_id) REFERENCES subscription_(subscription_id),
+    CONSTRAINT cloud_node_subscription_id_fk FOREIGN KEY (subscription_id) 
+        REFERENCES subscription_(subscription_id),
     CONSTRAINT cloud_node_ipv4_unique UNIQUE (ipv4)
 );
 CREATE INDEX idx_cloud_node_subscription_id ON cloud_node_(subscription_id);
 CREATE INDEX idx_cloud_node_node_id ON cloud_node_(node_id);
 
--- Pterodactyl-specific details
+-- Pterodactyl node details
 CREATE TABLE pterodactyl_node_ (
     id BIGSERIAL PRIMARY KEY,
     subscription_id TEXT NOT NULL,
     pterodactyl_node_id BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pterodactyl_node_subscription_id_fk FOREIGN KEY (subscription_id) REFERENCES subscription_(subscription_id),
+    CONSTRAINT pterodactyl_node_subscription_id_fk FOREIGN KEY (subscription_id) 
+        REFERENCES subscription_(subscription_id),
     CONSTRAINT pterodactyl_node_pterodactyl_node_id_unique UNIQUE (pterodactyl_node_id)
 );
 CREATE INDEX idx_pterodactyl_node_subscription_id ON pterodactyl_node_(subscription_id);
 CREATE INDEX idx_pterodactyl_node_pterodactyl_id ON pterodactyl_node_(pterodactyl_node_id);
+
+-- Pterodactyl allocation details
+CREATE TABLE pterodactyl_allocation_ (
+    id BIGSERIAL PRIMARY KEY,
+    allocation_id BIGINT NOT NULL,
+    ip TEXT NOT NULL,
+    port BIGINT NOT NULL,
+    alias TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    pterodactyl_node_id TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pterodactyl_allocation_pterodactyl_node_id_fk FOREIGN KEY (pterodactyl_node_id) 
+        REFERENCES pterodactyl_node_(pterodactyl_node_id) ON DELETE CASCADE,
+    CONSTRAINT pterodactyl_allocation_allocation_id_unique UNIQUE (allocation_id),
+    CONSTRAINT pterodactyl_allocation_ip_port_unique UNIQUE (ip, port)
+);
+CREATE INDEX idx_pterodactyl_allocation_allocation_id ON pterodactyl_allocation_(allocation_id);
+CREATE INDEX idx_pterodactyl_allocation_pterodactyl_node_id ON pterodactyl_allocation_(pterodactyl_node_id);
 
 -- DNS record details
 CREATE TABLE dns_a_record_ (
