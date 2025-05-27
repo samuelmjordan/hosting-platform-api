@@ -1,16 +1,13 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 
-@Service
-public class AllocateNodeStep extends AbstractStep {
+public class PterodactylAllocationStep extends AbstractStep {
 
-    protected AllocateNodeStep(
+    protected PterodactylAllocationStep(
         ServerExecutionContextRepository contextRepository
     ) {
         super(contextRepository);
@@ -18,22 +15,23 @@ public class AllocateNodeStep extends AbstractStep {
 
     @Override
     public StepType getType() {
-        return StepType.ALLOCATE_NODE;
+        return StepType.PTERODACTYL_ALLOCATION;
+    }
+
+    @Override
+    public StepTransition create(Context context) {
+        return inProgress(context, StepType.PTERODACTYL_SERVER);
     }
 
     @SuppressWarnings("unused")
     @Override
-    public StepTransition create(Context context) {
-        // TODO: use dedicated node if available
+    public StepTransition destroy(Context context) {
+        // TODO: identify is server is hosted on a dedicated or cloud node
+        // For now, we assume that the server is hosted on a cloud node
         if (false) {
             return inProgress(context, StepType.DEDICATED_NODE);
         }
-        return inProgress(context, StepType.CLOUD_NODE);
-    }
-
-    @Override
-    public StepTransition destroy(Context context) {
-        throw new UnsupportedOperationException("Node allocation cannot be destroyed directly. There is nothing to destroy, try goins straight to new.");
+        return inProgress(context, StepType.PTERODACTYL_NODE);
     }
 
     @Override

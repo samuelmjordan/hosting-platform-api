@@ -44,8 +44,7 @@ public class ARecordStep extends AbstractStep {
 
     @Override
     public StepTransition destroy(Context context) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'destroy'");
+        return inProgress(context, StepType.CLOUD_NODE);
     }
 
     @Override

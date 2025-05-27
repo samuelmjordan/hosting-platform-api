@@ -12,5 +12,5 @@ public enum StepType {
     PTERODACTYL_SERVER,
     C_NAME_RECORD,
     START_SERVER,
-    COMPLETE
+    READY
 }
