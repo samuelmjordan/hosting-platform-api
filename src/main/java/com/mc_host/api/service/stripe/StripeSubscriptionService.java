@@ -99,6 +99,10 @@ public class StripeSubscriptionService implements StripeEventService {
                 .map(subscriptionPair -> Task.alwaysAttempt(
                     "Update subscription " + subscriptionPair.getOldSubscription().subscriptionId(),
                     () -> {
+                        Context context = serverExecutionContextRepository.selectSubscription(subscriptionPair.getNewSubscription().subscriptionId())
+                            .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + subscriptionPair.getNewSubscription().subscriptionId()));
+                        subscriptionRepository.updateSubscription(subscriptionPair.getNewSubscription());
+                        serverExecutor.execute(context.inProgress());
                     }
                 )).toList();
 
