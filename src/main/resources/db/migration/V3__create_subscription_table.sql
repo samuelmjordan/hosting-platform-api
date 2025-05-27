@@ -15,12 +15,14 @@ CREATE TABLE subscription_ (
     current_period_end TIMESTAMP NOT NULL,
     cancel_at_period_end BOOLEAN NOT NULL,
 
+    -- Metadata
+    -- Additional data that is not to be synced with stripe
+
     -- User-facing details
     title TEXT NOT NULL,
     caption TEXT NOT NULL,
 
     -- Server execution params
-    -- Not a source of truth, but rather a desired state
     region TEXT NOT NULL,
     
     -- Audit fields

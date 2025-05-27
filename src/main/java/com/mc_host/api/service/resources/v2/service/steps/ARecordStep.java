@@ -36,7 +36,7 @@ public class ARecordStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        HetznerNode hetznerNode = nodeRepository.selectHetznerNodeFromSubscriptionId(context.getSubscriptionId())
+        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getSubscriptionId())
             .orElseThrow(() -> new IllegalStateException("Hetzner node not found for subscription: " + context.getSubscriptionId()));
         DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
         nodeRepository.insertDnsARecord(dnsARecord);

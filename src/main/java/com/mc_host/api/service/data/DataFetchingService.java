@@ -2,7 +2,6 @@ package com.mc_host.api.service.data;
 
 import java.time.Duration;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,16 +18,13 @@ import com.mc_host.api.configuration.PaymentMethodConfiguration;
 import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.AcceptedCurrency;
-import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.Plan;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.CustomerInvoice;
 import com.mc_host.api.model.entity.CustomerPaymentMethod;
-import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.model.game_server.DnsCNameRecord;
-import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.response.PaymentMethodResponse;
 import com.mc_host.api.model.response.PaymentMethodResponse.DisplayField;
 import com.mc_host.api.model.response.ServerSubscriptionResponse;
@@ -214,30 +210,23 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     private ServerSubscriptionResponse getServerSubscriptionResponse(ContentSubscription subscription) {
-        ContentPrice price = priceRepository.selectPrice(subscription.priceId()).orElseThrow(
-            () -> new IllegalStateException("Couldnt find price for price " + subscription.priceId()));
-        String specificationId = planRepository.selectSpecificationId(subscription.priceId()).orElseThrow(
-            () -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
-        JavaServerSpecification gameSeverSpecification = gameServerSpecRepository.selectSpecification(specificationId).orElseThrow(
-            () -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));;
-
-        String serverTitle = subscriptionRepository.selectSubscriptionUserMetadataBySubscriptionId(subscription.subscriptionId()).map(SubscriptionUserMetadata::title).orElse(null);
-
-        String dnsCNameRecordName;
-        Optional<GameServer> gameServer = gameServerRepository.selectGameServerFromSubscription(subscription.subscriptionId());
-        if (!gameServer.isPresent()) {
-            dnsCNameRecordName = null;
-        } else {
-            dnsCNameRecordName = gameServerRepository.selectDnsCNameRecord(gameServer.get().serverId()).map(DnsCNameRecord::recordName).orElse(null);
-        }
+        ContentPrice price = priceRepository.selectPrice(subscription.priceId())
+            .orElseThrow(() -> new IllegalStateException("Couldnt find price for price " + subscription.priceId()));
+        String specificationId = planRepository.selectSpecificationId(subscription.priceId())
+            .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
+        JavaServerSpecification gameSeverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
+            .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));;
+        String dnsCNameRecordName = gameServerRepository.selectDnsCNameRecord(subscription.subscriptionId())
+            .map(DnsCNameRecord::recordName)
+            .orElse(null);
 
         return new ServerSubscriptionResponse(
             subscription.subscriptionId(),
-            serverTitle,
+            subscription.title(),
             gameSeverSpecification.title(),
             gameSeverSpecification.ram_gb(),
             gameSeverSpecification.vcpu(),
-            MarketingRegion.valueOf(subscription.metadata().get("REGION")),
+            subscription.region(),
             dnsCNameRecordName,
             subscription.status(),
             subscription.currentPeriodEnd(),

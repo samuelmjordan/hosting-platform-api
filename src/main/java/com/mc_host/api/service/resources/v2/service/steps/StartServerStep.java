@@ -30,7 +30,7 @@ public class StartServerStep extends AbstractStep {
 
     @Override
     public StepType getType() {
-        return StepType.C_NAME_RECORD;
+        return StepType.START_SERVER;
     }
 
     @Override

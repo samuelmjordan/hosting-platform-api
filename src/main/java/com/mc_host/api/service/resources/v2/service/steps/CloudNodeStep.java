@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.MetadataKey;
+import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.hetzner.HetznerRegion;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.HetznerNode;
@@ -43,14 +44,13 @@ public class CloudNodeStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        HetznerRegion hetznerRegion = MarketingRegion.valueOf(
-            subscriptionRepository.selectSubscriptionStripeMetadata(context.getSubscriptionId())
-                .orElseThrow(() -> new IllegalStateException("Subscription not found: " + context.getSubscriptionId()))
-                .getOrDefault(MetadataKey.REGION.name(), MarketingRegion.WEST_EUROPE.name())
-            ).getHetznerRegion();
+        HetznerRegion hetznerRegion = subscriptionRepository.selectSubscription(context.getSubscriptionId())
+            .map(ContentSubscription::region)
+            .map(MarketingRegion::getHetznerRegion)
+            .orElse(HetznerRegion.NBG1);
 
         HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), hetznerRegion, HetznerServerType.CAX11);
-        nodeRepository.insertHetznerNode(hetznerNode);
+        nodeRepository.insertHetznerCloudNode(hetznerNode);
 
         return transitionService.persistAndProgress(context, StepType.A_RECORD);
     }

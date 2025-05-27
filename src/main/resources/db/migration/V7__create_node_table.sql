@@ -3,7 +3,7 @@ CREATE TABLE cloud_node_ (
     id BIGSERIAL PRIMARY KEY,
     subscription_id TEXT NOT NULL,
     node_id BIGINT NOT NULL,
-    hetzner_region TEXT,
+    hetzner_region TEXT NOT NULL,
     ipv4 TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,18 +31,20 @@ CREATE INDEX idx_pterodactyl_node_pterodactyl_id ON pterodactyl_node_(pterodacty
 -- Pterodactyl allocation details
 CREATE TABLE pterodactyl_allocation_ (
     id BIGSERIAL PRIMARY KEY,
+    subscription_id TEXT NOT NULL,
     allocation_id BIGINT NOT NULL,
     ip TEXT NOT NULL,
     port BIGINT NOT NULL,
-    alias TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    pterodactyl_node_id TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pterodactyl_allocation_pterodactyl_node_id_fk FOREIGN KEY (pterodactyl_node_id) 
-        REFERENCES pterodactyl_node_(pterodactyl_node_id) ON DELETE CASCADE,
+    alias TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pterodactyl_allocation_subscription_id_fk FOREIGN KEY (subscription_id) 
+        REFERENCES subscription_(subscription_id),
     CONSTRAINT pterodactyl_allocation_allocation_id_unique UNIQUE (allocation_id),
     CONSTRAINT pterodactyl_allocation_ip_port_unique UNIQUE (ip, port)
 );
 CREATE INDEX idx_pterodactyl_allocation_allocation_id ON pterodactyl_allocation_(allocation_id);
-CREATE INDEX idx_pterodactyl_allocation_pterodactyl_node_id ON pterodactyl_allocation_(pterodactyl_node_id);
+CREATE INDEX idx_pterodactyl_allocation_subscription_id ON pterodactyl_allocation_(subscription_id);
 
 -- DNS record details
 CREATE TABLE dns_a_record_ (

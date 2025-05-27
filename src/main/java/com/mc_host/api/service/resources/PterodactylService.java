@@ -150,8 +150,8 @@ public class PterodactylService {
             LOGGER.log(Level.INFO, String.format(String.format("[pterodactylNodeId: %s] Fetched pterodactyl node allocation", pterodactylNodeId)));
             AllocationAttributes allocationAttributes = unassignedAllocations.get(0).attributes();
             return new PterodactylAllocation(
-                allocationAttributes.id(),
                 subscriptionId,
+                allocationAttributes.id(),
                 allocationAttributes.ip(),
                 allocationAttributes.port(),
                 allocationAttributes.alias()
@@ -190,7 +190,7 @@ public class PterodactylService {
                     "backups", 3
                 )),
                 Map.entry("allocation", Map.of(
-                    "default", allocation.subscriptionId()
+                    "default", allocation.allocationId()
                 )),
                 Map.entry("nest", Nest.MINECRAFT.getId()),
                 Map.entry("external_id", subscriptionId)

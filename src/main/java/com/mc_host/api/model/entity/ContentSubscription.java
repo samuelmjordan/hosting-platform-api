@@ -1,7 +1,8 @@
 package com.mc_host.api.model.entity;
 
 import java.time.Instant;
-import java.util.Map;
+
+import com.mc_host.api.model.MarketingRegion;
 
 public record ContentSubscription(
     String subscriptionId,
@@ -11,8 +12,10 @@ public record ContentSubscription(
     Instant currentPeriodEnd,
     Instant currentPeriodStart,
     Boolean cancelAtPeriodEnd,
-    Map<String, String> metadata) {
-
+    String title,
+    String caption,
+    MarketingRegion region
+) {
     public Boolean isAlike(ContentSubscription newSubscription) {
         if (newSubscription == null) {
             return false;

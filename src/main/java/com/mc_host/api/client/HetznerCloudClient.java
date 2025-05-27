@@ -21,7 +21,7 @@ public class HetznerCloudClient extends BaseApiClient{
     private static final Logger LOGGER = Logger.getLogger(HetznerCloudClient.class.getName());
 
     private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
-    private static final Duration MAX_WAIT_TIME = Duration.ofMinutes(5);
+    private static final Duration MAX_WAIT_TIME = Duration.ofMinutes(2);
 
     private final HetznerCloudConfiguration hetznerCloudConfiguration;
 
@@ -99,7 +99,6 @@ public class HetznerCloudClient extends BaseApiClient{
                 Thread.sleep(POLL_INTERVAL.toMillis());
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Failed to poll server status: " + hetznerId, e);
-                throw e;
             }
         }
         return false;

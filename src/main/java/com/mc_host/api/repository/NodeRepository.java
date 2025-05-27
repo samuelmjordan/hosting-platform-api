@@ -23,19 +23,20 @@ public class NodeRepository {
     }
     
     // --- Hetzner Node operations ---
-    public int insertHetznerNode(HetznerNode hetznerNode) {
+    public int insertHetznerCloudNode(HetznerNode hetznerNode) {
         try {
-            String hetznerRegion = hetznerNode.hetznerRegion() == null ? null : hetznerNode.hetznerRegion().toString();
             return jdbcTemplate.update("""
                 INSERT INTO cloud_node_ (
+                    subscription_id,
                     node_id,
                     hetzner_region,
                     ipv4
                 )
-                VALUES (?, ?, ?)
+                VALUES (?, ?, ?, ?)
                 """,
+                hetznerNode.subscriptionId(),
                 hetznerNode.nodeId(),
-                hetznerRegion,
+                hetznerNode.hetznerRegion().toString(),
                 hetznerNode.ipv4()
             );
         } catch (DataAccessException e) {
@@ -43,7 +44,7 @@ public class NodeRepository {
         }
     }
     
-    public Optional<HetznerNode> selectHetznerNodeFromSubscriptionId(String subscriptionId) {
+    public Optional<HetznerNode> selectHetznerNode(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -53,7 +54,7 @@ public class NodeRepository {
                     hetzner_region,
                     ipv4
                 FROM cloud_node_
-                WHERE node_id = ?
+                WHERE subscription_id = ?
                 """,
                 (rs, rowNum) -> new HetznerNode(
                     rs.getString("subscription_id"),
@@ -166,16 +167,16 @@ public class NodeRepository {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO pterodactyl_allocation_ (
-                    allocation_id,
                     subscription_id,
+                    allocation_id,
                     ip,
                     port,
                     alias
                 )
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                pterodactylAllocation.allocationId(),
                 pterodactylAllocation.subscriptionId(),
+                pterodactylAllocation.allocationId(),
                 pterodactylAllocation.ip(),
                 pterodactylAllocation.port(),
                 pterodactylAllocation.alias()
@@ -185,7 +186,7 @@ public class NodeRepository {
         }
     }
 
-        public Optional<PterodactylAllocation> selectPterodactylAllocation(String subscriptionId) {
+    public Optional<PterodactylAllocation> selectPterodactylAllocation(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -199,8 +200,8 @@ public class NodeRepository {
                 WHERE subscription_id = ?
                 """,
                 (rs, rowNum) -> new PterodactylAllocation(
-                    rs.getLong("allocation_id"),
                     rs.getString("subscription_id"),
+                    rs.getLong("allocation_id"),
                     rs.getString("ip"),
                     rs.getInt("port"),
                     rs.getString("alias")

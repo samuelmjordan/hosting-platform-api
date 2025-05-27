@@ -11,7 +11,6 @@ import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
 import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.exceptions.resources.CloudflareException;
 import com.mc_host.api.model.game_server.DnsCNameRecord;
-import com.mc_host.api.model.game_server.GameServer;
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.repository.GameServerRepository;

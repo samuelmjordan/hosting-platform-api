@@ -12,12 +12,11 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.mc_host.api.model.MarketingRegion;
+import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
-import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.repository.SubscriptionRepository;
-import com.mc_host.api.service.product.SubscriptionServiceSupplier;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
@@ -32,87 +31,14 @@ public class StripeSubscriptionService {
     private static final Logger LOGGER = Logger.getLogger(StripeSubscriptionService.class.getName());
 
     private final ServerExecutor serverExecutor;
-    private final SubscriptionServiceSupplier productServiceSupplier;
     private final SubscriptionRepository subscriptionRepository;
 
     public StripeSubscriptionService(
         ServerExecutor serverExecutor,
-        SubscriptionServiceSupplier productServiceSupplier,
         SubscriptionRepository subscriptionRepository
     ) {
         this.serverExecutor = serverExecutor;
-        this.productServiceSupplier = productServiceSupplier;
         this.subscriptionRepository = subscriptionRepository;
-    }
-
-    public void handleCustomerSubscriptionSync(String customerId) {
-        try {
-            List<ContentSubscription> dbSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId);
-            List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData().stream()
-                .map(subscription -> stripeSubscriptionToEntity(subscription, customerId)).toList();
-
-            List<ContentSubscription> subscriptionsToDelete = dbSubscriptions.stream()
-                .filter(dbSubscription -> stripeSubscriptions.stream().noneMatch(dbSubscription::isAlike))
-                .toList();
-            List<ContentSubscription> subscriptionsToCreate = stripeSubscriptions.stream()
-                .filter(stripeSubscription -> dbSubscriptions.stream().noneMatch(stripeSubscription::isAlike))
-                .toList();
-            List<SubscriptionPair> subscriptionsToUpdate = dbSubscriptions.stream()
-                .flatMap(dbSubscription -> stripeSubscriptions.stream()
-                    .filter(dbSubscription::isAlike)
-                    .map(stripeSubscription -> new SubscriptionPair(dbSubscription, stripeSubscription)))
-                .toList();
-
-            List<CompletableFuture<Void>> deleteTasks = subscriptionsToDelete.stream()
-                .map(subscription -> Task.alwaysAttempt(
-                    "Delete subscription " + subscription.subscriptionId(),
-                    () -> {
-                        productServiceSupplier.supply(subscription).delete(subscription);
-                        subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), customerId);
-                    }
-                )).toList();
-
-            List<CompletableFuture<Void>> createTasks = subscriptionsToCreate.stream()
-                .map(subscription -> Task.alwaysAttempt(
-                    "Create subscription " + subscription.subscriptionId(),
-                    () -> {
-                        subscriptionRepository.insertSubscriptionWithMetadata(
-                            subscription, 
-                            new SubscriptionUserMetadata(
-                                subscription.subscriptionId(), 
-                                "My New Server", 
-                                "Created " + LocalDateTime.now()));
-                        productServiceSupplier.supply(subscription).create(subscription);
-                    }
-                )).toList();
-
-            List<CompletableFuture<Void>> updateTasks = subscriptionsToUpdate.stream()
-                .map(subscriptionPair -> Task.alwaysAttempt(
-                    "Update subscription " + subscriptionPair.getOldSubscription().subscriptionId(),
-                    () -> {
-                        subscriptionRepository.insertSubscription(subscriptionPair.getNewSubscription());
-                        productServiceSupplier.supply(subscriptionPair.getNewSubscription())
-                            .update(subscriptionPair.getOldSubscription(), subscriptionPair.getNewSubscription());
-                    }
-                )).toList();
-
-            List<CompletableFuture<Void>> allTasks = new ArrayList<>();
-            allTasks.addAll(deleteTasks);
-            allTasks.addAll(createTasks);
-            allTasks.addAll(updateTasks);
-            Task.awaitCompletion(allTasks);
-                
-            CompletableFuture<Void> updateCurrency = Task.criticalTask(
-                "Update user currency for " + customerId,
-                () -> subscriptionRepository.updateUserCurrencyFromSubscription(customerId)
-            );
-            
-            Task.awaitCompletion(updateCurrency);
-            LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
-        } catch (StripeException e) {
-            LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
-            throw new RuntimeException("Failed to sync subscription data", e);
-        }
     }
 
     public void handleCustomerSubscriptionSyncV2(String customerId) {
@@ -137,8 +63,6 @@ public class StripeSubscriptionService {
                 .map(subscription -> Task.alwaysAttempt(
                     "Delete subscription " + subscription.subscriptionId(),
                     () -> {
-                        productServiceSupplier.supply(subscription).delete(subscription);
-                        subscriptionRepository.deleteCustomerSubscription(subscription.subscriptionId(), customerId);
                     }
                 )).toList();
 
@@ -146,12 +70,7 @@ public class StripeSubscriptionService {
                 .map(subscription -> Task.alwaysAttempt(
                     "Create subscription " + subscription.subscriptionId(),
                     () -> {
-                        subscriptionRepository.insertSubscriptionWithMetadata(
-                            subscription, 
-                            new SubscriptionUserMetadata(
-                                subscription.subscriptionId(), 
-                                "My New Server", 
-                                "Created " + LocalDateTime.now()));
+                        subscriptionRepository.insertSubscription(subscription);
                         serverExecutor.execute(
                             new Context(
                                 subscription.subscriptionId(),
@@ -167,9 +86,6 @@ public class StripeSubscriptionService {
                 .map(subscriptionPair -> Task.alwaysAttempt(
                     "Update subscription " + subscriptionPair.getOldSubscription().subscriptionId(),
                     () -> {
-                        subscriptionRepository.insertSubscription(subscriptionPair.getNewSubscription());
-                        productServiceSupplier.supply(subscriptionPair.getNewSubscription())
-                            .update(subscriptionPair.getOldSubscription(), subscriptionPair.getNewSubscription());
                     }
                 )).toList();
 
@@ -201,7 +117,9 @@ public class StripeSubscriptionService {
             Instant.ofEpochMilli(subscription.getCurrentPeriodEnd()), 
             Instant.ofEpochMilli(subscription.getCurrentPeriodStart()), 
             subscription.getCancelAtPeriodEnd(),
-            subscription.getMetadata()
+            subscription.getMetadata().getOrDefault(MetadataKey.TITLE, "My Minecraft Server"),
+            subscription.getMetadata().getOrDefault(MetadataKey.CAPTION, "Created " + LocalDateTime.now()),
+            MarketingRegion.valueOf(subscription.getMetadata().getOrDefault(MetadataKey.REGION, MarketingRegion.WEST_EUROPE.name()))
         );
     }
 }

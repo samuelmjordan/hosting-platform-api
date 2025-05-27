@@ -1,5 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
+import org.springframework.stereotype.Service;
+
 import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.repository.GameServerRepository;
@@ -11,6 +13,7 @@ import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
 
+@Service
 public class CNameRecordStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;

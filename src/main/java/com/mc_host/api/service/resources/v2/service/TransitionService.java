@@ -1,5 +1,7 @@
 package com.mc_host.api.service.resources.v2.service;
 
+import java.util.logging.Logger;
+
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.repository.ServerExecutionContextRepository;
@@ -9,6 +11,8 @@ import com.mc_host.api.service.resources.v2.context.StepType;
 
 @Service
 public class TransitionService {
+    private static final Logger LOGGER = Logger.getLogger(TransitionService.class.getName());
+
     private final ServerExecutionContextRepository repository;
 
     public TransitionService(
@@ -29,6 +33,7 @@ public class TransitionService {
     public StepTransition persistAndComplete(Context context) {
         Context completed = context.completed();
         repository.upsertSubscription(completed);
+        LOGGER.info(String.format("Finished executing at step: %s for subscription: %s, mode: %s", context.getStepType(), context.getSubscriptionId(), context.getMode()));
         return new StepTransition(completed, context.getStepType());
     }
 }
