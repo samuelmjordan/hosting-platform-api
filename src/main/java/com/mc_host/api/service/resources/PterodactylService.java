@@ -262,5 +262,72 @@ public class PterodactylService {
             throw new PterodactylException(String.format("[pterodactylServerId: %s] Error reinstalling pterodactyl server", pterodactylServerId), e);
         }       
     }
-    
+
+    public void startNewPterodactylServer(PterodactylServer pterodactylServer) {
+        try {
+            final int MAX_REINSTALLS = 3;
+            final int MAX_START_ATTEMPTS = 5;
+            final int MAX_WAIT_CYCLES = 30;
+            final int POLL_INTERVAL_MS = 2000;
+            
+            Long serverId = pterodactylServer.pterodactylServerId();
+            String serverUid = pterodactylServer.pterodactylServerUid();
+            
+            for (int reinstall = 0; reinstall <= MAX_REINSTALLS; reinstall++) {
+                if (reinstall > 0) {
+                    LOGGER.info(String.format("[serverId: %s] reinstalling server (attempt %d/%d)", 
+                        serverId, reinstall, MAX_REINSTALLS));
+                    reinstallServer(serverId);
+                    Thread.sleep(POLL_INTERVAL_MS * 2);
+                }
+                
+                for (int attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt++) {
+                    try {
+                        ServerStatus status = getServerStatus(serverUid);
+                        
+                        if (status == ServerStatus.RUNNING) {
+                            return;
+                        }
+                        
+                        if (List.of(ServerStatus.STOPPING, ServerStatus.STOPPED, ServerStatus.OFFLINE).contains(status)) {
+                            LOGGER.info(String.format("[serverId: %s] starting server (attempt %d/%d)", 
+                                serverId, attempt, MAX_START_ATTEMPTS));
+                            startServer(serverUid);
+                            acceptEula(serverUid);
+                        }
+                        
+                        for (int wait = 0; wait < MAX_WAIT_CYCLES; wait++) {
+                            Thread.sleep(POLL_INTERVAL_MS);
+                            status = getServerStatus(serverUid);
+                            
+                            if (status == ServerStatus.RUNNING) {
+                                return;
+                            }
+                            
+                            if (status != ServerStatus.STARTING) {
+                                break;
+                            }
+                        }
+                        
+                    } catch (Exception e) {
+                        LOGGER.warning(String.format("[serverId: %s] start attempt %d failed: %s", 
+                            serverId, attempt, e.getMessage()));
+                        if (attempt == MAX_START_ATTEMPTS) {
+                            break;
+                        }
+                        Thread.sleep(POLL_INTERVAL_MS);
+                    }
+                }
+            }
+            
+            throw new RuntimeException(String.format(
+                "[serverId: %s] server failed to start after %d reinstalls", 
+                serverId, MAX_REINSTALLS
+            ));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new PterodactylException("server startup interrupted", e);
+        }
+
+    }
 }

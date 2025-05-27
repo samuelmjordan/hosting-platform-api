@@ -97,7 +97,7 @@ public class GameServerRepository {
         try {
             return jdbcTemplate.update("""
                 INSERT INTO dns_c_name_record_ (
-                    server_id,
+                    subscription_id,
                     c_name_record_id,
                     zone_id,
                     zone_name,
@@ -106,7 +106,7 @@ public class GameServerRepository {
                 )
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                dnsCNameRecord.serverId(),
+                dnsCNameRecord.subscriptionId(),
                 dnsCNameRecord.cNameRecordId(),
                 dnsCNameRecord.zoneId(),
                 dnsCNameRecord.zoneName(),
@@ -118,31 +118,31 @@ public class GameServerRepository {
         }
     }
     
-    public Optional<DnsCNameRecord> selectDnsCNameRecord(String serverId) {
+    public Optional<DnsCNameRecord> selectDnsCNameRecord(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
                 SELECT
-                    server_id,
+                    subscription_id,
                     c_name_record_id,
                     zone_id,
                     zone_name,
                     record_name,
                     content
                 FROM dns_c_name_record_
-                WHERE server_id = ?
+                WHERE subscription_id = ?
                 """,
                 (rs, rowNum) -> new DnsCNameRecord(
-                    rs.getString("server_id"),
+                    rs.getString("subscription_id"),
                     rs.getString("c_name_record_id"),
                     rs.getString("zone_id"),
                     rs.getString("zone_name"),
                     rs.getString("record_name"),
                     rs.getString("content")),
-                serverId
+                subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch DNS C record for server id %s", serverId), e);
+            throw new RuntimeException(String.format("Failed to fetch DNS C record for subscription id %s", subscriptionId), e);
         }
     }
     

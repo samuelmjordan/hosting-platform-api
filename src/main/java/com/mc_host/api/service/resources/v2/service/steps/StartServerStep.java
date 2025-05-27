@@ -1,33 +1,31 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
-import com.mc_host.api.model.game_server.DnsCNameRecord;
-import com.mc_host.api.model.node.DnsARecord;
+import org.springframework.stereotype.Service;
+
+import com.mc_host.api.model.game_server.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.resources.DnsService;
+import com.mc_host.api.service.resources.PterodactylService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
 
-public class CNameRecordStep extends AbstractStep {
+@Service
+public class StartServerStep extends AbstractStep {
 
-    private final NodeRepository nodeRepository;
     private final GameServerRepository gameServerRepository;
-    private final DnsService dnsService;
+    private final PterodactylService pterodactylService;
 
-    protected CNameRecordStep(
+    protected StartServerStep(
         ServerExecutionContextRepository contextRepository,
         GameServerRepository gameServerRepository,
         TransitionService transitionService,
-        NodeRepository nodeRepository,
-        DnsService dnsService
+        PterodactylService pterodactylService
     ) {
         super(contextRepository, transitionService);
-        this.nodeRepository = nodeRepository;
         this.gameServerRepository = gameServerRepository;
-        this.dnsService = dnsService;
+        this.pterodactylService = pterodactylService;
     }
 
     @Override
@@ -37,12 +35,11 @@ public class CNameRecordStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("DNS A record not found for subscription: " + context.getSubscriptionId()));
-        DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord, dnsARecord.subscriptionId().replace("-", ""));
-        gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
-
-        return transitionService.persistAndProgress(context, StepType.START_SERVER);
+        PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(context.getSubscriptionId())
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found for subscription: " + context.getSubscriptionId()));
+        pterodactylService.startNewPterodactylServer(pterodactylServer);
+        
+        return transitionService.persistAndProgress(context, StepType.READY);
     }
 
     @Override
@@ -61,5 +58,5 @@ public class CNameRecordStep extends AbstractStep {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'update'");
     }
-
+    
 }

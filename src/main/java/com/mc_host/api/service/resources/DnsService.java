@@ -82,10 +82,8 @@ public class DnsService {
         deleteARecord(dnsARecord);
     }
 
-    public DnsCNameRecord createCNameRecord(GameServer gameServer, String subdomain) {
-        LOGGER.log(Level.INFO, String.format("[gameServerId: %s] Creating DNS C NAME record", gameServer.serverId()));
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(gameServer.nodeId())
-            .orElseThrow(() -> new RuntimeException(String.format("[gameServerId: %s] Failed to find DNS A record", gameServer.serverId())));
+    public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
             DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
                 dnsARecord.zoneId(), 
@@ -94,18 +92,17 @@ public class DnsService {
                 false
             );
             DnsCNameRecord dnsCNameRecord = new DnsCNameRecord(
-                gameServer.serverId(), 
+                dnsARecord.subscriptionId(), 
                 dnsRecordResponse.id(), 
                 dnsARecord.zoneId(), 
                 dnsARecord.zoneName(),
                 dnsRecordResponse.name(),
                 dnsRecordResponse.content()
             );
-            gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
-            LOGGER.log(Level.INFO, String.format("[gameServerId: %s] Created DNS C NAME record", gameServer.serverId()));
+            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Created DNS C NAME record", dnsARecord.subscriptionId()));
             return dnsCNameRecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[gameServerId: %s] Error creating DNS C NAME record", gameServer.serverId()), e);
+            throw new CloudflareException(String.format("[subscriptionId: %s] Error creating DNS C NAME record", dnsARecord.subscriptionId()), e);
         }
     }
 
