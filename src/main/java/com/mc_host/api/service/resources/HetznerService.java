@@ -59,7 +59,7 @@ public class HetznerService {
         }       
     }
 
-    public void deleteNode(Long hetznerNodeId) {
+    public void deleteCloudNode(Long hetznerNodeId) {
         LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Deleting hetzner node", hetznerNodeId));
         try {
             persistenceContext.inTransaction(() -> {

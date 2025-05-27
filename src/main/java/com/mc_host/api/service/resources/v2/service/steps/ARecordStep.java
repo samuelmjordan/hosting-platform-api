@@ -46,6 +46,10 @@ public class ARecordStep extends AbstractStep {
 
     @Override
     public StepTransition destroy(Context context) {
+        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
+            .orElseThrow(() -> new IllegalStateException("DNS A Record not found for subscription: " + context.getSubscriptionId()));
+        dnsService.deleteARecord(dnsARecord);
+
         return transitionService.persistAndProgress(context, StepType.CLOUD_NODE);
     }
 

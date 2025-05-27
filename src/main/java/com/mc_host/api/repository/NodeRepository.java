@@ -135,7 +135,7 @@ public class NodeRepository {
         }
     }
     
-    public int deletePterodactylNodeFromNodeId(String subscriptionId) {
+    public int deletePterodactylNode(String subscriptionId) {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM pterodactyl_node_

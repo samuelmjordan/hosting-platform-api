@@ -57,7 +57,11 @@ public class CloudNodeStep extends AbstractStep {
 
     @Override
     public StepTransition destroy(Context context) {
-        return transitionService.persistAndProgress(context, StepType.NEW);
+        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getSubscriptionId())
+            .orElseThrow(() -> new IllegalStateException("Hetzner node not found for subscription: " + context.getSubscriptionId()));
+        hetznerService.deleteCloudNode(hetznerNode.nodeId());
+
+        return transitionService.persistAndProgress(context, StepType.ALLOCATE_NODE);
     }
 
     @Override

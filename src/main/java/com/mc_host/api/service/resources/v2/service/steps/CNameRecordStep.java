@@ -50,6 +50,10 @@ public class CNameRecordStep extends AbstractStep {
 
     @Override
     public StepTransition destroy(Context context) {
+        DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(context.getSubscriptionId())
+            .orElseThrow(() -> new IllegalStateException("DNS CNAME record not found for subscription: " + context.getSubscriptionId()));
+        dnsService.deleteCNameRecord(dnsCNameRecord);
+
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }
 

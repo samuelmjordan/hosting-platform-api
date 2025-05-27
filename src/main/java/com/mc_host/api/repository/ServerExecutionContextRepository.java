@@ -1,10 +1,16 @@
 package com.mc_host.api.repository;
 
+import java.util.Optional;
+
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.model.node.PterodactylNode;
 import com.mc_host.api.service.resources.v2.context.Context;
+import com.mc_host.api.service.resources.v2.context.Mode;
+import com.mc_host.api.service.resources.v2.context.Status;
+import com.mc_host.api.service.resources.v2.context.StepType;
 
 @Service
 public class ServerExecutionContextRepository {
@@ -43,6 +49,31 @@ public class ServerExecutionContextRepository {
             throw new RuntimeException(
                 "Failed to insert or update server execution context for subscription: " + context.getSubscriptionId(), e
             );
+        }
+    }
+
+    public Optional<Context> selectSubscription(String subscriptionId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    subscription_id, 
+                    step_type, 
+                    mode,
+                    execution_status
+                FROM server_execution_context_
+                WHERE subscription_id = ?
+                """,
+                (rs, rowNum) -> new Context(
+                    rs.getString("subscription_id"), 
+                    StepType.valueOf(rs.getString("step_type")), 
+                    Mode.valueOf(rs.getString("mode")), 
+                    Status.valueOf(rs.getString("execution_status"))
+                ),
+                subscriptionId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for subscription id %s", subscriptionId), e);
         }
     }
 }

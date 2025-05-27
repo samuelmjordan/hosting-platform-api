@@ -39,7 +39,7 @@ CREATE TABLE pterodactyl_allocation_ (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pterodactyl_allocation_subscription_id_fk FOREIGN KEY (subscription_id) 
-        REFERENCES subscription_(subscription_id),
+        REFERENCES subscription_(subscription_id) ON DELETE CASCADE,
     CONSTRAINT pterodactyl_allocation_allocation_id_unique UNIQUE (allocation_id),
     CONSTRAINT pterodactyl_allocation_ip_port_unique UNIQUE (ip, port)
 );

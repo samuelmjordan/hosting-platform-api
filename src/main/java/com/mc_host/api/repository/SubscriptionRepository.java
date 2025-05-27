@@ -141,19 +141,17 @@ public class SubscriptionRepository {
         }
     }
 
-    public void deleteCustomerSubscription(String subscriptionId, String customerId) {
+    public void deleteSubscription(String subscriptionId) {
         try {
             jdbcTemplate.update(
                 """
                 DELETE FROM subscription_
-                WHERE customer_id = ? 
-                AND subscription_id = ?
+                WHERE subscription_id = ?
                 """,
-                customerId,
                 subscriptionId
             );
         } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to delete subscriptions from database: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to delete subscriptions from database: " + subscriptionId, e);
         }
     }
 

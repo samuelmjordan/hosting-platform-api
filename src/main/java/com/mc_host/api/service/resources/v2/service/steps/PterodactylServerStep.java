@@ -12,6 +12,7 @@ import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
+import com.stripe.model.tax.Registration.CountryOptions.Pt;
 
 @Service
 public class PterodactylServerStep extends AbstractStep {
@@ -50,7 +51,11 @@ public class PterodactylServerStep extends AbstractStep {
 
     @Override
     public StepTransition destroy(Context context) {
-        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_ALLOCATION);
+        PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(context.getSubscriptionId())
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found for subscription: " + context.getSubscriptionId()));
+        pterodactylService.destroyServer(pterodactylServer.pterodactylServerId());
+
+        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);
     }
 
     @Override

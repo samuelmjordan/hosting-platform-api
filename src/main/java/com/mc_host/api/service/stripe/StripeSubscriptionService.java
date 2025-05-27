@@ -16,6 +16,7 @@ import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
+import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
@@ -32,13 +33,16 @@ public class StripeSubscriptionService {
 
     private final ServerExecutor serverExecutor;
     private final SubscriptionRepository subscriptionRepository;
+    private final ServerExecutionContextRepository serverExecutionContextRepository;
 
     public StripeSubscriptionService(
         ServerExecutor serverExecutor,
-        SubscriptionRepository subscriptionRepository
+        SubscriptionRepository subscriptionRepository,
+        ServerExecutionContextRepository serverExecutionContextRepository
     ) {
         this.serverExecutor = serverExecutor;
         this.subscriptionRepository = subscriptionRepository;
+        this.serverExecutionContextRepository = serverExecutionContextRepository;
     }
 
     public void handleCustomerSubscriptionSyncV2(String customerId) {
@@ -63,6 +67,10 @@ public class StripeSubscriptionService {
                 .map(subscription -> Task.alwaysAttempt(
                     "Delete subscription " + subscription.subscriptionId(),
                     () -> {
+                        Context context = serverExecutionContextRepository.selectSubscription(subscription.subscriptionId())
+                            .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + subscription.subscriptionId()));
+                        serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
+                        subscriptionRepository.deleteSubscription(subscription.subscriptionId());
                     }
                 )).toList();
 

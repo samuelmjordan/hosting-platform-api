@@ -35,7 +35,7 @@ public class AllocateNodeStep extends AbstractStep {
 
     @Override
     public StepTransition destroy(Context context) {
-        throw new UnsupportedOperationException("Node allocation cannot be destroyed directly. There is nothing to destroy, try goins straight to new.");
+        return transitionService.persistAndProgress(context, StepType.NEW);
     }
 
     @Override

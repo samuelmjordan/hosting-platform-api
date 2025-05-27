@@ -146,13 +146,13 @@ public class GameServerRepository {
         }
     }
     
-    public int deleteDnsCNameRecord(String serverId) {
+    public int deleteDnsCNameRecord(String subscriptionId) {
         try {
             return jdbcTemplate.update("""
                 DELETE FROM dns_c_name_record_
-                WHERE c_name_record_id = ?
+                WHERE subscription_id = ?
                 """,
-                serverId
+                subscriptionId
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to delete DNS C record: " + e.getMessage(), e);
