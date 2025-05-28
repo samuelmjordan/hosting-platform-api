@@ -29,7 +29,6 @@ public class Context {
         return this.withStepType(nextStep).inProgress();
     }
     
-    // convenience factory method
     public static Context create(String subscriptionId, Mode mode) {
         return new Context(
             subscriptionId,
@@ -37,5 +36,17 @@ public class Context {
             mode,
             Status.IN_PROGRESS
         );
+    }
+
+    public Boolean isCreated() {
+        return 
+            stepType == StepType.READY &&
+            status == Status.COMPLETED;
+    }
+
+    public Boolean isDestroyed() {
+        return 
+            stepType == StepType.NEW &&
+            status == Status.COMPLETED;
     }
 }

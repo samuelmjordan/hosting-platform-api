@@ -88,24 +88,12 @@ public class Cache {
     }
 
     public void queueLeftPush(Queue queue, String value) {
-        queuePush(queue, value, false);       
-    }
-
-    public void queueRightPush(Queue queue, String value) {
-        queuePush(queue, value, true);       
-    }
-
-    private void queuePush(Queue queue, String value, Boolean prioritised) {
         try {
-            if (prioritised) {
-                redisTemplate.opsForList().rightPush(composeKey(QUEUE_NAMESPACE, queue.name()), value);
-            } else {
-                redisTemplate.opsForList().leftPush(composeKey(QUEUE_NAMESPACE, queue.name()), value);
-            }
+            redisTemplate.opsForList().leftPush(composeKey(QUEUE_NAMESPACE, queue.name()), value);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, String.format("Failed to push value %s for queue %s", value, queue), e);
             throw e;
-        }        
+        }      
     }
 
     public String queueRead(Queue queue) {

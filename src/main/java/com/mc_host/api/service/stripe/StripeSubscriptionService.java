@@ -2,18 +2,20 @@ package com.mc_host.api.service.stripe;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.model.MetadataKey;
+import com.mc_host.api.model.SubscriptionStatus;
 import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
@@ -22,7 +24,6 @@ import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
-import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.ServerExecutor;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
@@ -56,73 +57,94 @@ public class StripeSubscriptionService implements StripeEventService {
             List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId)).getData().stream()
                 .map(subscription -> stripeSubscriptionToEntity(subscription, customerId)).toList();
 
-            List<ContentSubscription> subscriptionsToDelete = dbSubscriptions.stream()
-                .filter(dbSubscription -> stripeSubscriptions.stream().noneMatch(dbSubscription::isAlike))
-                .toList();
-            List<ContentSubscription> subscriptionsToCreate = stripeSubscriptions.stream()
-                .filter(stripeSubscription -> dbSubscriptions.stream().noneMatch(stripeSubscription::isAlike))
-                .toList();
-            List<SubscriptionPair> subscriptionsToUpdate = dbSubscriptions.stream()
-                .flatMap(dbSubscription -> stripeSubscriptions.stream()
-                    .filter(dbSubscription::isAlike)
-                    .map(stripeSubscription -> new SubscriptionPair(dbSubscription, stripeSubscription)))
-                .toList();
+            List<SubscriptionPair> allPairs = Stream.concat(
+            dbSubscriptions.stream()
+                .map(dbSub -> {
+                    ContentSubscription matchingStripe = stripeSubscriptions.stream()
+                        .filter(dbSub::isAlike)
+                        .findFirst()
+                        .orElse(null);
+                    return new SubscriptionPair(dbSub, matchingStripe);
+                }),
+            stripeSubscriptions.stream()
+                .filter(stripeSub -> dbSubscriptions.stream().noneMatch(stripeSub::isAlike))
+                .map(stripeSub -> new SubscriptionPair(null, stripeSub))
+            ).toList();
 
-            List<CompletableFuture<Void>> deleteTasks = subscriptionsToDelete.stream()
-                .map(subscription -> Task.alwaysAttempt(
-                    "Delete subscription " + subscription.subscriptionId(),
-                    () -> {
-                        Context context = serverExecutionContextRepository.selectSubscription(subscription.subscriptionId())
-                            .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + subscription.subscriptionId()));
-                        serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
-                        subscriptionRepository.deleteSubscription(subscription.subscriptionId());
-                    }
+            List<CompletableFuture<Void>> tasks = allPairs.stream()
+                .map(pair -> Task.alwaysAttempt(
+                    "Updating subscription",
+                    () -> processSubscription(pair)
                 )).toList();
-
-            List<CompletableFuture<Void>> createTasks = subscriptionsToCreate.stream()
-                .map(subscription -> Task.alwaysAttempt(
-                    "Create subscription " + subscription.subscriptionId(),
-                    () -> {
-                        subscriptionRepository.insertSubscription(subscription);
-                        serverExecutor.execute(
-                            new Context(
-                                subscription.subscriptionId(),
-                                StepType.NEW,
-                                Mode.CREATE,
-                                Status.IN_PROGRESS
-                            )
-                        );
-                    }
-                )).toList();
-
-            List<CompletableFuture<Void>> updateTasks = subscriptionsToUpdate.stream()
-                .map(subscriptionPair -> Task.alwaysAttempt(
-                    "Update subscription " + subscriptionPair.getOldSubscription().subscriptionId(),
-                    () -> {
-                        Context context = serverExecutionContextRepository.selectSubscription(subscriptionPair.getNewSubscription().subscriptionId())
-                            .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + subscriptionPair.getNewSubscription().subscriptionId()));
-                        subscriptionRepository.updateSubscription(subscriptionPair.getNewSubscription());
-                        serverExecutor.execute(context.inProgress());
-                    }
-                )).toList();
-
-            List<CompletableFuture<Void>> allTasks = new ArrayList<>();
-            allTasks.addAll(deleteTasks);
-            allTasks.addAll(createTasks);
-            allTasks.addAll(updateTasks);
-            Task.awaitCompletion(allTasks);
+            Task.awaitCompletion(tasks);
                 
             CompletableFuture<Void> updateCurrency = Task.criticalTask(
                 "Update user currency for " + customerId,
                 () -> subscriptionRepository.updateUserCurrencyFromSubscription(customerId)
             );
-            
             Task.awaitCompletion(updateCurrency);
+
             LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
             throw new RuntimeException("Failed to sync subscription data", e);
         }
+    }
+
+    private void processSubscription(SubscriptionPair pair) {
+        if(!pair.isValid()) {
+            throw new IllegalStateException("No subscriptions in pair");
+        }
+
+        if (pair.isNew()) {
+            subscriptionRepository.insertSubscription(pair.newSubscription());
+            serverExecutor.execute(
+                Context.create(pair.newSubscription().subscriptionId(), Mode.CREATE)
+            );
+            return;
+        }
+
+        Context context = serverExecutionContextRepository.selectSubscription(pair.oldSubscription().subscriptionId())
+            .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + pair.oldSubscription().subscriptionId()));
+        if (context.getStatus().equals(Status.IN_PROGRESS)) {
+            //TODO: schedule requeue
+            return;
+        }
+
+        if (pair.isOld()) {
+            serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
+            subscriptionRepository.deleteSubscription(pair.oldSubscription().subscriptionId());
+            return;
+        }
+
+        SubscriptionStatus newSubscriptionStatus = SubscriptionStatus.fromStripeValue(pair.newSubscription().status());
+        if (newSubscriptionStatus.isTerminated()) {
+            //TODO: back-up data
+            subscriptionRepository.deleteSubscription(pair.oldSubscription().subscriptionId());
+            serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
+            return; 
+        }
+
+        if (newSubscriptionStatus.isPending() || newSubscriptionStatus.equals(SubscriptionStatus.UNPAID)) {
+            //TODO: back-up data
+            subscriptionRepository.updateSubscription(pair.newSubscription());
+            serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
+            return;
+        }
+
+        if (newSubscriptionStatus.isActive() || newSubscriptionStatus.equals(SubscriptionStatus.PAST_DUE)) {
+            //TODO: back-up data
+            serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
+            if (!pair.newSubscription().priceId().equals(pair.oldSubscription().priceId())) {
+                //TODO: migrate server
+            }
+            subscriptionRepository.updateSubscription(pair.newSubscription());
+            return;
+        } 
+
+        // should be unreachable
+        throw new IllegalStateException(String.format("Subscription %s failed all consitions"));
+
     }
 
     private ContentSubscription stripeSubscriptionToEntity(Subscription subscription, String customerId) {

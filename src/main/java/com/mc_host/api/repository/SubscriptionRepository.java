@@ -66,7 +66,7 @@ public class SubscriptionRepository {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
                     UPDATE subscription_ 
-                        customer_id = ?,
+                    SET customer_id = ?,
                         status_ = ?,
                         price_id = ?,
                         current_period_end = ?,
@@ -94,7 +94,7 @@ public class SubscriptionRepository {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
-                    UPDATE subscription_user_metadata_ 
+                    UPDATE subscription_ 
                     SET title = ?
                     WHERE subscription_id = ?;
                     """);
@@ -111,7 +111,7 @@ public class SubscriptionRepository {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
-                    UPDATE subscription_user_metadata_ 
+                    UPDATE subscription_ 
                     SET caption = ?
                     WHERE subscription_id = ?;
                     """);
@@ -128,7 +128,7 @@ public class SubscriptionRepository {
         try {
             jdbcTemplate.update(connection -> {
                 var ps = connection.prepareStatement("""
-                    UPDATE subscription_user_metadata_ 
+                    UPDATE subscription_ 
                     SET region = ?
                     WHERE subscription_id = ?;
                     """);

@@ -4,7 +4,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.controller.UserActionsResource;
-import com.mc_host.api.model.entity.SubscriptionUserMetadata;
 import com.mc_host.api.model.request.UpdateAddressRequest;
 import com.mc_host.api.model.request.UpdateRegionRequest;
 import com.mc_host.api.model.request.UpdateTitleRequest;

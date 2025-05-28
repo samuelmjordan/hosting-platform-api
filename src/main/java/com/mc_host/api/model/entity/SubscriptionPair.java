@@ -1,19 +1,23 @@
 package com.mc_host.api.model.entity;
 
-public class SubscriptionPair {
-    private final ContentSubscription oldSubscription;
-    private final ContentSubscription newSubscription;
-    
-    public SubscriptionPair(ContentSubscription oldSubscription, ContentSubscription newSubscription) {
-        this.oldSubscription = oldSubscription;
-        this.newSubscription = newSubscription;
+public record SubscriptionPair(
+    ContentSubscription oldSubscription, 
+    ContentSubscription newSubscription
+) {
+
+    public Boolean isValid() {
+        return newSubscription != null || oldSubscription != null;
     }
-    
-    public ContentSubscription getOldSubscription() {
-        return oldSubscription;
+
+    public Boolean isUpdated() {
+        return newSubscription != null && oldSubscription != null;
     }
-    
-    public ContentSubscription getNewSubscription() {
-        return newSubscription;
+
+    public Boolean isNew() {
+        return newSubscription != null && oldSubscription == null;
+    }
+
+    public Boolean isOld() {
+        return newSubscription == null && oldSubscription != null;
     }
 }
