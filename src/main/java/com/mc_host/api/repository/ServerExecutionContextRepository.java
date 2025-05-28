@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.service.resources.v2.context.Context;
+import com.mc_host.api.service.resources.v2.context.ContextField;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
 import com.mc_host.api.service.resources.v2.context.StepType;
@@ -151,5 +152,82 @@ public class ServerExecutionContextRepository {
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
         }
+    }
+
+    private void updateField(String subscriptionId, ContextField field, Object value) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement(String.format("""
+                    UPDATE server_execution_context_ 
+                    SET %s = ?
+                    WHERE subscription_id = ?;
+                    """, field.getColumnName()));
+                
+                if (value instanceof Long) {
+                    ps.setLong(1, (Long) value);
+                } else if (value instanceof String) {
+                    ps.setString(1, (String) value);
+                } else if (value == null) {
+                    ps.setNull(1, java.sql.Types.NULL);
+                } else {
+                    throw new IllegalArgumentException("Unsupported type: " + value.getClass());
+                }
+                
+                ps.setString(2, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update context " + field.getColumnName() + " to database for subscription: " + subscriptionId, e);
+        }
+    }
+
+    // Existing resource updates
+    public void updateNodeId(String subscriptionId, Long nodeId) {
+        updateField(subscriptionId, ContextField.NODE_ID, nodeId);
+    }
+
+    public void updateARecordId(String subscriptionId, String aRecordId) {
+        updateField(subscriptionId, ContextField.A_RECORD_ID, aRecordId);
+    }
+
+    public void updatePterodactylNodeId(String subscriptionId, Long pterodactylNodeId) {
+        updateField(subscriptionId, ContextField.PTERODACTYL_NODE_ID, pterodactylNodeId);
+    }
+
+    public void updateAllocationId(String subscriptionId, Long allocationId) {
+        updateField(subscriptionId, ContextField.ALLOCATION_ID, allocationId);
+    }
+
+    public void updatePterodactylServerId(String subscriptionId, Long pterodactylServerId) {
+        updateField(subscriptionId, ContextField.PTERODACTYL_SERVER_ID, pterodactylServerId);
+    }
+
+    public void updateCNameRecordId(String subscriptionId, Long cNameRecordId) {
+        updateField(subscriptionId, ContextField.C_NAME_RECORD_ID, cNameRecordId);
+    }
+
+    // New resource updates (migration targets)
+    public void updateNewNodeId(String subscriptionId, Long newNodeId) {
+        updateField(subscriptionId, ContextField.NEW_NODE_ID, newNodeId);
+    }
+
+    public void updateNewARecordId(String subscriptionId, String newARecordId) {
+        updateField(subscriptionId, ContextField.NEW_A_RECORD_ID, newARecordId);
+    }
+
+    public void updateNewPterodactylNodeId(String subscriptionId, Long newPterodactylNodeId) {
+        updateField(subscriptionId, ContextField.NEW_PTERODACTYL_NODE_ID, newPterodactylNodeId);
+    }
+
+    public void updateNewAllocationId(String subscriptionId, Long newAllocationId) {
+        updateField(subscriptionId, ContextField.NEW_ALLOCATION_ID, newAllocationId);
+    }
+
+    public void updateNewPterodactylServerId(String subscriptionId, Long newPterodactylServerId) {
+        updateField(subscriptionId, ContextField.NEW_PTERODACTYL_SERVER_ID, newPterodactylServerId);
+    }
+
+    public void updateNewCNameRecordId(String subscriptionId, Long newCNameRecordId) {
+        updateField(subscriptionId, ContextField.NEW_C_NAME_RECORD_ID, newCNameRecordId);
     }
 }

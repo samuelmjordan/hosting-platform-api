@@ -124,6 +124,12 @@ public class StripeSubscriptionService implements StripeEventService {
             return;
         }
 
+        if (context.getStatus().equals(Status.FAILED)) {
+            serverExecutor.execute(context.inProgress());
+            //TODO: schedule requeue
+            return;
+        }
+
         if (pair.isOld()) {
             serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
             subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
