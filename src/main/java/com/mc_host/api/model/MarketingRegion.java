@@ -8,8 +8,8 @@ import lombok.Getter;
 
 @Getter
 public enum MarketingRegion {
-    WEST_EUROPE(),
-    EAST_EUROPE();
+    WEST_EUROPE,
+    EAST_EUROPE;
 
     public HetznerRegion getHetznerRegion() {
         return Arrays.stream(HetznerRegion.values())

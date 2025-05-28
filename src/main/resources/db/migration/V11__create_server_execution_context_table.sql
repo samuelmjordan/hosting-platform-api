@@ -1,11 +1,20 @@
 CREATE TABLE server_execution_context_ (
     -- Primary identifiers
     id BIGSERIAL PRIMARY KEY,
-
     subscription_id TEXT NOT NULL,
+
+    -- Provisioning status
     step_type TEXT NOT NULL,
     mode TEXT NOT NULL, -- 'create', 'destroy', 'update', 'migrate'
     execution_status TEXT NOT NULL, -- 'in_progress', 'completed', 'failed'
+
+    -- Desired state
+    region TEXT NOT NULL,
+    specification_id TEXT NOT NULL,
+
+    -- User data
+    title TEXT NOT NULL,
+    caption TEXT NOT NULL,
 
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -13,6 +22,7 @@ CREATE TABLE server_execution_context_ (
 
     -- Constraints
     CONSTRAINT fk_server_execution_context_subscription_id FOREIGN KEY (subscription_id) REFERENCES subscription_ (subscription_id) ON DELETE CASCADE,
+    CONSTRAINT fk_server_execution_context_specification_id FOREIGN KEY (specification_id) REFERENCES game_server_specification_ (specification_id) ON DELETE CASCADE,
     CONSTRAINT server_execution_context_subscription_idunique UNIQUE (subscription_id)
 );
 

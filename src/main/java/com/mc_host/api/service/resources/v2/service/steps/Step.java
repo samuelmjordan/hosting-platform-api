@@ -10,8 +10,5 @@ public interface Step {
     public StepTransition execute(Context context);
     public StepTransition create(Context context);
     public StepTransition destroy(Context context);
-    public StepTransition migrate(Context context);
-    public StepTransition update(Context context);
 
-    
 }

@@ -59,16 +59,4 @@ public class PterodactylAllocationStep extends AbstractStep {
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);
     }
 
-    @Override
-    public StepTransition migrate(Context context) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'migrate'");
-    }
-
-    @Override
-    public StepTransition update(Context context) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'update'");
-    }
-
 }

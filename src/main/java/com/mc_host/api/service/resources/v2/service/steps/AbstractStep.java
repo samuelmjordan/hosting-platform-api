@@ -4,7 +4,6 @@ import java.util.logging.Logger;
 
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
-import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
 
@@ -27,16 +26,11 @@ public abstract class AbstractStep implements Step {
         LOGGER.info(String.format("Starting executing step: %s for subscription: %s, mode: %s", getType(), context.getSubscriptionId(), context.getMode()));
         try {
             contextRepository.upsertSubscription(context.inProgress());
-            switch (context.getMode()) {
-                case Mode.CREATE:
-                    return create(context);
-                case Mode.DESTROY:
-                    return destroy(context);
-                case Mode.UPDATE:
-                    return update(context);
-                case Mode.MIGRATE:
-                    return migrate(context);
-            }            
+            if (context.getMode().isCreate()) {
+                return create(context);
+            } else if (context.getMode().isDestroy()) {
+                return destroy(context);
+            }         
         } catch (Exception e) {
             contextRepository.upsertSubscription(context.failed());
             throw new RuntimeException(

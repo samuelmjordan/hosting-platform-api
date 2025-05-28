@@ -1,8 +1,19 @@
 package com.mc_host.api.service.resources.v2.context;
 
+import java.util.List;
+
 public enum Mode {
     CREATE,
     DESTROY,
-    UPDATE,
-    MIGRATE
+
+    MIGRATE_CREATE,
+    MIGRATE_DESTROY;
+
+    public Boolean isCreate() {
+        return List.of(CREATE, MIGRATE_CREATE).contains(this);
+    }
+
+    public Boolean isDestroy() {
+        return List.of(DESTROY , MIGRATE_DESTROY).contains(this);
+    }
 }

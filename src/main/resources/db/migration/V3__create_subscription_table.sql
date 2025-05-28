@@ -14,16 +14,6 @@ CREATE TABLE subscription_ (
     current_period_start TIMESTAMP NOT NULL,
     current_period_end TIMESTAMP NOT NULL,
     cancel_at_period_end BOOLEAN NOT NULL,
-
-    -- Metadata
-    -- Additional data that is not to be synced with stripe
-
-    -- User-facing details
-    title TEXT NOT NULL,
-    caption TEXT NOT NULL,
-
-    -- Server execution params
-    region TEXT NOT NULL,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

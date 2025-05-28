@@ -44,5 +44,9 @@ public class ServerExecutor {
 
         LOGGER.info(String.format("Execution completed for subscription: %s", context.getSubscriptionId()));
     }
+
+    public void migrate(Context context) {
+
+    }
     
 }

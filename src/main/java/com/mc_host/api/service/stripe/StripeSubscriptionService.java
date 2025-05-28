@@ -24,6 +24,7 @@ import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
+import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.ServerExecutor;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
@@ -135,8 +136,10 @@ public class StripeSubscriptionService implements StripeEventService {
         if (newSubscriptionStatus.isActive() || newSubscriptionStatus.equals(SubscriptionStatus.PAST_DUE)) {
             //TODO: back-up data
             serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
-            if (!pair.newSubscription().priceId().equals(pair.oldSubscription().priceId())) {
-                //TODO: migrate server
+            Boolean priceChanged = !pair.newSubscription().priceId().equals(pair.oldSubscription().priceId());
+            Boolean regionChanged = !pair.newSubscription().region().equals(pair.oldSubscription().region());
+            if (priceChanged || regionChanged) {
+                // serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
             }
             subscriptionRepository.updateSubscription(pair.newSubscription());
             return;

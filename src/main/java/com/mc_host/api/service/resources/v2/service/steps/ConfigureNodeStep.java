@@ -50,16 +50,4 @@ public class ConfigureNodeStep extends AbstractStep {
         throw new UnsupportedOperationException("Node configuration step cannot be destroyed directly. Try destroying the Pterodactyl Node step instead.");
     }
 
-    @Override
-    public StepTransition migrate(Context context) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'migrate'");
-    }
-
-    @Override
-    public StepTransition update(Context context) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'update'");
-    }
-
 }
