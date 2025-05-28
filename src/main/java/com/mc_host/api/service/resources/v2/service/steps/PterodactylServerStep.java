@@ -44,6 +44,7 @@ public class PterodactylServerStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found for subscription: " + context.getSubscriptionId()));
         PterodactylServer pterodactylServer = pterodactylService.createServer(context.getSubscriptionId(), allocationAttributes);
         gameServerRepository.insertPterodactylServer(pterodactylServer);
+        contextRepository.updateNewPterodactylServerId(context.getSubscriptionId(), pterodactylServer.pterodactylServerId());
 
         return transitionService.persistAndProgress(context, StepType.C_NAME_RECORD);
     }

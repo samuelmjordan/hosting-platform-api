@@ -4,14 +4,15 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
+import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 @Service
-public class AllocateNodeStep extends AbstractStep {
+public class PreReadyStep extends AbstractStep {
 
-    protected AllocateNodeStep(
+    protected PreReadyStep(
         ServerExecutionContextRepository contextRepository,
         TransitionService transitionService
     ) {
@@ -20,22 +21,20 @@ public class AllocateNodeStep extends AbstractStep {
 
     @Override
     public StepType getType() {
-        return StepType.ALLOCATE_NODE;
+        return StepType.PRE_READY;
     }
 
-    @SuppressWarnings("unused")
     @Override
     public StepTransition create(Context context) {
-        // TODO: use dedicated node if available
-        if (false) {
-            return transitionService.persistAndProgress(context, StepType.DEDICATED_NODE);
+        if (context.getMode() == Mode.CREATE) {
+            contextRepository.promoteNewResourcesToCurrent(context.getSubscriptionId());
         }
-        return transitionService.persistAndProgress(context, StepType.CLOUD_NODE);
+        return transitionService.persistAndProgress(context, StepType.READY);
     }
 
     @Override
     public StepTransition destroy(Context context) {
-        return transitionService.persistAndProgress(context, StepType.STARTING);
+        return transitionService.persistAndProgress(context, StepType.C_NAME_RECORD);
     }
 
 }

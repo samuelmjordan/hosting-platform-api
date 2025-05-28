@@ -40,6 +40,7 @@ public class PterodactylNodeStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found for subscription: " + context.getSubscriptionId()));
         PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord);
         nodeRepository.insertPterodactylNode(pterodactylNode);
+        contextRepository.updateNewPterodactylNodeId(context.getSubscriptionId(), pterodactylNode.pterodactylNodeId());
 
         return transitionService.persistAndProgress(context, StepType.CONFIGURE_NODE);
     }

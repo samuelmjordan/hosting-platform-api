@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Status;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
@@ -19,9 +20,14 @@ import com.mc_host.api.service.resources.v2.service.steps.Step;
 public class ServerExecutor {
     private static final Logger LOGGER = Logger.getLogger(ServerExecutor.class.getName());
 
+    private final ServerExecutionContextRepository contextRepository;
     private final Map<StepType, Step> steps;
 
-    public ServerExecutor(List<Step> allSteps) {
+    public ServerExecutor(
+        ServerExecutionContextRepository contextRepository,
+        List<Step> allSteps
+    ) {
+        this.contextRepository = contextRepository;
         this.steps = allSteps.stream()
             .collect(Collectors.toMap(
                 Step::getType, 

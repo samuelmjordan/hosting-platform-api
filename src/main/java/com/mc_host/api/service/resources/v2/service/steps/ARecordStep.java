@@ -40,6 +40,7 @@ public class ARecordStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Hetzner node not found for subscription: " + context.getSubscriptionId()));
         DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
         nodeRepository.insertDnsARecord(dnsARecord);
+        contextRepository.updateNewARecordId(context.getSubscriptionId(), dnsARecord.aRecordId());
         
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);
     }

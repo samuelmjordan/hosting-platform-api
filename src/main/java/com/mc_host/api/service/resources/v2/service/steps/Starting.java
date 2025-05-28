@@ -9,9 +9,9 @@ import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 @Service
-public class AllocateNodeStep extends AbstractStep {
+public class Starting extends AbstractStep {
 
-    protected AllocateNodeStep(
+    protected Starting(
         ServerExecutionContextRepository contextRepository,
         TransitionService transitionService
     ) {
@@ -20,22 +20,18 @@ public class AllocateNodeStep extends AbstractStep {
 
     @Override
     public StepType getType() {
-        return StepType.ALLOCATE_NODE;
+        return StepType.STARTING;
     }
 
-    @SuppressWarnings("unused")
     @Override
     public StepTransition create(Context context) {
-        // TODO: use dedicated node if available
-        if (false) {
-            return transitionService.persistAndProgress(context, StepType.DEDICATED_NODE);
-        }
-        return transitionService.persistAndProgress(context, StepType.CLOUD_NODE);
+        return transitionService.persistAndProgress(context, StepType.ALLOCATE_NODE);
     }
 
     @Override
     public StepTransition destroy(Context context) {
-        return transitionService.persistAndProgress(context, StepType.STARTING);
+        contextRepository.promoteNewResourcesToCurrent(context.getSubscriptionId());
+        return transitionService.persistAndComplete(context);
     }
 
 }

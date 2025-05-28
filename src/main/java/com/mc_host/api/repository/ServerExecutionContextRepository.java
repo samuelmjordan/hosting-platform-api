@@ -154,6 +154,34 @@ public class ServerExecutionContextRepository {
         }
     }
 
+    public void promoteNewResourcesToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET 
+                        node_id = new_node_id,
+                        a_record_id = new_a_record_id,
+                        pterodactyl_node_id = new_pterodactyl_node_id,
+                        allocation_id = new_allocation_id,
+                        pterodactyl_server_id = new_pterodactyl_server_id,
+                        c_name_record_id = new_c_name_record_id,
+                        new_node_id = NULL,
+                        new_a_record_id = NULL,
+                        new_pterodactyl_node_id = NULL,
+                        new_allocation_id = NULL,
+                        new_pterodactyl_server_id = NULL,
+                        new_c_name_record_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new resources to current for subscription: " + subscriptionId, e);
+        }
+    }
+
     private void updateField(String subscriptionId, ContextField field, Object value) {
         try {
             jdbcTemplate.update(connection -> {
@@ -202,7 +230,7 @@ public class ServerExecutionContextRepository {
         updateField(subscriptionId, ContextField.PTERODACTYL_SERVER_ID, pterodactylServerId);
     }
 
-    public void updateCNameRecordId(String subscriptionId, Long cNameRecordId) {
+    public void updateCNameRecordId(String subscriptionId, String cNameRecordId) {
         updateField(subscriptionId, ContextField.C_NAME_RECORD_ID, cNameRecordId);
     }
 
@@ -227,7 +255,7 @@ public class ServerExecutionContextRepository {
         updateField(subscriptionId, ContextField.NEW_PTERODACTYL_SERVER_ID, newPterodactylServerId);
     }
 
-    public void updateNewCNameRecordId(String subscriptionId, Long newCNameRecordId) {
+    public void updateNewCNameRecordId(String subscriptionId, String newCNameRecordId) {
         updateField(subscriptionId, ContextField.NEW_C_NAME_RECORD_ID, newCNameRecordId);
     }
 }

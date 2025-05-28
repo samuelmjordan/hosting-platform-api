@@ -14,7 +14,7 @@ CREATE TABLE server_execution_context_ (
     pterodactyl_node_id BIGINT,
     allocation_id BIGINT,
     pterodactyl_server_id BIGINT,
-    c_name_record_id BIGINT,
+    c_name_record_id TEXT,
 
     -- Migration resources
     new_node_id BIGINT,
@@ -22,7 +22,7 @@ CREATE TABLE server_execution_context_ (
     new_pterodactyl_node_id BIGINT,
     new_allocation_id BIGINT,
     new_pterodactyl_server_id BIGINT,
-    new_c_name_record_id BIGINT,
+    new_c_name_record_id TEXT,
 
     -- Desired state
     region TEXT NOT NULL,

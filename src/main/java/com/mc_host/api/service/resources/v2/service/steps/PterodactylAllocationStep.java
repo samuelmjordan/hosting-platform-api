@@ -44,6 +44,7 @@ public class PterodactylAllocationStep extends AbstractStep {
         pterodactylService.createAllocation(pterodactylNode.pterodactylNodeId(), dnsARecord.content(), 25565);
         PterodactylAllocation pterodactylAllocation = pterodactylService.getAllocation(context.getSubscriptionId(), pterodactylNode.pterodactylNodeId());
         nodeRepository.insertPterodactylAllocation(pterodactylAllocation);
+        contextRepository.updateNewAllocationId(context.getSubscriptionId(), pterodactylAllocation.allocationId());
 
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }

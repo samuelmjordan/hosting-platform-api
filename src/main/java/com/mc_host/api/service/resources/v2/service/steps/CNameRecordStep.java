@@ -46,6 +46,7 @@ public class CNameRecordStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("DNS A record not found for subscription: " + context.getSubscriptionId()));
         DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord, UUID.randomUUID().toString().replace("-", ""));
         gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
+        contextRepository.updateNewCNameRecordId(context.getSubscriptionId(), dnsCNameRecord.cNameRecordId());
 
         return transitionService.persistAndProgress(context, StepType.START_SERVER);
     }
