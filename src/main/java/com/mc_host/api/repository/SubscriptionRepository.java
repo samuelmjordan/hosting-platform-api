@@ -36,11 +36,9 @@ public class SubscriptionRepository {
                         current_period_end,
                         current_period_start,
                         cancel_at_period_end,
-                        title,
-                        caption,
-                        region
+                        initial_region
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """);
                 ps.setString(1, subscriptionEntity.subscriptionId());
                 ps.setString(2, subscriptionEntity.customerId());
@@ -51,9 +49,7 @@ public class SubscriptionRepository {
                 ps.setTimestamp(6, Timestamp.from(subscriptionEntity.currentPeriodStart()),
                               java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
                 ps.setBoolean(7, subscriptionEntity.cancelAtPeriodEnd());
-                ps.setString(8, subscriptionEntity.title());
-                ps.setString(9, subscriptionEntity.caption());
-                ps.setString(10, subscriptionEntity.region().name());
+                ps.setString(8, subscriptionEntity.initialRegion().name());
                 return ps;
             });
         } catch (DataAccessException e) {
@@ -71,7 +67,8 @@ public class SubscriptionRepository {
                         price_id = ?,
                         current_period_end = ?,
                         current_period_start = ?,
-                        cancel_at_period_end = ?
+                        cancel_at_period_end = ?,
+                        initial_region = ?
                     WHERE subscription_id = ?;
                     """);
                 ps.setString(1, subscriptionEntity.customerId());
@@ -83,61 +80,11 @@ public class SubscriptionRepository {
                               java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
                 ps.setBoolean(6, subscriptionEntity.cancelAtPeriodEnd());
                 ps.setString(7, subscriptionEntity.subscriptionId());
+                ps.setString(8, subscriptionEntity.initialRegion().name());
                 return ps;
             });
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to save subscription to database: " + e.getMessage(), e);
-        }
-    }
-
-    public void updateSubscriptionTitle(String subscriptionId, String title) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE subscription_ 
-                    SET title = ?
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, title);
-                ps.setString(2, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
-        }
-    }
-
-    public void updateSubscriptionCaption(String subscriptionId, String caption) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE subscription_ 
-                    SET caption = ?
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, caption);
-                ps.setString(2, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
-        }
-    }
-
-    public void updateSubscriptionRegion(String subscriptionId, MarketingRegion region) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE subscription_ 
-                    SET region = ?
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, region.name());
-                ps.setString(2, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
         }
     }
 
@@ -167,9 +114,7 @@ public class SubscriptionRepository {
                     current_period_end,
                     current_period_start,
                     cancel_at_period_end,
-                    title,
-                    caption,
-                    region
+                    initial_region
                 FROM subscription_
                 WHERE customer_id = ?
                 ORDER BY status_, current_period_start DESC
@@ -185,9 +130,7 @@ public class SubscriptionRepository {
                         rs.getTimestamp("current_period_start", 
                             java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC))).toInstant(),
                         rs.getBoolean("cancel_at_period_end"),
-                        rs.getString("title"),
-                        rs.getString("caption"),
-                        MarketingRegion.valueOf(rs.getString("region"))
+                        MarketingRegion.valueOf(rs.getString("initial_region"))
                     );
                 },
                 customerId
@@ -209,9 +152,7 @@ public class SubscriptionRepository {
                     current_period_end,
                     current_period_start,
                     cancel_at_period_end,
-                    title,
-                    caption,
-                    region
+                    initial_region
                 FROM subscription_
                 WHERE subscription_id = ?
                 ORDER BY status_, current_period_start DESC
@@ -227,9 +168,7 @@ public class SubscriptionRepository {
                         rs.getTimestamp("current_period_start", 
                             java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC))).toInstant(),
                         rs.getBoolean("cancel_at_period_end"),
-                        rs.getString("title"),
-                        rs.getString("caption"),
-                        MarketingRegion.valueOf(rs.getString("region"))
+                        MarketingRegion.valueOf(rs.getString("initial_region"))
                     );
                 },
                 subscriptionId

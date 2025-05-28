@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.client.HetznerCloudClient;
 import com.mc_host.api.exceptions.resources.HetznerException;
 import com.mc_host.api.model.hetzner.HetznerRegion;
+import com.mc_host.api.model.hetzner.HetznerServerResponse;
 import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.HetznerNode;
@@ -70,6 +71,23 @@ public class HetznerService {
         } catch (Exception e) {
             throw new HetznerException(String.format("[hetznerNodeId: %s] Error deleting hetzner node", hetznerNodeId), e);
         }  
+    }
+
+    public Long getNodeId(String subscriptionId) {
+        return nodeRepository.selectHetznerNode(subscriptionId)
+            .map(HetznerNode::nodeId)
+            .orElseThrow(() -> new IllegalStateException("No hetzner node associated with subscription %s " + subscriptionId));
+    }
+
+    public HetznerRegion getServerRegion(Long nodeId) {
+        try {
+            LOGGER.log(Level.INFO, String.format("[hetznerServerId: %s] Checking server region", nodeId));
+            HetznerServerResponse response = hetznerClient.getServer(nodeId);
+            HetznerRegion region = HetznerRegion.valueOf(response.server.datacenter.location.name.toUpperCase());
+            return region;
+        } catch (Exception e) {
+            throw new HetznerException(String.format("[hetznerServerId: %s] Error checking server region", nodeId), e);
+        }
     }
     
 }

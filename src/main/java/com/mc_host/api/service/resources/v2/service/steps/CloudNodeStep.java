@@ -20,19 +20,16 @@ import com.mc_host.api.service.resources.v2.service.TransitionService;
 public class CloudNodeStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
-    private final SubscriptionRepository subscriptionRepository;
     private final HetznerService hetznerService;
 
     protected CloudNodeStep(
         ServerExecutionContextRepository contextRepository,
         TransitionService transitionService,
         NodeRepository nodeRepository,
-        SubscriptionRepository subscriptionRepository,
         HetznerService hetznerService
     ) {
         super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
-        this.subscriptionRepository = subscriptionRepository;
         this.hetznerService = hetznerService;
     }
 
@@ -43,12 +40,7 @@ public class CloudNodeStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        HetznerRegion hetznerRegion = subscriptionRepository.selectSubscription(context.getSubscriptionId())
-            .map(ContentSubscription::region)
-            .map(MarketingRegion::getHetznerRegion)
-            .orElse(HetznerRegion.NBG1);
-
-        HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), hetznerRegion, HetznerServerType.CAX11);
+        HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), context.getRegion().getHetznerRegion(), HetznerServerType.CAX11);
         nodeRepository.insertHetznerCloudNode(hetznerNode);
 
         return transitionService.persistAndProgress(context, StepType.A_RECORD);

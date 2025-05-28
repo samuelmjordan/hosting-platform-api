@@ -6,7 +6,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.node.PterodactylNode;
+import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
@@ -60,7 +60,11 @@ public class ServerExecutionContextRepository {
                     subscription_id, 
                     step_type, 
                     mode,
-                    execution_status
+                    execution_status,
+                    region,
+                    specification_id,
+                    title,
+                    caption
                 FROM server_execution_context_
                 WHERE subscription_id = ?
                 """,
@@ -68,12 +72,84 @@ public class ServerExecutionContextRepository {
                     rs.getString("subscription_id"), 
                     StepType.valueOf(rs.getString("step_type")), 
                     Mode.valueOf(rs.getString("mode")), 
-                    Status.valueOf(rs.getString("execution_status"))
+                    Status.valueOf(rs.getString("execution_status")),
+                    MarketingRegion.valueOf(rs.getString("region")),
+                    rs.getString("specification_id"),
+                    rs.getString("title"),
+                    rs.getString("caption")
                 ),
                 subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
             throw new RuntimeException(String.format("Failed to fetch pterodactyl node for subscription id %s", subscriptionId), e);
+        }
+    }
+
+    public void updateTitle(String subscriptionId, String title) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_ 
+                    SET title = ?
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, title);
+                ps.setString(2, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
+        }
+    }
+
+    public void updateCaption(String subscriptionId, String caption) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_ 
+                    SET caption = ?
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, caption);
+                ps.setString(2, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
+        }
+    }
+
+    public void updateRegion(String subscriptionId, MarketingRegion region) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_ 
+                    SET region = ?
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, region.name());
+                ps.setString(2, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
+        }
+    }
+
+    public void updateSpecification(String subscriptionId, String specificationId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_ 
+                    SET specification_id = ?
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, specificationId);
+                ps.setString(2, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
         }
     }
 }

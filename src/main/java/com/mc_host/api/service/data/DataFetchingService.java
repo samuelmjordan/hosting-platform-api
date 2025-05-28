@@ -36,8 +36,10 @@ import com.mc_host.api.repository.InvoiceRepository;
 import com.mc_host.api.repository.PaymentMethodRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.PriceRepository;
+import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.repository.UserRepository;
+import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.util.Cache;
 
 @Service
@@ -54,6 +56,7 @@ public class DataFetchingService implements DataFetchingResource  {
     private final GameServerSpecRepository gameServerSpecRepository;
     private final InvoiceRepository invoiceRepository;
     private final PaymentMethodRepository paymentMethodRepository;
+    private final ServerExecutionContextRepository serverExecutionContextRepository;
 
     public DataFetchingService(
         Cache cacheService,
@@ -65,7 +68,8 @@ public class DataFetchingService implements DataFetchingResource  {
         GameServerRepository gameServerRepository,
         GameServerSpecRepository gameServerSpecRepository,
         InvoiceRepository invoiceRepository,
-        PaymentMethodRepository paymentMethodRepository
+        PaymentMethodRepository paymentMethodRepository,
+        ServerExecutionContextRepository serverExecutionContextRepository
     ) {
         this.cacheService = cacheService;
         this.paymentMethodConfiguration = paymentMethodConfiguration;
@@ -77,6 +81,7 @@ public class DataFetchingService implements DataFetchingResource  {
         this.gameServerSpecRepository = gameServerSpecRepository;
         this.invoiceRepository = invoiceRepository;
         this.paymentMethodRepository = paymentMethodRepository;
+        this.serverExecutionContextRepository = serverExecutionContextRepository;
     }
 
     @Override
@@ -219,14 +224,16 @@ public class DataFetchingService implements DataFetchingResource  {
         String dnsCNameRecordName = gameServerRepository.selectDnsCNameRecord(subscription.subscriptionId())
             .map(DnsCNameRecord::recordName)
             .orElse(null);
+        Context context = serverExecutionContextRepository.selectSubscription(subscription.subscriptionId())
+            .orElseThrow(() -> new IllegalStateException("No existing context for subscription %s " + subscription.subscriptionId()));
 
         return new ServerSubscriptionResponse(
             subscription.subscriptionId(),
-            subscription.title(),
+            context.getTitle(),
             gameSeverSpecification.title(),
             gameSeverSpecification.ram_gb(),
             gameSeverSpecification.vcpu(),
-            subscription.region(),
+            context.getRegion(),
             dnsCNameRecordName,
             subscription.status(),
             subscription.currentPeriodEnd(),

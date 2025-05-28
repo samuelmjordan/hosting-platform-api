@@ -7,17 +7,17 @@ import com.mc_host.api.controller.UserActionsResource;
 import com.mc_host.api.model.request.UpdateAddressRequest;
 import com.mc_host.api.model.request.UpdateRegionRequest;
 import com.mc_host.api.model.request.UpdateTitleRequest;
-import com.mc_host.api.repository.SubscriptionRepository;
+import com.mc_host.api.repository.ServerExecutionContextRepository;
 
 @Service
 public class UserActionsService implements UserActionsResource {
 
-    private final SubscriptionRepository subscriptionRepository;
+    private final ServerExecutionContextRepository serverExecutionContextRepository;
 
     public UserActionsService(
-        SubscriptionRepository subscriptionRepository
+        ServerExecutionContextRepository serverExecutionContextRepository
     ) {
-        this.subscriptionRepository = subscriptionRepository;
+        this.serverExecutionContextRepository = serverExecutionContextRepository;
     }
 
     @Override
@@ -34,7 +34,7 @@ public class UserActionsService implements UserActionsResource {
 
     @Override
     public ResponseEntity<Void> updateSubscriptionTitle(String userId, String subscriptionId, UpdateTitleRequest title) {
-        subscriptionRepository.updateSubscriptionTitle(subscriptionId, title.title());
+        serverExecutionContextRepository.updateTitle(subscriptionId, title.title());
         return ResponseEntity.ok().build();
     }
 

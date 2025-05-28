@@ -1,5 +1,7 @@
 package com.mc_host.api.service.resources.v2.context;
 
+import com.mc_host.api.model.MarketingRegion;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
@@ -12,6 +14,11 @@ public class Context {
     private final StepType stepType;
     private final Mode mode;
     private final Status status;
+
+    private final MarketingRegion region;
+    private final String specificationId;
+    private final String title;
+    private final String caption;
 
     public Context inProgress() {
         return this.withStatus(Status.IN_PROGRESS);
@@ -29,12 +36,22 @@ public class Context {
         return this.withStepType(nextStep).inProgress();
     }
     
-    public static Context create(String subscriptionId, Mode mode) {
+    public static Context create(
+        String subscriptionId, 
+        Mode mode, 
+        MarketingRegion region, 
+        String specificationId, 
+        String title, 
+        String caption) {
         return new Context(
             subscriptionId,
             StepType.NEW,
             mode,
-            Status.IN_PROGRESS
+            Status.IN_PROGRESS,
+            region,
+            specificationId,
+            title,
+            caption
         );
     }
 

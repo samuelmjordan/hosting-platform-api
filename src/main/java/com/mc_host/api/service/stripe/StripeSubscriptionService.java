@@ -1,10 +1,8 @@
 package com.mc_host.api.service.stripe;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import java.util.logging.Level;
@@ -19,8 +17,11 @@ import com.mc_host.api.model.SubscriptionStatus;
 import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
+import com.mc_host.api.model.hetzner.HetznerRegion;
+import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
+import com.mc_host.api.service.resources.HetznerService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
@@ -37,15 +38,21 @@ public class StripeSubscriptionService implements StripeEventService {
     private final ServerExecutor serverExecutor;
     private final SubscriptionRepository subscriptionRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
+    private final PlanRepository planRepository;
+    private final HetznerService hetznerService;
 
     public StripeSubscriptionService(
         ServerExecutor serverExecutor,
         SubscriptionRepository subscriptionRepository,
-        ServerExecutionContextRepository serverExecutionContextRepository
+        ServerExecutionContextRepository serverExecutionContextRepository,
+        PlanRepository planRepository,
+        HetznerService hetznerService
     ) {
         this.serverExecutor = serverExecutor;
         this.subscriptionRepository = subscriptionRepository;
         this.serverExecutionContextRepository = serverExecutionContextRepository;
+        this.planRepository = planRepository;
+        this.hetznerService = hetznerService;
     }
 
     public StripeEventType getType() {
@@ -97,16 +104,21 @@ public class StripeSubscriptionService implements StripeEventService {
             throw new IllegalStateException("No subscriptions in pair");
         }
 
+        ContentSubscription newSubscription = pair.newSubscription();
+        ContentSubscription oldSubscription = pair.oldSubscription();
+        String newSpecificationId = planRepository.selectSpecificationId(newSubscription.priceId())
+            .orElseThrow(() -> new IllegalStateException("No specification for price %s " + newSubscription.priceId()));
+
         if (pair.isNew()) {
-            subscriptionRepository.insertSubscription(pair.newSubscription());
+            subscriptionRepository.insertSubscription(newSubscription);
             serverExecutor.execute(
-                Context.create(pair.newSubscription().subscriptionId(), Mode.CREATE)
+                Context.create(newSubscription.subscriptionId(), Mode.CREATE, newSubscription.initialRegion(), newSpecificationId, "My New Server", "A Minecraft Server")
             );
             return;
         }
 
-        Context context = serverExecutionContextRepository.selectSubscription(pair.oldSubscription().subscriptionId())
-            .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + pair.oldSubscription().subscriptionId()));
+        Context context = serverExecutionContextRepository.selectSubscription(oldSubscription.subscriptionId())
+            .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + oldSubscription.subscriptionId()));
         if (context.getStatus().equals(Status.IN_PROGRESS)) {
             //TODO: schedule requeue
             return;
@@ -114,21 +126,21 @@ public class StripeSubscriptionService implements StripeEventService {
 
         if (pair.isOld()) {
             serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
-            subscriptionRepository.deleteSubscription(pair.oldSubscription().subscriptionId());
+            subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
             return;
         }
 
-        SubscriptionStatus newSubscriptionStatus = SubscriptionStatus.fromStripeValue(pair.newSubscription().status());
+        SubscriptionStatus newSubscriptionStatus = SubscriptionStatus.fromStripeValue(newSubscription.status());
         if (newSubscriptionStatus.isTerminated()) {
             //TODO: back-up data
-            subscriptionRepository.deleteSubscription(pair.oldSubscription().subscriptionId());
+            subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
             serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
             return; 
         }
 
         if (newSubscriptionStatus.isPending() || newSubscriptionStatus.equals(SubscriptionStatus.UNPAID)) {
             //TODO: back-up data
-            subscriptionRepository.updateSubscription(pair.newSubscription());
+            subscriptionRepository.updateSubscription(newSubscription);
             serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
             return;
         }
@@ -136,17 +148,20 @@ public class StripeSubscriptionService implements StripeEventService {
         if (newSubscriptionStatus.isActive() || newSubscriptionStatus.equals(SubscriptionStatus.PAST_DUE)) {
             //TODO: back-up data
             serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
-            Boolean priceChanged = !pair.newSubscription().priceId().equals(pair.oldSubscription().priceId());
-            Boolean regionChanged = !pair.newSubscription().region().equals(pair.oldSubscription().region());
+
+            Boolean priceChanged = !newSubscription.priceId().equals(oldSubscription.priceId());
+            HetznerRegion actualRegion = hetznerService.getServerRegion(hetznerService.getNodeId(newSubscription.subscriptionId()));
+            Boolean regionChanged = !context.getRegion().equals(actualRegion.getMarketingRegion());
+
             if (priceChanged || regionChanged) {
-                // serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
+                serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
             }
-            subscriptionRepository.updateSubscription(pair.newSubscription());
+            subscriptionRepository.updateSubscription(newSubscription);
             return;
         } 
 
         // should be unreachable
-        throw new IllegalStateException(String.format("Subscription %s failed all consitions"));
+        throw new IllegalStateException(String.format("Subscription %s failed all conditions"));
 
     }
 
@@ -159,9 +174,7 @@ public class StripeSubscriptionService implements StripeEventService {
             Instant.ofEpochMilli(subscription.getCurrentPeriodEnd()), 
             Instant.ofEpochMilli(subscription.getCurrentPeriodStart()), 
             subscription.getCancelAtPeriodEnd(),
-            subscription.getMetadata().getOrDefault(MetadataKey.TITLE, "My Minecraft Server"),
-            subscription.getMetadata().getOrDefault(MetadataKey.CAPTION, "Created " + LocalDateTime.now()),
-            MarketingRegion.valueOf(subscription.getMetadata().getOrDefault(MetadataKey.REGION, MarketingRegion.WEST_EUROPE.name()))
+            MarketingRegion.valueOf(subscription.getMetadata().get(MetadataKey.REGION.name()))
         );
     }
 }

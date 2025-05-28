@@ -12,9 +12,7 @@ public record ContentSubscription(
     Instant currentPeriodEnd,
     Instant currentPeriodStart,
     Boolean cancelAtPeriodEnd,
-    String title,
-    String caption,
-    MarketingRegion region
+    MarketingRegion initialRegion
 ) {
     public Boolean isAlike(ContentSubscription newSubscription) {
         if (newSubscription == null) {
