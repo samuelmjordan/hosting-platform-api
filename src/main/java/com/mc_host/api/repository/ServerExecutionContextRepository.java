@@ -154,34 +154,6 @@ public class ServerExecutionContextRepository {
         }
     }
 
-    public void promoteNewResourcesToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET 
-                        node_id = new_node_id,
-                        a_record_id = new_a_record_id,
-                        pterodactyl_node_id = new_pterodactyl_node_id,
-                        allocation_id = new_allocation_id,
-                        pterodactyl_server_id = new_pterodactyl_server_id,
-                        c_name_record_id = new_c_name_record_id,
-                        new_node_id = NULL,
-                        new_a_record_id = NULL,
-                        new_pterodactyl_node_id = NULL,
-                        new_allocation_id = NULL,
-                        new_pterodactyl_server_id = NULL,
-                        new_c_name_record_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new resources to current for subscription: " + subscriptionId, e);
-        }
-    }
-
     private void updateField(String subscriptionId, ContextField field, Object value) {
         try {
             jdbcTemplate.update(connection -> {
@@ -257,5 +229,130 @@ public class ServerExecutionContextRepository {
 
     public void updateNewCNameRecordId(String subscriptionId, String newCNameRecordId) {
         updateField(subscriptionId, ContextField.NEW_C_NAME_RECORD_ID, newCNameRecordId);
+    }
+
+    public void promoteNewResourcesToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET 
+                        node_id = new_node_id,
+                        a_record_id = new_a_record_id,
+                        pterodactyl_node_id = new_pterodactyl_node_id,
+                        allocation_id = new_allocation_id,
+                        pterodactyl_server_id = new_pterodactyl_server_id,
+                        c_name_record_id = new_c_name_record_id,
+                        new_node_id = NULL,
+                        new_a_record_id = NULL,
+                        new_pterodactyl_node_id = NULL,
+                        new_allocation_id = NULL,
+                        new_pterodactyl_server_id = NULL,
+                        new_c_name_record_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new resources to current for subscription: " + subscriptionId, e);
+        }
+    }
+
+    // Individual resource promotion methods
+    public void promoteNewNodeIdToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET node_id = new_node_id, new_node_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new node_id to current for subscription: " + subscriptionId, e);
+        }
+    }
+
+    public void promoteNewARecordIdToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET a_record_id = new_a_record_id, new_a_record_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new a_record_id to current for subscription: " + subscriptionId, e);
+        }
+    }
+
+    public void promoteNewPterodactylNodeIdToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET pterodactyl_node_id = new_pterodactyl_node_id, new_pterodactyl_node_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new pterodactyl_node_id to current for subscription: " + subscriptionId, e);
+        }
+    }
+
+    public void promoteNewAllocationIdToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET allocation_id = new_allocation_id, new_allocation_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new allocation_id to current for subscription: " + subscriptionId, e);
+        }
+    }
+
+    public void promoteNewPterodactylServerIdToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET pterodactyl_server_id = new_pterodactyl_server_id, new_pterodactyl_server_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new pterodactyl_server_id to current for subscription: " + subscriptionId, e);
+        }
+    }
+
+    public void promoteNewCNameRecordIdToCurrent(String subscriptionId) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_
+                    SET c_name_record_id = new_c_name_record_id, new_c_name_record_id = NULL
+                    WHERE subscription_id = ?;
+                    """);
+                ps.setString(1, subscriptionId);
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to promote new c_name_record_id to current for subscription: " + subscriptionId, e);
+        }
     }
 }

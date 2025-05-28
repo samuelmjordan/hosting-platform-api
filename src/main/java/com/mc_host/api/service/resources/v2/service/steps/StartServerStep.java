@@ -39,7 +39,7 @@ public class StartServerStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found for subscription: " + context.getSubscriptionId()));
         pterodactylService.startNewPterodactylServer(pterodactylServer);
         
-        return transitionService.persistAndProgress(context, StepType.PRE_READY);
+        return transitionService.persistAndProgress(context, StepType.READY);
     }
 
     @Override

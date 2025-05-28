@@ -35,7 +35,7 @@ public class AllocateNodeStep extends AbstractStep {
 
     @Override
     public StepTransition destroy(Context context) {
-        return transitionService.persistAndProgress(context, StepType.STARTING);
+        return transitionService.persistAndProgress(context, StepType.NEW);
     }
 
 }

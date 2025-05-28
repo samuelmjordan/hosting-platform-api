@@ -2,7 +2,6 @@ package com.mc_host.api.service.resources.v2.context;
 
 public enum StepType {
     NEW,
-    STARTING,
     ALLOCATE_NODE,
     CLOUD_NODE,
     DEDICATED_NODE,
@@ -13,6 +12,5 @@ public enum StepType {
     PTERODACTYL_SERVER,
     C_NAME_RECORD,
     START_SERVER,
-    PRE_READY,
     READY
 }
