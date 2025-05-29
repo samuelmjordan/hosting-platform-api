@@ -52,7 +52,7 @@ public class PterodactylNodeStep extends AbstractStep {
     @Transactional
     public StepTransition destroy(Context context) {
         PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getPterodactylNodeId())
-            .orElseThrow(() -> new IllegalStateException("Pterodactyl Node not found for subscription: " + context.getSubscriptionId()));
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl Node not found: " + context.getPterodactylNodeId()));
         Context transitionedContext = context.promoteNewPterodactylNodeId();
         nodeRepository.deletePterodactylNode(pterodactylNode.pterodactylNodeId());
 

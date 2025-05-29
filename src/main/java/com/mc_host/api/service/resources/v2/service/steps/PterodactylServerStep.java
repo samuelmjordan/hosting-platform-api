@@ -46,7 +46,7 @@ public class PterodactylServerStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found: " + context));
         PterodactylServer pterodactylServer = pterodactylService.createServer(context.getSubscriptionId(), allocationAttributes);
 
-        Context transitionedContext = context.withNewAllocationId(pterodactylServer.pterodactylServerId());
+        Context transitionedContext = context.withNewPterodactylServerId(pterodactylServer.pterodactylServerId());
         gameServerRepository.insertPterodactylServer(pterodactylServer);
 
         if (context.getMode().isMigrate()) {
@@ -60,7 +60,7 @@ public class PterodactylServerStep extends AbstractStep {
     public StepTransition destroy(Context context) {
         PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
             .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found for subscription: " + context.getSubscriptionId()));
-        Context transitionedContext = context.promoteNewPterodactylNodeId();
+        Context transitionedContext = context.promoteNewPterodactylServerId();
         gameServerRepository.deletePterodactylServer(pterodactylServer.pterodactylServerId());
 
         pterodactylService.destroyServer(pterodactylServer.pterodactylServerId());

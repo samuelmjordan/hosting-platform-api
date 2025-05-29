@@ -106,10 +106,10 @@ public class StripeSubscriptionService implements StripeEventService {
 
         ContentSubscription newSubscription = pair.newSubscription();
         ContentSubscription oldSubscription = pair.oldSubscription();
-        String newSpecificationId = planRepository.selectSpecificationId(newSubscription.priceId())
-            .orElseThrow(() -> new IllegalStateException("No specification for price %s " + newSubscription.priceId()));
 
         if (pair.isNew()) {
+            String newSpecificationId = planRepository.selectSpecificationId(newSubscription.priceId())
+                .orElseThrow(() -> new IllegalStateException("No specification for price %s " + newSubscription.priceId()));
             subscriptionRepository.insertSubscription(newSubscription);
             serverExecutor.execute(
                 Context.create(newSubscription.subscriptionId(), Mode.CREATE, newSubscription.initialRegion(), newSpecificationId, "My New Server", "A Minecraft Server")
@@ -126,7 +126,11 @@ public class StripeSubscriptionService implements StripeEventService {
 
         if (context.getStatus().equals(Status.FAILED)) {
             serverExecutor.execute(context.inProgress());
-            //TODO: schedule requeue
+            if (context.getMode().equals(Mode.DESTROY)) {
+                subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
+            } else {
+                //TODO: schedule requeue
+            }
             return;
         }
 
@@ -139,8 +143,8 @@ public class StripeSubscriptionService implements StripeEventService {
         SubscriptionStatus newSubscriptionStatus = SubscriptionStatus.fromStripeValue(newSubscription.status());
         if (newSubscriptionStatus.isTerminated()) {
             //TODO: back-up data
-            subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
             serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
+            subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
             return; 
         }
 

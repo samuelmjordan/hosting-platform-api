@@ -95,7 +95,7 @@ public class ServerExecutionContextRepository {
             });
         } catch (DataAccessException e) {
             throw new RuntimeException(
-                "Failed to insert or update server execution context for subscription: " + context.getSubscriptionId(), e
+                String.format("Failed to insert or update server execution context for subscription: %s, context:", context.getSubscriptionId(), context.toString()), e
             );
         }
     }

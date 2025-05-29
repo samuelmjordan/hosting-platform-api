@@ -38,7 +38,7 @@ public class ConfigureNodeStep extends AbstractStep {
     public StepTransition create(Context context) {
         PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getNewPterodactylNodeId())
             .orElseThrow(() -> new IllegalStateException("Pterodactyl node not found: " + context.getNewPterodactylNodeId()));
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
+        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getNewARecordId())
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found: " + context.getNewARecordId()));
         pterodactylService.configureNode(pterodactylNode.pterodactylNodeId(), dnsARecord);
 
