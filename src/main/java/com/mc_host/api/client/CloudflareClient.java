@@ -81,6 +81,30 @@ public class CloudflareClient extends BaseApiClient{
         return record.result;
     }
 
+    public DNSRecordResponse updateCNameRecord(
+        String zoneId,
+        String recordId,
+        String name,
+        String target,
+        boolean proxied
+    ) throws Exception {
+        var recordData = Map.of(
+            "type", "CNAME",
+            "name", name,
+            "content", target,
+            "proxied", proxied,
+            "ttl", 3600
+        );
+
+        String response = sendRequest(
+            "PUT",
+            "/zones/" + zoneId + "/dns_records/" + recordId,
+            recordData
+        );
+        SingleRecordResponse<DNSRecordResponse> record = objectMapper.readValue(response, objectMapper.getTypeFactory().constructParametricType(SingleRecordResponse.class, DNSRecordResponse.class));
+        return record.result;
+    }
+
     public void deleteDNSRecord(String zoneId, String recordId) throws Exception {
         sendRequest("DELETE", "/zones/" + zoneId + "/dns_records/" + recordId);
     }

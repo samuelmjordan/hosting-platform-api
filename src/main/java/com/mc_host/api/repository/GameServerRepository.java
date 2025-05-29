@@ -117,6 +117,29 @@ public class GameServerRepository {
             throw new RuntimeException("Failed to create DNS C record: " + e.getMessage(), e);
         }
     }
+
+    public int updateDnsCNameRecord(DnsCNameRecord dnsCNameRecord) {
+        try {
+            return jdbcTemplate.update("""
+                UPDATE dns_c_name_record_ SET
+                    subscription_id = ?,
+                    zone_id = ?,
+                    zone_name = ?,
+                    record_name = ?,
+                    content = ?
+                WHERE c_name_record_id = ?
+                """,
+                dnsCNameRecord.subscriptionId(),
+                dnsCNameRecord.zoneId(),
+                dnsCNameRecord.zoneName(),
+                dnsCNameRecord.recordName(),
+                dnsCNameRecord.content(),
+                dnsCNameRecord.cNameRecordId()
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to update DNS C record: " + e.getMessage(), e);
+        }
+    }
     
     public Optional<DnsCNameRecord> selectDnsCNameRecord(String cNameRecordId) {
         try {

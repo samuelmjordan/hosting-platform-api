@@ -92,13 +92,35 @@ public class DnsService {
         }
     }
 
+    public DnsCNameRecord updateCNameRecord(DnsARecord dnsARecord, DnsCNameRecord dnsCNameRecord) {
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsARecord.subscriptionId()));
+        try {
+            DNSRecordResponse dnsCCNameRecordResponse = cloudflareClient.updateCNameRecord(
+                dnsARecord.zoneId(), 
+                dnsCNameRecord.cNameRecordId(),
+                dnsCNameRecord.recordName(),
+                dnsARecord.recordName(),
+                false
+            );
+            DnsCNameRecord newDnsCNameRecord = new DnsCNameRecord(
+                dnsARecord.subscriptionId(), 
+                dnsCCNameRecordResponse.id(), 
+                dnsARecord.zoneId(), 
+                dnsARecord.zoneName(),
+                dnsCCNameRecordResponse.name(),
+                dnsCCNameRecordResponse.content()
+            );
+            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updated DNS C NAME record", dnsARecord.subscriptionId()));
+            return newDnsCNameRecord;
+        } catch (Exception e) {
+            throw new CloudflareException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsARecord.subscriptionId()), e);
+        }
+    }
+
     public void deleteCNameRecord(DnsCNameRecord dnsCNameRecord) {
         LOGGER.log(Level.INFO, String.format("[cNameRecordId: %s] Deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()));
         try {
-            persistenceContext.inTransaction(() -> {
-                gameServerRepository.deleteDnsCNameRecord(dnsCNameRecord.cNameRecordId());
-                cloudflareClient.deleteDNSRecord(dnsCNameRecord.zoneId(), dnsCNameRecord.cNameRecordId());
-            });
+            cloudflareClient.deleteDNSRecord(dnsCNameRecord.zoneId(), dnsCNameRecord.cNameRecordId());
             LOGGER.log(Level.INFO, String.format("[cNameRecordId: %s] Deleted DNS C NAME record", dnsCNameRecord.cNameRecordId()));
         } catch (Exception e) {
             throw new CloudflareException(String.format("[cNameRecordId: %s] Error deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()), e);
