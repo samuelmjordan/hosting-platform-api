@@ -1,6 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.PterodactylAllocation;
@@ -36,21 +37,24 @@ public class PterodactylAllocationStep extends AbstractStep {
     }
 
     @Override
+    @Transactional
     public StepTransition create(Context context) {
-        PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("Pterodactyl node not found for subscription: " + context.getSubscriptionId()));
+        PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getNewPterodactylNodeId())
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl node not found: " + context.getNewPterodactylNodeId()));
         DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("DNS A Record not found for subscription: " + context.getSubscriptionId()));
+            .orElseThrow(() -> new IllegalStateException("DNS A Record not found: " + context.getNewARecordId()));
         pterodactylService.createAllocation(pterodactylNode.pterodactylNodeId(), dnsARecord.content(), 25565);
         PterodactylAllocation pterodactylAllocation = pterodactylService.getAllocation(context.getSubscriptionId(), pterodactylNode.pterodactylNodeId());
-        nodeRepository.insertPterodactylAllocation(pterodactylAllocation);
-        contextRepository.updateNewAllocationId(context.getSubscriptionId(), pterodactylAllocation.allocationId());
 
-        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
+        Context transitionedContext = context.withNewAllocationId(pterodactylAllocation.allocationId());
+        nodeRepository.insertPterodactylAllocation(pterodactylAllocation);
+
+        return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_SERVER);
     }
 
-    @SuppressWarnings("unused")
     @Override
+    @Transactional
+    @SuppressWarnings("unused")
     public StepTransition destroy(Context context) {
         // TODO: identify is server is hosted on a dedicated or cloud node
         // For now, we assume that the server is hosted on a cloud node

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.MarketingRegion;
 import com.mc_host.api.service.resources.v2.context.Context;
-import com.mc_host.api.service.resources.v2.context.ContextField;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
 import com.mc_host.api.service.resources.v2.context.StepType;
@@ -32,18 +31,66 @@ public class ServerExecutionContextRepository {
                         subscription_id, 
                         step_type, 
                         mode,
-                        execution_status
+                        execution_status,
+                        region,
+                        specification_id,
+                        title,
+                        caption,
+                        node_id,
+                        a_record_id,
+                        pterodactyl_node_id,
+                        allocation_id,
+                        pterodactyl_server_id,
+                        c_name_record_id,
+                        new_node_id,
+                        new_a_record_id,
+                        new_pterodactyl_node_id,
+                        new_allocation_id,
+                        new_pterodactyl_server_id,
+                        new_c_name_record_id
                     )
-                    VALUES (?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (subscription_id) DO UPDATE SET
                         step_type = EXCLUDED.step_type,
                         mode = EXCLUDED.mode,
-                        execution_status = EXCLUDED.execution_status
+                        execution_status = EXCLUDED.execution_status,
+                        region = EXCLUDED.region,
+                        specification_id = EXCLUDED.specification_id,
+                        title = EXCLUDED.title,
+                        caption = EXCLUDED.caption,
+                        node_id = EXCLUDED.node_id,
+                        a_record_id = EXCLUDED.a_record_id,
+                        pterodactyl_node_id = EXCLUDED.pterodactyl_node_id,
+                        allocation_id = EXCLUDED.allocation_id,
+                        pterodactyl_server_id = EXCLUDED.pterodactyl_server_id,
+                        c_name_record_id = EXCLUDED.c_name_record_id,
+                        new_node_id = EXCLUDED.new_node_id,
+                        new_a_record_id = EXCLUDED.new_a_record_id,
+                        new_pterodactyl_node_id = EXCLUDED.new_pterodactyl_node_id,
+                        new_allocation_id = EXCLUDED.new_allocation_id,
+                        new_pterodactyl_server_id = EXCLUDED.new_pterodactyl_server_id,
+                        new_c_name_record_id = EXCLUDED.new_c_name_record_id
                     """);
                 ps.setString(1, context.getSubscriptionId());
                 ps.setString(2, context.getStepType().name());
                 ps.setString(3, context.getMode().name());
                 ps.setString(4, context.getStatus().name());
+                ps.setString(5, context.getRegion().name());
+                ps.setString(6, context.getSpecificationId());
+                ps.setString(7, context.getTitle());
+                ps.setString(8, context.getCaption());
+                ps.setObject(9, context.getNodeId());
+                ps.setString(10, context.getARecordId());
+                ps.setObject(11, context.getPterodactylNodeId());
+                ps.setObject(12, context.getAllocationId());
+                ps.setObject(13, context.getPterodactylServerId());
+                ps.setObject(14, context.getCNameRecordId());
+                ps.setObject(15, context.getNewNodeId());
+                ps.setString(16, context.getNewARecordId());
+                ps.setObject(17, context.getNewPterodactylNodeId());
+                ps.setObject(18, context.getNewAllocationId());
+                ps.setObject(19, context.getNewPterodactylServerId());
+                ps.setObject(20, context.getNewCNameRecordId());
                 return ps;
             });
         } catch (DataAccessException e) {
@@ -65,7 +112,19 @@ public class ServerExecutionContextRepository {
                     region,
                     specification_id,
                     title,
-                    caption
+                    caption,
+                    node_id,
+                    a_record_id,
+                    pterodactyl_node_id,
+                    allocation_id,
+                    pterodactyl_server_id,
+                    c_name_record_id,
+                    new_node_id,
+                    new_a_record_id,
+                    new_pterodactyl_node_id,
+                    new_allocation_id,
+                    new_pterodactyl_server_id,
+                    new_c_name_record_id
                 FROM server_execution_context_
                 WHERE subscription_id = ?
                 """,
@@ -77,12 +136,24 @@ public class ServerExecutionContextRepository {
                     MarketingRegion.valueOf(rs.getString("region")),
                     rs.getString("specification_id"),
                     rs.getString("title"),
-                    rs.getString("caption")
+                    rs.getString("caption"),
+                    (Long) rs.getObject("node_id"),
+                    rs.getString("a_record_id"),
+                    (Long) rs.getObject("pterodactyl_node_id"),
+                    (Long) rs.getObject("allocation_id"),
+                    (Long) rs.getObject("pterodactyl_server_id"),
+                    rs.getString("c_name_record_id"),
+                    (Long) rs.getObject("new_node_id"),
+                    rs.getString("new_a_record_id"),
+                    (Long) rs.getObject("new_pterodactyl_node_id"),
+                    (Long) rs.getObject("new_allocation_id"),
+                    (Long) rs.getObject("new_pterodactyl_server_id"),
+                    rs.getString("new_c_name_record_id")
                 ),
                 subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for subscription id %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch server execution context for subscription id %s", subscriptionId), e);
         }
     }
 
@@ -151,208 +222,6 @@ public class ServerExecutionContextRepository {
             });
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to update subscription title to database: " + e.getMessage(), e);
-        }
-    }
-
-    private void updateField(String subscriptionId, ContextField field, Object value) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement(String.format("""
-                    UPDATE server_execution_context_ 
-                    SET %s = ?
-                    WHERE subscription_id = ?;
-                    """, field.getColumnName()));
-                
-                if (value instanceof Long) {
-                    ps.setLong(1, (Long) value);
-                } else if (value instanceof String) {
-                    ps.setString(1, (String) value);
-                } else if (value == null) {
-                    ps.setNull(1, java.sql.Types.NULL);
-                } else {
-                    throw new IllegalArgumentException("Unsupported type: " + value.getClass());
-                }
-                
-                ps.setString(2, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to update context " + field.getColumnName() + " to database for subscription: " + subscriptionId, e);
-        }
-    }
-
-    // Existing resource updates
-    public void updateNodeId(String subscriptionId, Long nodeId) {
-        updateField(subscriptionId, ContextField.NODE_ID, nodeId);
-    }
-
-    public void updateARecordId(String subscriptionId, String aRecordId) {
-        updateField(subscriptionId, ContextField.A_RECORD_ID, aRecordId);
-    }
-
-    public void updatePterodactylNodeId(String subscriptionId, Long pterodactylNodeId) {
-        updateField(subscriptionId, ContextField.PTERODACTYL_NODE_ID, pterodactylNodeId);
-    }
-
-    public void updateAllocationId(String subscriptionId, Long allocationId) {
-        updateField(subscriptionId, ContextField.ALLOCATION_ID, allocationId);
-    }
-
-    public void updatePterodactylServerId(String subscriptionId, Long pterodactylServerId) {
-        updateField(subscriptionId, ContextField.PTERODACTYL_SERVER_ID, pterodactylServerId);
-    }
-
-    public void updateCNameRecordId(String subscriptionId, String cNameRecordId) {
-        updateField(subscriptionId, ContextField.C_NAME_RECORD_ID, cNameRecordId);
-    }
-
-    // New resource updates (migration targets)
-    public void updateNewNodeId(String subscriptionId, Long newNodeId) {
-        updateField(subscriptionId, ContextField.NEW_NODE_ID, newNodeId);
-    }
-
-    public void updateNewARecordId(String subscriptionId, String newARecordId) {
-        updateField(subscriptionId, ContextField.NEW_A_RECORD_ID, newARecordId);
-    }
-
-    public void updateNewPterodactylNodeId(String subscriptionId, Long newPterodactylNodeId) {
-        updateField(subscriptionId, ContextField.NEW_PTERODACTYL_NODE_ID, newPterodactylNodeId);
-    }
-
-    public void updateNewAllocationId(String subscriptionId, Long newAllocationId) {
-        updateField(subscriptionId, ContextField.NEW_ALLOCATION_ID, newAllocationId);
-    }
-
-    public void updateNewPterodactylServerId(String subscriptionId, Long newPterodactylServerId) {
-        updateField(subscriptionId, ContextField.NEW_PTERODACTYL_SERVER_ID, newPterodactylServerId);
-    }
-
-    public void updateNewCNameRecordId(String subscriptionId, String newCNameRecordId) {
-        updateField(subscriptionId, ContextField.NEW_C_NAME_RECORD_ID, newCNameRecordId);
-    }
-
-    public void promoteNewResourcesToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET 
-                        node_id = new_node_id,
-                        a_record_id = new_a_record_id,
-                        pterodactyl_node_id = new_pterodactyl_node_id,
-                        allocation_id = new_allocation_id,
-                        pterodactyl_server_id = new_pterodactyl_server_id,
-                        c_name_record_id = new_c_name_record_id,
-                        new_node_id = NULL,
-                        new_a_record_id = NULL,
-                        new_pterodactyl_node_id = NULL,
-                        new_allocation_id = NULL,
-                        new_pterodactyl_server_id = NULL,
-                        new_c_name_record_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new resources to current for subscription: " + subscriptionId, e);
-        }
-    }
-
-    // Individual resource promotion methods
-    public void promoteNewNodeIdToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET node_id = new_node_id, new_node_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new node_id to current for subscription: " + subscriptionId, e);
-        }
-    }
-
-    public void promoteNewARecordIdToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET a_record_id = new_a_record_id, new_a_record_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new a_record_id to current for subscription: " + subscriptionId, e);
-        }
-    }
-
-    public void promoteNewPterodactylNodeIdToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET pterodactyl_node_id = new_pterodactyl_node_id, new_pterodactyl_node_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new pterodactyl_node_id to current for subscription: " + subscriptionId, e);
-        }
-    }
-
-    public void promoteNewAllocationIdToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET allocation_id = new_allocation_id, new_allocation_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new allocation_id to current for subscription: " + subscriptionId, e);
-        }
-    }
-
-    public void promoteNewPterodactylServerIdToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET pterodactyl_server_id = new_pterodactyl_server_id, new_pterodactyl_server_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new pterodactyl_server_id to current for subscription: " + subscriptionId, e);
-        }
-    }
-
-    public void promoteNewCNameRecordIdToCurrent(String subscriptionId) {
-        try {
-            jdbcTemplate.update(connection -> {
-                var ps = connection.prepareStatement("""
-                    UPDATE server_execution_context_
-                    SET c_name_record_id = new_c_name_record_id, new_c_name_record_id = NULL
-                    WHERE subscription_id = ?;
-                    """);
-                ps.setString(1, subscriptionId);
-                return ps;
-            });
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to promote new c_name_record_id to current for subscription: " + subscriptionId, e);
         }
     }
 }

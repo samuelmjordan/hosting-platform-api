@@ -14,7 +14,6 @@ import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.repository.NodeRepository;
-import com.mc_host.api.util.PersistenceContext;
 
 @Service
 public class HetznerService {
@@ -22,16 +21,12 @@ public class HetznerService {
 
     private final HetznerCloudClient hetznerClient;
     private final NodeRepository nodeRepository;
-    private final PersistenceContext persistenceContext;
-
     public HetznerService(
         HetznerCloudClient hetznerClient,
-        NodeRepository nodeRepository,
-        PersistenceContext persistenceContext
+        NodeRepository nodeRepository
     ) {
         this.hetznerClient = hetznerClient;
         this.nodeRepository = nodeRepository;
-        this.persistenceContext = persistenceContext;
     }
 
     public HetznerNode createCloudNode(String subscriptionId, HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
@@ -63,10 +58,7 @@ public class HetznerService {
     public void deleteCloudNode(Long hetznerNodeId) {
         LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Deleting hetzner node", hetznerNodeId));
         try {
-            persistenceContext.inTransaction(() -> {
-                nodeRepository.deleteHetznerNode(hetznerNodeId);
-                hetznerClient.deleteServer(hetznerNodeId);
-            });
+            hetznerClient.deleteServer(hetznerNodeId);
             LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Deleted hetzner node", hetznerNodeId));
         } catch (Exception e) {
             throw new HetznerException(String.format("[hetznerNodeId: %s] Error deleting hetzner node", hetznerNodeId), e);
@@ -74,7 +66,7 @@ public class HetznerService {
     }
 
     public Long getNodeId(String subscriptionId) {
-        return nodeRepository.selectHetznerNode(subscriptionId)
+        return nodeRepository.selectHetznerNodeFromSubscriptionId(subscriptionId)
             .map(HetznerNode::nodeId)
             .orElseThrow(() -> new IllegalStateException("No hetzner node associated with subscription %s " + subscriptionId));
     }

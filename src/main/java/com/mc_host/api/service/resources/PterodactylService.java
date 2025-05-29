@@ -26,7 +26,6 @@ import com.mc_host.api.model.pterodactyl.games.Nest;
 import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
 import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
 import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.util.PersistenceContext;
 
 @Service
@@ -36,7 +35,6 @@ public class PterodactylService {
     private final PterodactylApplicationClient pterodactylApplicationClient;
     private final PterodactylUserClient pterodactylUserClient;
     private final WingsService wingsService;
-    private final NodeRepository nodeRepository;
     private final GameServerRepository gameServerRepository;
     private final PersistenceContext persistenceContext;
 
@@ -44,14 +42,12 @@ public class PterodactylService {
         PterodactylApplicationClient pterodactylApplicationClient,
         PterodactylUserClient pterodactylUserClient,
         WingsService wingsService,
-        NodeRepository nodeRepository,
         GameServerRepository gameServerRepository,
         PersistenceContext persistenceContext
     ) {
         this.pterodactylApplicationClient = pterodactylApplicationClient;
         this.pterodactylUserClient = pterodactylUserClient;
         this.wingsService = wingsService;
-        this.nodeRepository = nodeRepository;
         this.gameServerRepository = gameServerRepository;
         this.persistenceContext = persistenceContext;
     }
@@ -90,20 +86,11 @@ public class PterodactylService {
     public void destroyNode(Long pterodactylNodeId) {
         LOGGER.log(Level.INFO, String.format("[pterodactylNodeId: %s] Deleting pterodactyl node", pterodactylNodeId));
         try {
-            persistenceContext.inTransaction(() -> {
-                nodeRepository.deletePterodactylNode(pterodactylNodeId);
-                pterodactylApplicationClient.deleteNode(pterodactylNodeId);
-            });
+            pterodactylApplicationClient.deleteNode(pterodactylNodeId);
             LOGGER.log(Level.INFO, String.format("[pterodactylNodeId: %s] Deleted pterodactyl node", pterodactylNodeId));
         } catch (Exception e) {
             throw new PterodactylException(String.format("[pterodactylNodeId: %s] Error deleting pterodactyl node", pterodactylNodeId), e);
         }
-    }
-
-    public void destroyNodeWithGameServerId(String nodeId) {
-        PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(nodeId)
-            .orElseThrow(() -> new IllegalStateException(String.format("[gameServerId: %s] No pterodactyl node associated with node", nodeId)));
-        destroyNode(pterodactylNode.pterodactylNodeId());
     }
 
     public void configureNode(Long pterodactylNodeId, DnsARecord dnsARecord) {
@@ -221,12 +208,6 @@ public class PterodactylService {
         } catch (Exception e) {
             throw new PterodactylException(String.format("[pterodactylServerId: %s] Error deleting pterodactyl server", pterodactylServerId), e);
         }
-    }
-
-    public void destroyServerWithGameServerId(String gameServerId) {
-        PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(gameServerId)
-            .orElseThrow(() -> new IllegalStateException(String.format("[gameServerId: %s] No pterodactyl server associated with game server", gameServerId)));
-        destroyServer(pterodactylServer.pterodactylServerId());
     }
 
     public void startServer(String pterodactylServerUid) {   

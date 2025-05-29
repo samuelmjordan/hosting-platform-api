@@ -1,6 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.HetznerNode;
@@ -35,21 +36,27 @@ public class CloudNodeStep extends AbstractStep {
     }
 
     @Override
+    @Transactional
     public StepTransition create(Context context) {
         HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), context.getRegion().getHetznerRegion(), HetznerServerType.CAX11);
-        nodeRepository.insertHetznerCloudNode(hetznerNode);
-        contextRepository.updateNewNodeId(context.getSubscriptionId(), hetznerNode.nodeId());
 
-        return transitionService.persistAndProgress(context, StepType.A_RECORD);
+        Context transitionedContext = context.withNewNodeId(hetznerNode.nodeId());
+        nodeRepository.insertHetznerCloudNode(hetznerNode);
+
+        return transitionService.persistAndProgress(transitionedContext, StepType.A_RECORD);
     }
 
     @Override
+    @Transactional
     public StepTransition destroy(Context context) {
-        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getSubscriptionId())
+        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())
             .orElseThrow(() -> new IllegalStateException("Hetzner node not found for subscription: " + context.getSubscriptionId()));
+        Context transitionedContext = context.promoteNewNodeId();
+        nodeRepository.deleteHetznerNode(hetznerNode.nodeId());
+        
         hetznerService.deleteCloudNode(hetznerNode.nodeId());
 
-        return transitionService.persistAndProgress(context, StepType.ALLOCATE_NODE);
+        return transitionService.persistAndProgress(transitionedContext, StepType.ALLOCATE_NODE);
     }
 
 }

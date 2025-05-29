@@ -1,6 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.HetznerNode;
@@ -35,23 +36,30 @@ public class ARecordStep extends AbstractStep {
     }
 
     @Override
+    @Transactional
     public StepTransition create(Context context) {
-        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("Hetzner node not found for subscription: " + context.getSubscriptionId()));
+        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNewNodeId())
+            .orElseThrow(() -> new IllegalStateException("Hetzner node not found: " + context.getNewNodeId()));
         DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
+
+        Context transitionedContext = context.withNewARecordId(dnsARecord.aRecordId());
         nodeRepository.insertDnsARecord(dnsARecord);
-        contextRepository.updateNewARecordId(context.getSubscriptionId(), dnsARecord.aRecordId());
         
-        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);
+        return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_NODE);
     }
 
     @Override
+    @Transactional
     public StepTransition destroy(Context context) {
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("DNS A Record not found for subscription: " + context.getSubscriptionId()));
+        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getARecordId())
+            .orElseThrow(() -> new IllegalStateException("DNS A Record not found: " + context.getARecordId()));
+        Context transitionedContext = context.promoteNewARecordId();
+        nodeRepository.deleteDnsARecord(dnsARecord.aRecordId());
+
+
         dnsService.deleteARecord(dnsARecord);
 
-        return transitionService.persistAndProgress(context, StepType.CLOUD_NODE);
+        return transitionService.persistAndProgress(transitionedContext, StepType.CLOUD_NODE);
     }
 
 }

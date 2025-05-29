@@ -14,7 +14,6 @@ import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.util.PersistenceContext;
 
 @Service
@@ -23,20 +22,17 @@ public class DnsService {
 
     private final ApplicationConfiguration applicationConfiguration;
     private final CloudflareClient cloudflareClient;
-    private final NodeRepository nodeRepository;
     private final GameServerRepository gameServerRepository;
     private final PersistenceContext persistenceContext;
 
     public DnsService(
         CloudflareClient cloudflareClient,
         ApplicationConfiguration applicationConfiguration,
-        NodeRepository nodeRepository,
         GameServerRepository gameServerRepository,
         PersistenceContext persistenceContext
     ) {
         this.cloudflareClient = cloudflareClient;
         this.applicationConfiguration = applicationConfiguration;
-        this.nodeRepository = nodeRepository;
         this.gameServerRepository = gameServerRepository;
         this.persistenceContext = persistenceContext;
     }
@@ -65,20 +61,11 @@ public class DnsService {
     public void deleteARecord(DnsARecord dnsARecord) {
         LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Deleting DNS A record", dnsARecord.aRecordId()));
         try {
-            persistenceContext.inTransaction(() -> {
-                nodeRepository.deleteDnsARecord(dnsARecord.aRecordId());
-                cloudflareClient.deleteDNSRecord(dnsARecord.zoneId(), dnsARecord.aRecordId());
-            });
+            cloudflareClient.deleteDNSRecord(dnsARecord.zoneId(), dnsARecord.aRecordId());
             LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Deleted DNS A record", dnsARecord.aRecordId()));
         } catch (Exception e) {
             throw new CloudflareException(String.format("[aRecordId: %s] Error deleting DNS A record", dnsARecord.aRecordId()), e);
         }
-    }
-
-    public void deleteARecordWithGameServerId(String nodeId) {
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(nodeId)
-            .orElseThrow(() -> new IllegalStateException(String.format("[gameServerId: %s] No DNS A record associated with node", nodeId)));
-        deleteARecord(dnsARecord);
     }
 
     public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {

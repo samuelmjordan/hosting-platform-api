@@ -3,6 +3,7 @@ package com.mc_host.api.service.resources.v2.service.steps;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.node.DnsARecord;
@@ -41,21 +42,29 @@ public class CNameRecordStep extends AbstractStep {
     }
 
     @Override
+    @Transactional
     public StepTransition create(Context context) {
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("DNS A record not found for subscription: " + context.getSubscriptionId()));
+        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getNewARecordId())
+            .orElseThrow(() -> new IllegalStateException("DNS A record not found: " + context.getNewARecordId()));
         DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord, UUID.randomUUID().toString().replace("-", ""));
-        gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
-        contextRepository.updateNewCNameRecordId(context.getSubscriptionId(), dnsCNameRecord.cNameRecordId());
 
-        return transitionService.persistAndProgress(context, StepType.START_SERVER);
+        Context transitionedContext = context.withNewCNameRecordId(dnsCNameRecord.cNameRecordId());
+        gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
+
+        return transitionService.persistAndProgress(transitionedContext, StepType.START_SERVER);
     }
 
     @Override
+    @Transactional
     public StepTransition destroy(Context context) {
         DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(context.getSubscriptionId())
             .orElseThrow(() -> new IllegalStateException("DNS CNAME record not found for subscription: " + context.getSubscriptionId()));
-        dnsService.deleteCNameRecord(dnsCNameRecord);
+
+        if (context.getMode().isMigrate()) {
+
+        } else {
+            dnsService.deleteCNameRecord(dnsCNameRecord);
+        }
 
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }

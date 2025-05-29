@@ -44,7 +44,31 @@ public class NodeRepository {
         }
     }
     
-    public Optional<HetznerNode> selectHetznerNode(String subscriptionId) {
+    public Optional<HetznerNode> selectHetznerNode(Long nodeId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    subscription_id,
+                    node_id,
+                    hetzner_region,
+                    ipv4
+                FROM cloud_node_
+                WHERE node_id = ?
+                """,
+                (rs, rowNum) -> new HetznerNode(
+                    rs.getString("subscription_id"),
+                    rs.getLong("node_id"),
+                    HetznerRegion.lookup(rs.getString("hetzner_region")),
+                    rs.getString("ipv4")),
+                    nodeId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch cloud node nodeId: %s", nodeId), e);
+        }
+    }
+
+    public Optional<HetznerNode> selectHetznerNodeFromSubscriptionId(String SubscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -55,16 +79,18 @@ public class NodeRepository {
                     ipv4
                 FROM cloud_node_
                 WHERE subscription_id = ?
+                ORDER BY created_at ASC
+                LIMIT 1
                 """,
                 (rs, rowNum) -> new HetznerNode(
                     rs.getString("subscription_id"),
                     rs.getLong("node_id"),
                     HetznerRegion.lookup(rs.getString("hetzner_region")),
                     rs.getString("ipv4")),
-                    subscriptionId
+                    SubscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch cloud node for subscriptionId: %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch cloud node: %s", SubscriptionId), e);
         }
     }
 
@@ -115,7 +141,7 @@ public class NodeRepository {
         }
     }
     
-    public Optional<PterodactylNode> selectPterodactylNode(String subscriptionId) {
+    public Optional<PterodactylNode> selectPterodactylNode(Long pterodactylnodeId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -123,15 +149,15 @@ public class NodeRepository {
                     subscription_id,
                     pterodactyl_node_id
                 FROM pterodactyl_node_
-                WHERE subscription_id = ?
+                WHERE pterodactyl_node_id = ?
                 """,
                 (rs, rowNum) -> new PterodactylNode(
                     rs.getString("subscription_id"),
                     rs.getLong("pterodactyl_node_id")),
-                    subscriptionId
+                    pterodactylnodeId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for subscription id %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl node %s", pterodactylnodeId), e);
         }
     }
     
@@ -186,7 +212,7 @@ public class NodeRepository {
         }
     }
 
-    public Optional<PterodactylAllocation> selectPterodactylAllocation(String subscriptionId) {
+    public Optional<PterodactylAllocation> selectPterodactylAllocation(Long allocationId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -197,7 +223,7 @@ public class NodeRepository {
                     port,
                     alias
                 FROM pterodactyl_allocation_
-                WHERE subscription_id = ?
+                WHERE allocation_id = ?
                 """,
                 (rs, rowNum) -> new PterodactylAllocation(
                     rs.getString("subscription_id"),
@@ -206,10 +232,10 @@ public class NodeRepository {
                     rs.getInt("port"),
                     rs.getString("alias")
                 ),
-                    subscriptionId
+                allocationId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch pterodactyl node for subscription id %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl allocation %s", allocationId), e);
         }
     }
     
@@ -240,7 +266,7 @@ public class NodeRepository {
         }
     }
     
-    public Optional<DnsARecord> selectDnsARecord(String subscriptionId) {
+    public Optional<DnsARecord> selectDnsARecord(String aRecordId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -252,7 +278,7 @@ public class NodeRepository {
                     record_name,
                     content
                 FROM dns_a_record_
-                WHERE subscription_id = ?
+                WHERE a_record_id = ?
                 """,
                 (rs, rowNum) -> new DnsARecord(
                     rs.getString("subscription_id"),
@@ -261,10 +287,10 @@ public class NodeRepository {
                     rs.getString("zone_name"),
                     rs.getString("record_name"),
                     rs.getString("content")),
-                    subscriptionId
+                    aRecordId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch DNS A record for subscription id %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch DNS A record %s", aRecordId), e);
         }
     }
 

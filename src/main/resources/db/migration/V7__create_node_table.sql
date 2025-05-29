@@ -9,7 +9,7 @@ CREATE TABLE cloud_node_ (
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT cloud_node_subscription_id_fk FOREIGN KEY (subscription_id) 
         REFERENCES subscription_(subscription_id),
-    CONSTRAINT cloud_node_ipv4_unique UNIQUE (ipv4)
+    CONSTRAINT cloud_node_node_id_unique UNIQUE (node_id)
 );
 CREATE INDEX idx_cloud_node_subscription_id ON cloud_node_(subscription_id);
 CREATE INDEX idx_cloud_node_node_id ON cloud_node_(node_id);

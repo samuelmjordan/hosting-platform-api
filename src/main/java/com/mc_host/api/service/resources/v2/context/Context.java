@@ -20,22 +20,22 @@ public class Context {
     private final String title;
     private final String caption;
 
-    public Context inProgress() {
-        return this.withStatus(Status.IN_PROGRESS);
-    }
+    // Current resources
+    private final Long nodeId;
+    private final String aRecordId;
+    private final Long pterodactylNodeId;
+    private final Long allocationId;
+    private final Long pterodactylServerId;
+    private final String cNameRecordId;
 
-    public Context completed() {
-        return this.withStatus(Status.COMPLETED);
-    }
+    // New resources (migration targets)
+    private final Long newNodeId;
+    private final String newARecordId;
+    private final Long newPterodactylNodeId;
+    private final Long newAllocationId;
+    private final Long newPterodactylServerId;
+    private final String newCNameRecordId;
 
-    public Context failed() {
-        return this.withStatus(Status.FAILED);
-    }
-    
-    public Context transitionTo(StepType nextStep) {
-        return this.withStepType(nextStep).inProgress();
-    }
-    
     public static Context create(
         String subscriptionId, 
         Mode mode, 
@@ -51,8 +51,26 @@ public class Context {
             region,
             specificationId,
             title,
-            caption
+            caption,
+            null, null, null, null, null, null, // current resources
+            null, null, null, null, null, null  // new resources
         );
+    }
+
+    public Context inProgress() {
+        return this.withStatus(Status.IN_PROGRESS);
+    }
+
+    public Context completed() {
+        return this.withStatus(Status.COMPLETED);
+    }
+
+    public Context failed() {
+        return this.withStatus(Status.FAILED);
+    }
+    
+    public Context transitionTo(StepType nextStep) {
+        return this.withStepType(nextStep).inProgress();
     }
 
     public Boolean isCreated() {
@@ -65,5 +83,46 @@ public class Context {
         return 
             stepType == StepType.NEW &&
             status == Status.COMPLETED;
+    }
+
+    // Resource promotion methods
+    public Context promoteNewNodeId() {
+        return this.withNodeId(this.newNodeId).withNewNodeId(null);
+    }
+
+    public Context promoteNewARecordId() {
+        return this.withARecordId(this.newARecordId).withNewARecordId(null);
+    }
+
+    public Context promoteNewPterodactylNodeId() {
+        return this.withPterodactylNodeId(this.newPterodactylNodeId).withNewPterodactylNodeId(null);
+    }
+
+    public Context promoteNewAllocationId() {
+        return this.withAllocationId(this.newAllocationId).withNewAllocationId(null);
+    }
+
+    public Context promoteNewPterodactylServerId() {
+        return this.withPterodactylServerId(this.newPterodactylServerId).withNewPterodactylServerId(null);
+    }
+
+    public Context promoteNewCNameRecordId() {
+        return this.withCNameRecordId(this.newCNameRecordId).withNewCNameRecordId(null);
+    }
+
+    public Context promoteAllNewResources() {
+        return this
+            .withNodeId(this.newNodeId)
+            .withARecordId(this.newARecordId)
+            .withPterodactylNodeId(this.newPterodactylNodeId)
+            .withAllocationId(this.newAllocationId)
+            .withPterodactylServerId(this.newPterodactylServerId)
+            .withCNameRecordId(this.newCNameRecordId)
+            .withNewNodeId(null)
+            .withNewARecordId(null)
+            .withNewPterodactylNodeId(null)
+            .withNewAllocationId(null)
+            .withNewPterodactylServerId(null)
+            .withNewCNameRecordId(null);
     }
 }

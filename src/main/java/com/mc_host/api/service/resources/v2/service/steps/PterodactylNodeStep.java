@@ -1,6 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.PterodactylNode;
@@ -35,23 +36,29 @@ public class PterodactylNodeStep extends AbstractStep {
     }
 
     @Override
+    @Transactional
     public StepTransition create(Context context) {
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("DNS A Record not found for subscription: " + context.getSubscriptionId()));
+        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getNewARecordId())
+            .orElseThrow(() -> new IllegalStateException("DNS A Record not found:" + context.getNewARecordId()));
         PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord);
-        nodeRepository.insertPterodactylNode(pterodactylNode);
-        contextRepository.updateNewPterodactylNodeId(context.getSubscriptionId(), pterodactylNode.pterodactylNodeId());
 
-        return transitionService.persistAndProgress(context, StepType.CONFIGURE_NODE);
+        Context transitionedContext = context.withNewPterodactylNodeId(pterodactylNode.pterodactylNodeId());
+        nodeRepository.insertPterodactylNode(pterodactylNode);
+
+        return transitionService.persistAndProgress(transitionedContext, StepType.CONFIGURE_NODE);
     }
 
     @Override
+    @Transactional
     public StepTransition destroy(Context context) {
-        PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getSubscriptionId())
+        PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getPterodactylNodeId())
             .orElseThrow(() -> new IllegalStateException("Pterodactyl Node not found for subscription: " + context.getSubscriptionId()));
+        Context transitionedContext = context.promoteNewPterodactylNodeId();
+        nodeRepository.deletePterodactylNode(pterodactylNode.pterodactylNodeId());
+
         pterodactylService.destroyNode(pterodactylNode.pterodactylNodeId());
 
-        return transitionService.persistAndProgress(context, StepType.A_RECORD);
+        return transitionService.persistAndProgress(transitionedContext, StepType.A_RECORD);
     }
 
 }

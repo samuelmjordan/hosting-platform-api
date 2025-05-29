@@ -41,7 +41,7 @@ public class GameServerRepository {
         }
     }
     
-    public Optional<PterodactylServer> selectPterodactylServer(String subscriptionId) {
+    public Optional<PterodactylServer> selectPterodactylServer(Long pterodactylServerId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -51,17 +51,17 @@ public class GameServerRepository {
                     pterodactyl_server_id,
                     allocation_id
                 FROM pterodactyl_server_
-                WHERE subscription_id = ?
+                WHERE pterodactyl_server_id = ?
                 """,
                 (rs, rowNum) -> new PterodactylServer(
                     rs.getString("subscription_id"),
                     rs.getString("pterodactyl_server_uid"),
                     rs.getLong("pterodactyl_server_id"),
                     rs.getLong("allocation_id")),
-                subscriptionId
+                pterodactylServerId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch pterodactyl server for subscription id %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch pterodactyl server %s", pterodactylServerId), e);
         }
     }
     
@@ -118,7 +118,35 @@ public class GameServerRepository {
         }
     }
     
-    public Optional<DnsCNameRecord> selectDnsCNameRecord(String subscriptionId) {
+    public Optional<DnsCNameRecord> selectDnsCNameRecord(String cNameRecordId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT
+                    subscription_id,
+                    c_name_record_id,
+                    zone_id,
+                    zone_name,
+                    record_name,
+                    content
+                FROM dns_c_name_record_
+                WHERE c_name_record_id = ?
+                """,
+                (rs, rowNum) -> new DnsCNameRecord(
+                    rs.getString("subscription_id"),
+                    rs.getString("c_name_record_id"),
+                    rs.getString("zone_id"),
+                    rs.getString("zone_name"),
+                    rs.getString("record_name"),
+                    rs.getString("content")),
+                cNameRecordId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Failed to fetch DNS C record %s", cNameRecordId), e);
+        }
+    }
+
+    public Optional<DnsCNameRecord> selectDnsCNameRecordWithSubscriptionId(String subscriptionId) {
         try {
             return jdbcTemplate.query(
                 """
@@ -131,6 +159,8 @@ public class GameServerRepository {
                     content
                 FROM dns_c_name_record_
                 WHERE subscription_id = ?
+                ORDER BY created_at ASC
+                LIMIT 1
                 """,
                 (rs, rowNum) -> new DnsCNameRecord(
                     rs.getString("subscription_id"),
@@ -142,7 +172,7 @@ public class GameServerRepository {
                 subscriptionId
             ).stream().findFirst();
         } catch (DataAccessException e) {
-            throw new RuntimeException(String.format("Failed to fetch DNS C record for subscription id %s", subscriptionId), e);
+            throw new RuntimeException(String.format("Failed to fetch DNS C record %s", subscriptionId), e);
         }
     }
     

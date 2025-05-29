@@ -10,9 +10,9 @@ import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 @Service
-public class NewStep extends AbstractStep {
+public class FinaliseStep extends AbstractStep {
 
-    protected NewStep(
+    protected FinaliseStep(
         ServerExecutionContextRepository contextRepository,
         TransitionService transitionService
     ) {
@@ -21,19 +21,23 @@ public class NewStep extends AbstractStep {
 
     @Override
     public StepType getType() {
-        return StepType.NEW;
+        return StepType.FINALISE;
     }
 
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        return transitionService.persistAndProgress(context, StepType.ALLOCATE_NODE);
+        Context transitionedContext = context;
+        if (!context.getMode().isMigrate()) {
+            transitionedContext = context.promoteAllNewResources();
+        }
+
+        return transitionService.persistAndProgress(transitionedContext, StepType.READY);
     }
 
     @Override
     @Transactional
     public StepTransition destroy(Context context) {
-        return transitionService.persistAndComplete(context);
+        return transitionService.persistAndProgress(context, StepType.C_NAME_RECORD);
     }
-
 }

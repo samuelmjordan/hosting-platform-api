@@ -36,10 +36,10 @@ public class ConfigureNodeStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("Pterodactyl node not found for subscription: " + context.getSubscriptionId()));
+        PterodactylNode pterodactylNode = nodeRepository.selectPterodactylNode(context.getNewPterodactylNodeId())
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl node not found: " + context.getNewPterodactylNodeId()));
         DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("DNS A Record not found for subscription: " + context.getSubscriptionId()));
+            .orElseThrow(() -> new IllegalStateException("DNS A Record not found: " + context.getNewARecordId()));
         pterodactylService.configureNode(pterodactylNode.pterodactylNodeId(), dnsARecord);
 
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_ALLOCATION);

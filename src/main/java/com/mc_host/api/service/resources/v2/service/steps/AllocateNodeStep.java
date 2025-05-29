@@ -1,6 +1,7 @@
 package com.mc_host.api.service.resources.v2.service.steps;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
@@ -23,8 +24,9 @@ public class AllocateNodeStep extends AbstractStep {
         return StepType.ALLOCATE_NODE;
     }
 
-    @SuppressWarnings("unused")
     @Override
+    @Transactional
+    @SuppressWarnings("unused")
     public StepTransition create(Context context) {
         // TODO: use dedicated node if available
         if (false) {
@@ -34,6 +36,7 @@ public class AllocateNodeStep extends AbstractStep {
     }
 
     @Override
+    @Transactional
     public StepTransition destroy(Context context) {
         return transitionService.persistAndProgress(context, StepType.NEW);
     }

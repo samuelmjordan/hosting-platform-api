@@ -35,11 +35,11 @@ public class StartServerStep extends AbstractStep {
 
     @Override
     public StepTransition create(Context context) {
-        PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(context.getSubscriptionId())
-            .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found for subscription: " + context.getSubscriptionId()));
+        PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found: " + context.getPterodactylServerId()));
         pterodactylService.startNewPterodactylServer(pterodactylServer);
         
-        return transitionService.persistAndProgress(context, StepType.READY);
+        return transitionService.persistAndProgress(context, StepType.FINALISE);
     }
 
     @Override

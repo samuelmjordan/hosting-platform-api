@@ -16,4 +16,8 @@ public enum Mode {
     public Boolean isDestroy() {
         return List.of(DESTROY , MIGRATE_DESTROY).contains(this);
     }
+
+    public Boolean isMigrate() {
+        return List.of(MIGRATE_CREATE , MIGRATE_DESTROY).contains(this);        
+    }
 }

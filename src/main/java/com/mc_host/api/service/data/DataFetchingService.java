@@ -220,8 +220,8 @@ public class DataFetchingService implements DataFetchingResource  {
         String specificationId = planRepository.selectSpecificationId(subscription.priceId())
             .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
         JavaServerSpecification gameSeverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
-            .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));;
-        String dnsCNameRecordName = gameServerRepository.selectDnsCNameRecord(subscription.subscriptionId())
+            .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
+        String dnsCNameRecordName = gameServerRepository.selectDnsCNameRecordWithSubscriptionId(subscription.subscriptionId())
             .map(DnsCNameRecord::recordName)
             .orElse(null);
         Context context = serverExecutionContextRepository.selectSubscription(subscription.subscriptionId())
