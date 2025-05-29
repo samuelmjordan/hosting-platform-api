@@ -3,7 +3,6 @@ package com.mc_host.api.client;
 import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
@@ -14,7 +13,6 @@ import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
 
 @Service
 public class PterodactylApplicationClient extends BaseApiClient {
-    private static final Logger LOGGER = Logger.getLogger(PterodactylApplicationClient.class.getName());
 
     private final PterodactylConfiguration pterodactylConfiguration;
 

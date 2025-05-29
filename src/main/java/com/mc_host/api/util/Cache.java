@@ -8,11 +8,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -88,12 +90,25 @@ public class Cache {
     }
 
     public void queueLeftPush(Queue queue, String value) {
-        try {
-            redisTemplate.opsForList().leftPush(composeKey(QUEUE_NAMESPACE, queue.name()), value);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, String.format("Failed to push value %s for queue %s", value, queue), e);
-            throw e;
-        }      
+        String script = """
+            local key = KEYS[1]
+            local value = ARGV[1]
+            local pos = redis.call('LPOS', key, value)
+            if not pos then
+                redis.call('LPUSH', key, value)
+                return 1
+            end
+            return 0
+            """;
+        
+        Long result = redisTemplate.execute(
+            RedisScript.of(script, Long.class),
+            List.of(composeKey(QUEUE_NAMESPACE, queue.name())),
+            value
+        );
+        if (result == 0) {
+            LOGGER.info(String.format("Duplicate push queue: %s, value: %s", queue, value));
+        }
     }
 
     public String queueRead(Queue queue) {

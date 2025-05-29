@@ -3,7 +3,6 @@ package com.mc_host.api.client;
 import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
@@ -12,7 +11,7 @@ import com.mc_host.api.configuration.CloudflareConfiguration;
 
 @Service
 public class CloudflareClient extends BaseApiClient{
-    private static final Logger LOGGER = Logger.getLogger(CloudflareClient.class.getName());
+    private static final Integer RECORD_TTL = 60;
 
     private final CloudflareConfiguration cloudflareConfiguration;
 
@@ -46,7 +45,7 @@ public class CloudflareClient extends BaseApiClient{
             "name", name,
             "content", ipAddress,
             "proxied", proxied,
-            "ttl", 3600
+            "ttl", RECORD_TTL
         );
 
         String response = sendRequest(
@@ -69,7 +68,7 @@ public class CloudflareClient extends BaseApiClient{
             "name", name,
             "content", target,
             "proxied", proxied,
-            "ttl", 3600
+            "ttl", RECORD_TTL
         );
 
         String response = sendRequest(
@@ -93,7 +92,7 @@ public class CloudflareClient extends BaseApiClient{
             "name", name,
             "content", target,
             "proxied", proxied,
-            "ttl", 3600
+            "ttl", RECORD_TTL
         );
 
         String response = sendRequest(

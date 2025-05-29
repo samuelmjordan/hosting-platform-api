@@ -2,7 +2,6 @@ package com.mc_host.api.client;
 
 import java.net.http.HttpClient;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
@@ -11,7 +10,6 @@ import com.mc_host.api.configuration.PterodactylConfiguration;
 
 @Service
 public class PterodactylUserClient extends BaseApiClient {
-    private static final Logger LOGGER = Logger.getLogger(PterodactylUserClient.class.getName());
 
     private final PterodactylConfiguration pterodactylConfiguration;
 

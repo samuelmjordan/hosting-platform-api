@@ -25,8 +25,6 @@ import com.mc_host.api.model.pterodactyl.games.Egg;
 import com.mc_host.api.model.pterodactyl.games.Nest;
 import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
 import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
-import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.util.PersistenceContext;
 
 @Service
 public class PterodactylService {
@@ -35,21 +33,14 @@ public class PterodactylService {
     private final PterodactylApplicationClient pterodactylApplicationClient;
     private final PterodactylUserClient pterodactylUserClient;
     private final WingsService wingsService;
-    private final GameServerRepository gameServerRepository;
-    private final PersistenceContext persistenceContext;
-
     public PterodactylService(
         PterodactylApplicationClient pterodactylApplicationClient,
         PterodactylUserClient pterodactylUserClient,
-        WingsService wingsService,
-        GameServerRepository gameServerRepository,
-        PersistenceContext persistenceContext
+        WingsService wingsService
     ) {
         this.pterodactylApplicationClient = pterodactylApplicationClient;
         this.pterodactylUserClient = pterodactylUserClient;
         this.wingsService = wingsService;
-        this.gameServerRepository = gameServerRepository;
-        this.persistenceContext = persistenceContext;
     }
 
     public PterodactylNode createNode(DnsARecord dnsARecord) {
@@ -180,7 +171,7 @@ public class PterodactylService {
                     "default", allocation.allocationId()
                 )),
                 Map.entry("nest", Nest.MINECRAFT.getId()),
-                Map.entry("external_id", subscriptionId)
+                Map.entry("external_id", subscriptionId+"::"+UUID.randomUUID().toString())
             );
             
             PterodactylServerResponse response = pterodactylApplicationClient.createServer(serverDetails);
@@ -200,10 +191,7 @@ public class PterodactylService {
     public void destroyServer(Long pterodactylServerId) {
         LOGGER.log(Level.INFO, String.format("[pterodactylServerId: %s] Deleting pterodactyl server", pterodactylServerId));
         try {
-            persistenceContext.inTransaction(() -> {
-                gameServerRepository.deletePterodactylServer(pterodactylServerId);
-                pterodactylApplicationClient.deleteServer(pterodactylServerId);
-            });
+            pterodactylApplicationClient.deleteServer(pterodactylServerId);
             LOGGER.log(Level.INFO, String.format("[pterodactylServerId: %s] Deleted pterodactyl server", pterodactylServerId));
         } catch (Exception e) {
             throw new PterodactylException(String.format("[pterodactylServerId: %s] Error deleting pterodactyl server", pterodactylServerId), e);

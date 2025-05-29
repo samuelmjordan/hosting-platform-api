@@ -157,10 +157,10 @@ public class StripeSubscriptionService implements StripeEventService {
 
         if (newSubscriptionStatus.isActive() || newSubscriptionStatus.equals(SubscriptionStatus.PAST_DUE)) {
             //TODO: back-up data
-            serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
+            serverExecutor.execute(context.inProgress());
 
             Boolean priceChanged = !newSubscription.priceId().equals(oldSubscription.priceId());
-            HetznerRegion actualRegion = hetznerService.getServerRegion(hetznerService.getNodeId(newSubscription.subscriptionId()));
+            HetznerRegion actualRegion = hetznerService.getServerRegion(context.getNodeId());
             Boolean regionChanged = !context.getRegion().equals(actualRegion.getMarketingRegion());
 
             if (priceChanged || regionChanged) {

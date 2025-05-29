@@ -332,4 +332,17 @@ public class NodeRepository {
             throw new RuntimeException("Failed to delete DNS A record: " + e.getMessage(), e);
         }
     }
+
+    public int deletePterodactylAllocation(Long allocationId) {
+        try {
+            return jdbcTemplate.update("""
+                DELETE FROM pterodactyl_allocation_
+                WHERE allocation_id = ?
+                """,
+                allocationId
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete pterodactyl allocaation: " + allocationId, e);
+        }
+    }
 }

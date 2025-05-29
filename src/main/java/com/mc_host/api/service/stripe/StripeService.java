@@ -150,7 +150,7 @@ public class StripeService implements StripeResource {
             .orElseThrow(() -> new IllegalStateException(String.format("No alternative for priceId %s in %s", priceId, currency)));
     }
 
-    private String getCustomerId(String userId) throws CustomerNotFoundException {
+    public String getCustomerId(String userId) throws CustomerNotFoundException {
         CacheNamespace cacheNamespace = CacheNamespace.USER_CUSTOMER_ID;
         Optional<String> stripeCustomerId = dataFetchingService.getUserCustomerId(userId);
         if (stripeCustomerId.isPresent()) {

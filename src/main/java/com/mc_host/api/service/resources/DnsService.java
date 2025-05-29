@@ -14,7 +14,6 @@ import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.node.DnsARecord;
 import com.mc_host.api.model.node.HetznerNode;
 import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.util.PersistenceContext;
 
 @Service
 public class DnsService {
@@ -23,18 +22,14 @@ public class DnsService {
     private final ApplicationConfiguration applicationConfiguration;
     private final CloudflareClient cloudflareClient;
     private final GameServerRepository gameServerRepository;
-    private final PersistenceContext persistenceContext;
-
     public DnsService(
         CloudflareClient cloudflareClient,
         ApplicationConfiguration applicationConfiguration,
-        GameServerRepository gameServerRepository,
-        PersistenceContext persistenceContext
+        GameServerRepository gameServerRepository
     ) {
         this.cloudflareClient = cloudflareClient;
         this.applicationConfiguration = applicationConfiguration;
         this.gameServerRepository = gameServerRepository;
-        this.persistenceContext = persistenceContext;
     }
 
     public DnsARecord createARecord(HetznerNode hetznerNode) {

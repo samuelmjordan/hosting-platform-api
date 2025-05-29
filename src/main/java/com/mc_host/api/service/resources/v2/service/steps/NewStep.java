@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
+import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.StepTransition;
 import com.mc_host.api.service.resources.v2.context.StepType;
 import com.mc_host.api.service.resources.v2.service.TransitionService;
@@ -33,6 +34,9 @@ public class NewStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition destroy(Context context) {
+        if (context.getMode().isMigrate()) {
+            return transitionService.persistAndProgress(context.withMode(Mode.CREATE), StepType.READY);        
+        }
         return transitionService.persistAndComplete(context);
     }
 

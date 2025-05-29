@@ -13,20 +13,16 @@ import com.mc_host.api.model.hetzner.HetznerServerResponse;
 import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
 import com.mc_host.api.model.hetzner.HetznerServerType;
 import com.mc_host.api.model.node.HetznerNode;
-import com.mc_host.api.repository.NodeRepository;
 
 @Service
 public class HetznerService {
     private static final Logger LOGGER = Logger.getLogger(HetznerService.class.getName());
 
     private final HetznerCloudClient hetznerClient;
-    private final NodeRepository nodeRepository;
     public HetznerService(
-        HetznerCloudClient hetznerClient,
-        NodeRepository nodeRepository
+        HetznerCloudClient hetznerClient
     ) {
         this.hetznerClient = hetznerClient;
-        this.nodeRepository = nodeRepository;
     }
 
     public HetznerNode createCloudNode(String subscriptionId, HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
@@ -63,12 +59,6 @@ public class HetznerService {
         } catch (Exception e) {
             throw new HetznerException(String.format("[hetznerNodeId: %s] Error deleting hetzner node", hetznerNodeId), e);
         }  
-    }
-
-    public Long getNodeId(String subscriptionId) {
-        return nodeRepository.selectHetznerNodeFromSubscriptionId(subscriptionId)
-            .map(HetznerNode::nodeId)
-            .orElseThrow(() -> new IllegalStateException("No hetzner node associated with subscription %s " + subscriptionId));
     }
 
     public HetznerRegion getServerRegion(Long nodeId) {

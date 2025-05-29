@@ -36,7 +36,7 @@ public interface UserActionsResource {
     );
 
     @PostMapping("/user/{userId}/subscription/{subscriptionId}/address")
-    public ResponseEntity<Void> updateSubscriptionAdress(
+    public ResponseEntity<Void> updateSubscriptionAddress(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
         @RequestBody UpdateAddressRequest address

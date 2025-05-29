@@ -58,10 +58,14 @@ public class PterodactylAllocationStep extends AbstractStep {
     public StepTransition destroy(Context context) {
         // TODO: identify is server is hosted on a dedicated or cloud node
         // For now, we assume that the server is hosted on a cloud node
+        PterodactylAllocation pterodactylAllocation = nodeRepository.selectPterodactylAllocation(context.getAllocationId())
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found: " + context.getAllocationId()));
+        Context transitionedContext = context.promoteNewAllocationId();
+        nodeRepository.deletePterodactylAllocation(pterodactylAllocation.allocationId());
         if (false) {
-            return transitionService.persistAndProgress(context, StepType.DEDICATED_NODE);
+            return transitionService.persistAndProgress(transitionedContext, StepType.DEDICATED_NODE);
         }
-        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);
+        return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_NODE);
     }
 
 }

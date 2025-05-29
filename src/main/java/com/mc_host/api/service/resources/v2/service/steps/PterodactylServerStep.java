@@ -65,7 +65,7 @@ public class PterodactylServerStep extends AbstractStep {
 
         pterodactylService.destroyServer(pterodactylServer.pterodactylServerId());
 
-        return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_NODE);
+        return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_ALLOCATION);
     }
 
 }
