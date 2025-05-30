@@ -112,6 +112,31 @@ public class DnsService {
         }
     }
 
+    public DnsCNameRecord updateCNameRecordName(DnsCNameRecord dnsCNameRecord, String subdomain) {
+        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsCNameRecord.subscriptionId()));
+        try {
+            DNSRecordResponse dnsCNameRecordResponse = cloudflareClient.updateCNameRecord(
+                dnsCNameRecord.zoneId(), 
+                dnsCNameRecord.cNameRecordId(),
+                subdomain,
+                dnsCNameRecord.content(),
+                false
+            );
+            DnsCNameRecord newDnsCNameRecord = new DnsCNameRecord(
+                dnsCNameRecord.subscriptionId(), 
+                dnsCNameRecordResponse.id(), 
+                dnsCNameRecord.zoneId(), 
+                dnsCNameRecord.zoneName(),
+                dnsCNameRecordResponse.name(),
+                dnsCNameRecordResponse.content()
+            );
+            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updated DNS C NAME record", dnsCNameRecord.subscriptionId()));
+            return newDnsCNameRecord;
+        } catch (Exception e) {
+            throw new CloudflareException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsCNameRecord.subscriptionId()), e);
+        }
+    }
+
     public void deleteCNameRecord(DnsCNameRecord dnsCNameRecord) {
         LOGGER.log(Level.INFO, String.format("[cNameRecordId: %s] Deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()));
         try {

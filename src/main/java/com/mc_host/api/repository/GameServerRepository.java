@@ -169,6 +169,24 @@ public class GameServerRepository {
         }
     }
 
+    public boolean isDnsCNameRecordNameTaken(String recordName, String zoneId) {
+        try {
+            Integer count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM dns_c_name_record_
+                WHERE record_name = ? AND zone_id = ?
+                """,
+                Integer.class,
+                recordName,
+                zoneId
+            );
+            return count != null && count > 0;
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("failed to check if record name %s is taken in zone %s", recordName, zoneId), e);
+        }
+    }
+
     public Optional<DnsCNameRecord> selectDnsCNameRecordWithSubscriptionId(String subscriptionId) {
         try {
             return jdbcTemplate.query(
