@@ -102,83 +102,113 @@ public class StripeSubscriptionService implements StripeEventService {
 
     private void processSubscription(SubscriptionPair pair) {
         if(!pair.isValid()) {
-            throw new IllegalStateException("No subscriptions in pair");
+            throw new IllegalStateException("Invalid subscription pair");
         }
 
         ContentSubscription newSubscription = pair.newSubscription();
         ContentSubscription oldSubscription = pair.oldSubscription();
 
         if (pair.isNew()) {
-            String newSpecificationId = planRepository.selectSpecificationId(newSubscription.priceId())
-                .orElseThrow(() -> new IllegalStateException("No specification for price %s " + newSubscription.priceId()));
-            subscriptionRepository.insertSubscription(newSubscription);
-            serverExecutor.execute(
-                Context.create(newSubscription.subscriptionId(), Mode.CREATE, newSubscription.initialRegion(), newSpecificationId, "My New Server", "A Minecraft Server")
-            );
-            return;
+            createNewSubscription(newSubscription);
+            return;        
         }
 
         Context context = serverExecutionContextRepository.selectSubscription(oldSubscription.subscriptionId())
             .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + oldSubscription.subscriptionId()));
-        if (context.getStatus().equals(Status.IN_PROGRESS)) {
-            //TODO: schedule requeue
+            
+        if (!isReady(context)) {
+            handleRequeue(context);
             return;
         }
 
-        if (context.getStatus().equals(Status.FAILED)) {
-            serverExecutor.execute(context.inProgress());
-            if (context.getMode().equals(Mode.DESTROY)) {
-                subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
-            } else {
-                //TODO: schedule requeue
-            }
-            return;
+        if (!context.isTerminal()) {
+            throw new IllegalStateException(String.format("Subscription %s completed outside a terminal node", oldSubscription.subscriptionId()));
         }
 
         if (pair.isOld()) {
-            serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
-            subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
+            handleDeletion(context);
             return;
         }
 
-        SubscriptionStatus newSubscriptionStatus = SubscriptionStatus.fromStripeValue(newSubscription.status());
-        if (newSubscriptionStatus.isTerminated()) {
-            //TODO: back-up data
+        handleSubscriptionUpdate(context, oldSubscription, newSubscription, pair);
+    }
+
+    private void createNewSubscription(ContentSubscription newSubscription) {
+        String newSpecificationId = planRepository.selectSpecificationId(newSubscription.priceId())
+            .orElseThrow(() -> new IllegalStateException("No specification for price %s " + newSubscription.priceId()));
+        subscriptionRepository.insertSubscription(newSubscription);
+        serverExecutor.execute(
+            Context.create(newSubscription.subscriptionId(), Mode.CREATE, newSubscription.initialRegion(), newSpecificationId, "My New Server", "A Minecraft Server")
+        );
+    }
+
+    private void handleRequeue(Context context) {
+        if (context.getStatus().equals(Status.FAILED)) {
+            serverExecutor.execute(context.inProgress());
+        }
+        // TODO: Requeue
+    }
+
+    private void handleDeletion(Context context) {
+        if (context.isCreated()) {
             serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
-            subscriptionRepository.deleteSubscription(oldSubscription.subscriptionId());
-            return; 
+        }
+        //TODO: back-up data
+        subscriptionRepository.deleteSubscription(context.getSubscriptionId());
+    }
+
+    private void handleSubscriptionUpdate(Context context, ContentSubscription oldSubscription, ContentSubscription newSubscription, SubscriptionPair pair) {
+        SubscriptionStatus newSubscriptionStatus = SubscriptionStatus.fromStripeValue(newSubscription.status());
+        
+        if (newSubscriptionStatus.isTerminated()) {
+            handleDeletion(context);
+            return;
         }
 
         if (newSubscriptionStatus.isPending() || newSubscriptionStatus.equals(SubscriptionStatus.UNPAID)) {
-            //TODO: back-up data
-            subscriptionRepository.updateSubscription(newSubscription);
-            serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
+            handleSuspension(context, newSubscription);
             return;
         }
 
         if (newSubscriptionStatus.isActive() || newSubscriptionStatus.equals(SubscriptionStatus.PAST_DUE)) {
-            //TODO: back-up data
-            serverExecutor.execute(context.inProgress());
+            handleActivation(context, oldSubscription, newSubscription);
+            return;
+        } 
 
+        throw new IllegalStateException(String.format("Subscription %s failed all conditions", newSubscription.subscriptionId()));
+    }
+
+    private void handleSuspension(Context context, ContentSubscription newSubscription) {
+        //TODO: back-up data
+        subscriptionRepository.updateSubscription(newSubscription);
+        if (context.isCreated()) {
+            serverExecutor.execute(context.inProgress().withMode(Mode.DESTROY));
+        }
+    }
+
+    private void handleActivation(Context context, ContentSubscription oldSubscription, ContentSubscription newSubscription) {
+        subscriptionRepository.updateSubscription(newSubscription);
+        if (needsMigration(context, oldSubscription, newSubscription)) {
+            serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
+        }
+        serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
+    }
+
+    private Boolean needsMigration(Context context, ContentSubscription oldSubscription, ContentSubscription newSubscription) {
+        if (context.isCreated()) {
             Boolean priceChanged = !newSubscription.priceId().equals(oldSubscription.priceId());
             MarketingRegion actualRegion = nodeRepository.selectHetznerNode(context.getNodeId())    
                 .map(HetznerNode::hetznerRegion)
                 .map(HetznerRegion::getMarketingRegion)
                 .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", context.getNodeId())));
             Boolean regionChanged = !context.getRegion().equals(actualRegion);
+            return priceChanged || regionChanged;
+        }
+        return false;        
+    }
 
-            if (priceChanged || regionChanged) {
-                serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
-            }
-            
-            subscriptionRepository.updateSubscription(newSubscription);
-            return;
-        } 
-
-        // should be unreachable
-        LOGGER.log(Level.WARNING, String.format("Subscriptions %s failed all conditions", pair.toString()));
-        throw new IllegalStateException(String.format("Subscriptions %s failed all conditions", pair.toString()));
-
+    private boolean isReady(Context context) {
+        return !(context.getStatus().equals(Status.IN_PROGRESS) || context.getStatus().equals(Status.FAILED));
     }
 
     private ContentSubscription stripeSubscriptionToEntity(Subscription subscription, String customerId) {

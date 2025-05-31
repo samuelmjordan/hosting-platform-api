@@ -76,13 +76,21 @@ public class Context {
     public Boolean isCreated() {
         return 
             stepType == StepType.READY &&
-            status == Status.COMPLETED;
+            status == Status.COMPLETED &&
+            mode == Mode.CREATE;
     }
 
     public Boolean isDestroyed() {
         return 
             stepType == StepType.NEW &&
-            status == Status.COMPLETED;
+            status == Status.COMPLETED &&
+            mode == Mode.DESTROY;
+    }
+
+    public Boolean isTerminal() {
+        return
+            this.isCreated() ||
+            this.isDestroyed();
     }
 
     // Resource promotion methods
