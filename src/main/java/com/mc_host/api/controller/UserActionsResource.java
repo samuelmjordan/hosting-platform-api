@@ -16,18 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RestController
 @RequestMapping("/api/")
 public interface UserActionsResource {
-    @PostMapping("/user/{userId}/payment-method/{paymentMethodId}/default")
-    public ResponseEntity<Void> setDefaultPaymentMethod(
-        @PathVariable String userId,
-        @PathVariable String paymentMethodId
-    );
-
-    @PostMapping("/user/{userId}/subscription/{subscriptionId}/cancel")
-    public ResponseEntity<Void> cancelSubscription(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId
-    );
-
     @PostMapping("/user/{userId}/subscription/{subscriptionId}/title")
     public ResponseEntity<Void> updateSubscriptionTitle(
         @PathVariable String userId,

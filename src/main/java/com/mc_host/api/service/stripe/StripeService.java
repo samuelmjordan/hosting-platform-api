@@ -26,6 +26,7 @@ import com.mc_host.api.model.MetadataKey;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ApplicationUser;
 import com.mc_host.api.model.request.CheckoutRequest;
+import com.mc_host.api.model.request.PortalRequest;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.service.data.DataFetchingService;
@@ -140,6 +141,30 @@ public class StripeService implements StripeResource {
         }
     }
 
+    @Override
+    public ResponseEntity<String> userPortal(PortalRequest request) {
+        try {
+            String customerId = getCustomerId(request.userId());
+            com.stripe.param.billingportal.SessionCreateParams params = com.stripe.param.billingportal.SessionCreateParams.builder()
+                .setCustomer(customerId)
+                .setReturnUrl(request.returnUrl())
+                .build();
+            com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
+            LOGGER.log(Level.INFO, "Complete portal creation for clerkId: " + request.userId());
+            return ResponseEntity.ok(portalSession.getUrl());
+        } catch (CustomerNotFoundException e) {
+            LOGGER.log(Level.SEVERE, "Failed to find or create customer", e);
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .build();
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error during portal creation", e);
+            return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .build();
+        }
+    }
+
     private String getPriceInCorrectCurrency(String priceId, String userId) {
         cacheService.evict(CacheNamespace.USER_CURRENCY, userId);
         AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);
@@ -209,5 +234,17 @@ public class StripeService implements StripeResource {
 
         LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: " + userId);
         return stripeCustomer.getId();
+    }
+
+    @Override
+    public ResponseEntity<Void> setDefaultPaymentMethod(String userId, String paymentMethodId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setDefaultPaymentMethod'");
+    }
+
+    @Override
+    public ResponseEntity<Void> cancelSubscription(String userId, String subscriptionId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'cancelSubscription'");
     }
 }

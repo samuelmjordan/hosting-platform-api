@@ -44,18 +44,6 @@ public class UserActionsService implements UserActionsResource {
     }
 
     @Override
-    public ResponseEntity<Void> setDefaultPaymentMethod(String userId, String paymentMethodId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setDefaultPaymentMethod'");
-    }
-
-    @Override
-    public ResponseEntity<Void> cancelSubscription(String userId, String subscriptionId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'cancelSubscription'");
-    }
-
-    @Override
     public ResponseEntity<Void> updateSubscriptionTitle(String userId, String subscriptionId, UpdateTitleRequest title) {
         serverExecutionContextRepository.updateTitle(subscriptionId, title.title());
         return ResponseEntity.ok().build();
