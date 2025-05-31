@@ -83,10 +83,6 @@ public class PaymentMethodService implements PaymentMethodResource{
         }
     }
 
-    private void setDefaultPaymentMethodInner(String customerId, String paymentMethodId) {
-        
-    }
-
     @Override
     public ResponseEntity<Void> removePaymentMethod(String userId, String paymentMethodId) {
         String customerId = null;
@@ -114,7 +110,7 @@ public class PaymentMethodService implements PaymentMethodResource{
             String customerId = stripeService.getCustomerId(userId);
             AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);
             if (currency.equals(AcceptedCurrency.XXX)) {
-                currency = request.currency();
+                currency = AcceptedCurrency.EUR;
             }
             
             com.stripe.param.checkout.SessionCreateParams params = com.stripe.param.checkout.SessionCreateParams.builder()
