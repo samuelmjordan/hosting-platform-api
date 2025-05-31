@@ -176,8 +176,9 @@ public class StripeSubscriptionService implements StripeEventService {
                 if (priceChanged || regionChanged) {
                     serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
                 }
+            } else if (context.isDestroyed()) {
+                serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
             }
-            serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
             return;
         } 
 
