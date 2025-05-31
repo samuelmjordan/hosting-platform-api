@@ -47,7 +47,6 @@ public class StripeEventProcessor {
         this.cacheService = cacheService;
         this.delayedTaskScheduler = delayedTaskScheduler;
         
-        // much cleaner - just map event types to their configs directly
         this.eventConfigs = Map.of(
             StripeEventType.INVOICE, new EventConfig(
                 CacheNamespace.INVOICE_DEBOUNCE, 

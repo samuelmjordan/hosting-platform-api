@@ -15,7 +15,9 @@ import com.mc_host.api.model.request.CreatePaymentMethodRequest;
 import com.mc_host.api.service.data.DataFetchingService;
 import com.mc_host.api.service.stripe.events.StripeEventProcessor;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
+import com.stripe.param.CustomerUpdateParams;
 
 @Service
 public class PaymentMethodService implements PaymentMethodResource{
@@ -36,14 +38,53 @@ public class PaymentMethodService implements PaymentMethodResource{
     }
 
     @Override
-    public ResponseEntity<Void> setDefaultPaymentMethod(String userId, String paymentMethodId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setDefaultPaymentMethod'");
+    public ResponseEntity<Void> removeDefaultPaymentMethod(String userId, String paymentMethodId) {
+        try {
+            String customerId = stripeService.getCustomerId(userId);
+            CustomerUpdateParams params = CustomerUpdateParams.builder()
+                .setInvoiceSettings(
+                    CustomerUpdateParams.InvoiceSettings.builder()
+                        .setDefaultPaymentMethod("")
+                        .build())
+                .build();
+                
+            stripeEventProcessor.enqueueEvent(StripeEventType.PAYMENT_METHOD, customerId);
+            Customer.retrieve(customerId).update(params);
+            
+            return ResponseEntity.ok().build();
+        } catch (CustomerNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error during default payment method removal", e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @Override
-    public ResponseEntity<Void> editPaymentMethod(String userId, String paymentMethodId) {
-        throw new UnsupportedOperationException("Unimplemented method 'editPaymentMethod'");
+    public ResponseEntity<Void> setDefaultPaymentMethod(String userId, String paymentMethodId) {
+        try {
+            String customerId = stripeService.getCustomerId(userId);
+            CustomerUpdateParams params = CustomerUpdateParams.builder()
+                .setInvoiceSettings(
+                    CustomerUpdateParams.InvoiceSettings.builder()
+                        .setDefaultPaymentMethod(paymentMethodId)
+                        .build())
+                .build();
+                
+            Customer.retrieve(customerId).update(params);
+            stripeEventProcessor.enqueueEvent(StripeEventType.PAYMENT_METHOD, customerId);
+            
+            return ResponseEntity.ok().build();
+        } catch (CustomerNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error during default payment method update", e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    private void setDefaultPaymentMethodInner(String customerId, String paymentMethodId) {
+        
     }
 
     @Override
@@ -68,7 +109,7 @@ public class PaymentMethodService implements PaymentMethodResource{
     }
 
     @Override
-    public ResponseEntity<String> createPymentMethod(String userId, CreatePaymentMethodRequest request) {
+    public ResponseEntity<String> createPaymentMethod(String userId, CreatePaymentMethodRequest request) {
         try {
             String customerId = stripeService.getCustomerId(userId);
             AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);

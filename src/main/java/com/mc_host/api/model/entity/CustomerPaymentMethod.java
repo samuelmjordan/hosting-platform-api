@@ -36,4 +36,16 @@ public record CustomerPaymentMethod(
        
        return now.isAfter(LocalDate.of(expYear, expMonth, 1).plusMonths(1).minusDays(1));
    }
+
+   public CustomerPaymentMethod setDefault() {
+       return new CustomerPaymentMethod(
+           this.paymentMethodId,
+           this.customerId, 
+           this.paymentMethodType,
+           this.displayName,
+           this.paymentData,
+           this.isActive,
+           true
+       );
+   }
 }

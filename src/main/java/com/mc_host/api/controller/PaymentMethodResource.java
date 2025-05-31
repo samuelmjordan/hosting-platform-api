@@ -19,8 +19,8 @@ public interface PaymentMethodResource {
         @PathVariable String paymentMethodId
     );
 
-    @PostMapping("/{paymentMethodId}/edit")
-    public ResponseEntity<Void> editPaymentMethod(
+    @PostMapping("/{paymentMethodId}/default/remove")
+    public ResponseEntity<Void> removeDefaultPaymentMethod(
         @PathVariable String userId,
         @PathVariable String paymentMethodId
     );
@@ -32,7 +32,7 @@ public interface PaymentMethodResource {
     );
 
     @PostMapping()
-    public ResponseEntity<String> createPymentMethod(
+    public ResponseEntity<String> createPaymentMethod(
         @PathVariable String userId,
         @RequestBody CreatePaymentMethodRequest request
     );

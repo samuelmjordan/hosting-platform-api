@@ -12,7 +12,9 @@ import com.mc_host.api.model.PaymentMethodType;
 import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.entity.CustomerPaymentMethod;
 import com.mc_host.api.repository.PaymentMethodRepository;
+import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
+import com.stripe.param.CustomerUpdateParams;
 import com.stripe.param.PaymentMethodListParams;
 
 @Service
@@ -39,36 +41,58 @@ public class StripePaymentMethodService implements StripeEventService {
         try {
             LOGGER.info("Syncing payment method data for customer: " + customerId);
 
+            Customer customer = Customer.retrieve(customerId);
+            String defaultPaymentMethodId = null;
+            if (customer.getInvoiceSettings() != null) {
+                defaultPaymentMethodId = customer.getInvoiceSettings().getDefaultPaymentMethod();
+            }
+
             PaymentMethodListParams params = PaymentMethodListParams.builder()
                 .setCustomer(customerId)
                 .build();
 
-            List<CustomerPaymentMethod> paymentMethods = 
-                PaymentMethod.list(params).getData().stream()
-                    .map(pm -> stripePaymentMethodToEntity(pm, customerId))
-                    .toList();
+            final String finalDefaultId = defaultPaymentMethodId;
+            List<CustomerPaymentMethod> paymentMethods = PaymentMethod.list(params).getData().stream()
+                .map(pm -> stripePaymentMethodToEntity(pm, customerId, pm.getId().equals(finalDefaultId)))
+                .toList();
+
+            if (paymentMethods.size() == 1 && defaultPaymentMethodId == null) {
+                CustomerPaymentMethod paymentMethod = paymentMethods.getFirst().setDefault();
+                paymentMethodRepository.deletePaymentMethodsForCustomer(customerId);
+                paymentMethodRepository.upsertPaymentMethod(paymentMethod);
+
+                CustomerUpdateParams setDefaultParams = CustomerUpdateParams.builder()
+                    .setInvoiceSettings(
+                        CustomerUpdateParams.InvoiceSettings.builder()
+                            .setDefaultPaymentMethod(paymentMethod.paymentMethodId())
+                            .build())
+                    .build();
+                
+                Customer.retrieve(customerId).update(setDefaultParams);
+                return;
+            }
 
             paymentMethodRepository.deletePaymentMethodsForCustomer(customerId);
             paymentMethods.forEach(paymentMethodRepository::upsertPaymentMethod);
-            
         } catch (Exception e) {
             LOGGER.severe("Error syncing payment method data for customer " + customerId + ": " + e.getMessage());
             throw new RuntimeException("Failed to sync payment method data", e);
         }
     }
 
-    private CustomerPaymentMethod stripePaymentMethodToEntity(PaymentMethod stripePm, String customerId) {
-        
+    private CustomerPaymentMethod stripePaymentMethodToEntity(PaymentMethod stripePm, String customerId, boolean isDefault) {
         var type = determinePaymentMethodType(stripePm);
         var paymentData = createPaymentData(stripePm, type);
         var displayName = createDisplayName(stripePm, type);
         
-        return CustomerPaymentMethod.create(
+        return new CustomerPaymentMethod(
             stripePm.getId(),
             customerId,
             type,
             displayName,
-            paymentData
+            paymentData,
+            true,
+            isDefault
         );
     }
 
