@@ -36,4 +36,10 @@ public interface StripeResource {
         @PathVariable String userId,
         @PathVariable String subscriptionId
     );
+
+    @PostMapping("/user/{userId}/subscription/{subscriptionId}/uncancel")
+    public ResponseEntity<Void> uncancelSubscription(
+        @PathVariable String userId,
+        @PathVariable String subscriptionId
+    );
 }

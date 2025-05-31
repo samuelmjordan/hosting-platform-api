@@ -241,6 +241,15 @@ public class StripeService implements StripeResource {
 
     @Override
     public ResponseEntity<Void> cancelSubscription(String userId, String subscriptionId) {
+        return updateCancelAtPeriodEnd(userId, subscriptionId, true);
+    }
+
+    @Override
+    public ResponseEntity<Void> uncancelSubscription(String userId, String subscriptionId) {
+        return updateCancelAtPeriodEnd(userId, subscriptionId, false);
+    }
+
+    private ResponseEntity<Void> updateCancelAtPeriodEnd(String userId, String subscriptionId, Boolean cancel) {
         try {
             String customerId = getCustomerId(userId);
             
@@ -250,7 +259,7 @@ public class StripeService implements StripeResource {
             }
 
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
-                .setCancelAtPeriodEnd(true)
+                .setCancelAtPeriodEnd(cancel)
                 .build();
             subscription.update(params);
             
@@ -261,7 +270,7 @@ public class StripeService implements StripeResource {
                 .status(HttpStatus.NOT_FOUND)
                 .build();
         } catch (StripeException e) {
-            LOGGER.log(Level.SEVERE, "Stripe API error during portal creation", e);
+            LOGGER.log(Level.SEVERE, "Stripe API error during subscription update", e);
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .build();
