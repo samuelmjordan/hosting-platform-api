@@ -237,12 +237,6 @@ public class StripeService implements StripeResource {
     }
 
     @Override
-    public ResponseEntity<Void> setDefaultPaymentMethod(String userId, String paymentMethodId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setDefaultPaymentMethod'");
-    }
-
-    @Override
     public ResponseEntity<Void> cancelSubscription(String userId, String subscriptionId) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'cancelSubscription'");

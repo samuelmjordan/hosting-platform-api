@@ -21,25 +21,19 @@ public interface StripeResource {
         @RequestHeader("Stripe-Signature") String sigHeader
     );
 
+    @PostMapping("/billing-portal")
+    public ResponseEntity<String> userPortal(
+        @RequestBody PortalRequest request
+    );
+
     @PostMapping("/checkout")
     public ResponseEntity<String> startCheckout(
         @RequestBody CheckoutRequest request
-    );
-
-    @PostMapping("/user/{userId}/payment-method/{paymentMethodId}/default")
-    public ResponseEntity<Void> setDefaultPaymentMethod(
-        @PathVariable String userId,
-        @PathVariable String paymentMethodId
     );
 
     @PostMapping("/user/{userId}/subscription/{subscriptionId}/cancel")
     public ResponseEntity<Void> cancelSubscription(
         @PathVariable String userId,
         @PathVariable String subscriptionId
-    );
-
-    @PostMapping("/billing-portal")
-    public ResponseEntity<String> userPortal(
-        @RequestBody PortalRequest request
     );
 }
