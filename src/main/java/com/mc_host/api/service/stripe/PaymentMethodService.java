@@ -10,9 +10,12 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.controller.PaymentMethodResource;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.AcceptedCurrency;
+import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.request.CreatePaymentMethodRequest;
 import com.mc_host.api.service.data.DataFetchingService;
+import com.mc_host.api.service.stripe.events.StripeEventProcessor;
 import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentMethod;
 
 @Service
 public class PaymentMethodService implements PaymentMethodResource{
@@ -20,13 +23,16 @@ public class PaymentMethodService implements PaymentMethodResource{
 
     private final StripeService stripeService;
     private final DataFetchingService dataFetchingService;
+    private final StripeEventProcessor stripeEventProcessor;
 
     public PaymentMethodService(
         StripeService stripeService,
-        DataFetchingService dataFetchingService
+        DataFetchingService dataFetchingService,
+        StripeEventProcessor stripeEventProcessor
     ) {
         this.stripeService = stripeService;
         this.dataFetchingService = dataFetchingService;
+        this.stripeEventProcessor = stripeEventProcessor;
     }
 
     @Override
@@ -42,8 +48,23 @@ public class PaymentMethodService implements PaymentMethodResource{
 
     @Override
     public ResponseEntity<Void> removePaymentMethod(String userId, String paymentMethodId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'removePaymentMethod'");
+        String customerId = null;
+        try {
+            customerId = stripeService.getCustomerId(userId);
+            PaymentMethod paymentMethod = PaymentMethod.retrieve(paymentMethodId);
+    
+            paymentMethod.detach();
+            return ResponseEntity.ok().build();
+        } catch (CustomerNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error during payment method removal", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        } finally {
+            if (customerId != null) {
+                stripeEventProcessor.enqueueEvent(StripeEventType.PAYMENT_METHOD, customerId);
+            }
+        }
     }
 
     @Override
