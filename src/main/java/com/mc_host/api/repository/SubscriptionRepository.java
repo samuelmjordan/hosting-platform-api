@@ -5,6 +5,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,6 +17,7 @@ import com.mc_host.api.model.entity.ContentSubscription;
 
 @Service
 public class SubscriptionRepository {
+    private static final Logger LOGGER = Logger.getLogger(SubscriptionRepository.class.getName());
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -79,8 +82,8 @@ public class SubscriptionRepository {
                 ps.setTimestamp(5, Timestamp.from(subscriptionEntity.currentPeriodStart()),
                               java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
                 ps.setBoolean(6, subscriptionEntity.cancelAtPeriodEnd());
-                ps.setString(7, subscriptionEntity.subscriptionId());
-                ps.setString(8, subscriptionEntity.initialRegion().name());
+                ps.setString(7, subscriptionEntity.initialRegion().name());
+                ps.setString(8, subscriptionEntity.subscriptionId());
                 return ps;
             });
         } catch (DataAccessException e) {

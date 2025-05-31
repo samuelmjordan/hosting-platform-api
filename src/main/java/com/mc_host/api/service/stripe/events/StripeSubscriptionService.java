@@ -166,12 +166,14 @@ public class StripeSubscriptionService implements StripeEventService {
             if (priceChanged || regionChanged) {
                 serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
             }
+            
             subscriptionRepository.updateSubscription(newSubscription);
             return;
         } 
 
         // should be unreachable
-        throw new IllegalStateException(String.format("Subscription %s failed all conditions"));
+        LOGGER.log(Level.WARNING, String.format("Subscriptions %s failed all conditions", pair.toString()));
+        throw new IllegalStateException(String.format("Subscriptions %s failed all conditions", pair.toString()));
 
     }
 

@@ -36,8 +36,10 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.Event;
+import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 
 @Service
@@ -161,7 +163,7 @@ public class StripeService implements StripeResource {
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during portal creation", e);
             return ResponseEntity
-                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .build();
         }
     }
@@ -239,7 +241,30 @@ public class StripeService implements StripeResource {
 
     @Override
     public ResponseEntity<Void> cancelSubscription(String userId, String subscriptionId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'cancelSubscription'");
+        try {
+            String customerId = getCustomerId(userId);
+            
+            Subscription subscription = Subscription.retrieve(subscriptionId);
+            if (!subscription.getCustomer().equals(customerId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+                .setCancelAtPeriodEnd(true)
+                .build();
+            subscription.update(params);
+            
+            return ResponseEntity.ok().build();
+        } catch (CustomerNotFoundException e) {
+            LOGGER.log(Level.SEVERE, "Failed to find or create customer", e);
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .build();
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error during portal creation", e);
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .build();
+        }
     }
 }
