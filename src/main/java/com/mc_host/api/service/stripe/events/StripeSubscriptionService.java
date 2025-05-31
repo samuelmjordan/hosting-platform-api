@@ -18,10 +18,11 @@ import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.entity.ContentSubscription;
 import com.mc_host.api.model.entity.SubscriptionPair;
 import com.mc_host.api.model.hetzner.HetznerRegion;
+import com.mc_host.api.model.node.HetznerNode;
+import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
-import com.mc_host.api.service.resources.HetznerService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Mode;
 import com.mc_host.api.service.resources.v2.context.Status;
@@ -39,20 +40,20 @@ public class StripeSubscriptionService implements StripeEventService {
     private final SubscriptionRepository subscriptionRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
     private final PlanRepository planRepository;
-    private final HetznerService hetznerService;
+    private final NodeRepository nodeRepository;
 
     public StripeSubscriptionService(
         ServerExecutor serverExecutor,
         SubscriptionRepository subscriptionRepository,
         ServerExecutionContextRepository serverExecutionContextRepository,
         PlanRepository planRepository,
-        HetznerService hetznerService
+        NodeRepository nodeRepository
     ) {
         this.serverExecutor = serverExecutor;
         this.subscriptionRepository = subscriptionRepository;
         this.serverExecutionContextRepository = serverExecutionContextRepository;
         this.planRepository = planRepository;
-        this.hetznerService = hetznerService;
+        this.nodeRepository = nodeRepository;
     }
 
     public StripeEventType getType() {
@@ -160,8 +161,11 @@ public class StripeSubscriptionService implements StripeEventService {
             serverExecutor.execute(context.inProgress());
 
             Boolean priceChanged = !newSubscription.priceId().equals(oldSubscription.priceId());
-            HetznerRegion actualRegion = hetznerService.getServerRegion(context.getNodeId());
-            Boolean regionChanged = !context.getRegion().equals(actualRegion.getMarketingRegion());
+            MarketingRegion actualRegion = nodeRepository.selectHetznerNode(context.getNodeId())    
+                .map(HetznerNode::hetznerRegion)
+                .map(HetznerRegion::getMarketingRegion)
+                .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", context.getNodeId())));
+            Boolean regionChanged = !context.getRegion().equals(actualRegion);
 
             if (priceChanged || regionChanged) {
                 serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
