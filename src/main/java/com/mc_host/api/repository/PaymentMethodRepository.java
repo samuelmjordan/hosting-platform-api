@@ -60,6 +60,14 @@ public class PaymentMethodRepository {
         }
     }
 
+    public void deletePaymentMethodsForCustomer(String customerId) {
+        try {
+            jdbcTemplate.update("DELETE FROM payment_method_ WHERE customer_id = ?", customerId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to delete payment methods for customer: " + e.getMessage(), e);
+        }
+    }
+
     public List<CustomerPaymentMethod> selectPaymentMethodsByCustomerId(String customerId) {
         try {
             return jdbcTemplate.query(

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +34,7 @@ public class StripePaymentMethodService implements StripeEventService {
         return StripeEventType.PAYMENT_METHOD;
     }
 
+    @Transactional
     public void process(String customerId) {
         try {
             LOGGER.info("Syncing payment method data for customer: " + customerId);
@@ -46,6 +48,7 @@ public class StripePaymentMethodService implements StripeEventService {
                     .map(pm -> stripePaymentMethodToEntity(pm, customerId))
                     .toList();
 
+            paymentMethodRepository.deletePaymentMethodsForCustomer(customerId);
             paymentMethods.forEach(paymentMethodRepository::upsertPaymentMethod);
             
         } catch (Exception e) {
