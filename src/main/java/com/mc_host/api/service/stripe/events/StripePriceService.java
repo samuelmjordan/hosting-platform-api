@@ -1,4 +1,4 @@
-package com.mc_host.api.service.stripe;
+package com.mc_host.api.service.stripe.events;
 
 import java.util.ArrayList;
 import java.util.List;

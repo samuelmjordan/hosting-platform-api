@@ -17,7 +17,7 @@ import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.DnsService;
 import com.mc_host.api.service.resources.v2.context.Context;
 import com.mc_host.api.service.resources.v2.context.Status;
-import com.mc_host.api.service.stripe.StripeEventProcessor;
+import com.mc_host.api.service.stripe.events.StripeEventProcessor;
 
 @Service
 public class UserActionsService implements UserActionsResource {

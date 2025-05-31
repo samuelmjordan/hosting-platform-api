@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.cache.Queue;
 import com.mc_host.api.model.cache.StripeEventType;
-import com.mc_host.api.service.stripe.StripeEventService;
+import com.mc_host.api.service.stripe.events.StripeEventService;
 import com.mc_host.api.util.Cache;
 
 @Service
