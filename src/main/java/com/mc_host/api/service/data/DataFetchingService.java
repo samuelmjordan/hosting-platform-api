@@ -19,6 +19,7 @@ import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.Plan;
+import com.mc_host.api.model.SubscriptionStatus;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.entity.ContentPrice;
 import com.mc_host.api.model.entity.ContentSubscription;
@@ -198,6 +199,7 @@ public class DataFetchingService implements DataFetchingResource  {
         
         List<ServerSubscriptionResponse> serverSubscriptions = subscriptionRepository.selectSubscriptionsByCustomerId(customerId.get()).stream()
             .map(this::getServerSubscriptionResponse)
+            .filter(subscription -> !SubscriptionStatus.fromString(subscription.subscriptionStatus()).isTerminated())
             .toList();
         return ResponseEntity.ok(serverSubscriptions);
     }
