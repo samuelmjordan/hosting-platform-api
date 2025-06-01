@@ -1,5 +1,6 @@
 package com.mc_host.api.service.stripe.events;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -173,11 +174,7 @@ public class StripeSubscriptionService implements StripeEventService {
     }
 
     private void scheduleEnqueue(ContentSubscription subscription, Integer delay) {
-        delayedTaskScheduler.schedule(
-            () -> stripeEventProcessor.enqueueEvent(getType(), subscription.customerId()),
-            delay, 
-            TimeUnit.SECONDS
-        );    
+        stripeEventProcessor.scheduledEventRetry(getType(), subscription.customerId(), Duration.ofSeconds(30));
     }
 
     private ContentSubscription stripeSubscriptionToEntity(Subscription subscription, String customerId) {

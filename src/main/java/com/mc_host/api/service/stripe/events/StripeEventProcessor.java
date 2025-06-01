@@ -33,6 +33,7 @@ public class StripeEventProcessor {
     private final Map<StripeEventType, EventConfig> eventConfigs;
 
     private record EventConfig(
+        CacheNamespace scheduledFlag,
         CacheNamespace debounceFlag, 
         String extractionField,
         Predicate<String> eventTypePredicate
@@ -49,21 +50,25 @@ public class StripeEventProcessor {
         
         this.eventConfigs = Map.of(
             StripeEventType.INVOICE, new EventConfig(
+                CacheNamespace.INVOICE_SCHEDULED,
                 CacheNamespace.INVOICE_DEBOUNCE, 
                 "customer",
                 stripeConfiguration.isInvoiceEvent()
             ),
             StripeEventType.SUBSCRIPTION, new EventConfig(
+                CacheNamespace.SUBSCRIPTION_SCHEDULED,
                 CacheNamespace.SUBSCRIPTION_DEBOUNCE, 
                 "customer",
                 stripeConfiguration.isSubscriptionEvent()
             ),
             StripeEventType.PRICE, new EventConfig(
+                CacheNamespace.PRICE_SCHEDULED,
                 CacheNamespace.PRICE_DEBOUNCE, 
                 "product",
                 stripeConfiguration.isPriceEvent()
             ),
             StripeEventType.PAYMENT_METHOD, new EventConfig(
+                CacheNamespace.PAYMENT_METHOD_SCHEDULED,
                 CacheNamespace.PAYMENT_METHOD_DEBOUNCE, 
                 "customer",
                 stripeConfiguration.isPaymentMethodEvent()
@@ -72,10 +77,7 @@ public class StripeEventProcessor {
     }
 
     public void enqueueEvent(StripeEventType eventType, String entityId) {
-        EventConfig config = eventConfigs.get(eventType);
-        if (config == null) {
-            throw new IllegalArgumentException("unsupported event type: " + eventType);
-        }
+        EventConfig config = getConfig(eventType);
         
         queuePushDebounce(eventType, config, entityId);
         
@@ -87,6 +89,23 @@ public class StripeEventProcessor {
             entityId
         ));
     }
+
+    public void scheduledEventRetry(StripeEventType eventType, String entityId, Duration duration) {
+        EventConfig config = getConfig(eventType);
+        
+        if (cacheService.flagIfAbsent(config.scheduledFlag(), entityId, duration)) {
+            delayedTaskScheduler.schedule(() -> enqueueEvent(eventType, entityId), duration.toMillis(), TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private EventConfig getConfig(StripeEventType eventType) {
+        EventConfig config = eventConfigs.get(eventType);
+        if (config == null) {
+            throw new IllegalArgumentException("unsupported event type: " + eventType);
+        }
+        return config;
+    }
+
     
     public void processEvent(Event event) {
         try {
