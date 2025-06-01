@@ -1,8 +1,10 @@
 package com.mc_host.api.service.resources;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -233,71 +235,67 @@ public class PterodactylService {
     }
 
     public void startNewPterodactylServer(PterodactylServer pterodactylServer) {
-        try {
-            final int MAX_REINSTALLS = 3;
-            final int MAX_START_ATTEMPTS = 5;
-            final int MAX_WAIT_CYCLES = 30;
-            final int POLL_INTERVAL_MS = 5000;
-            
-            Long serverId = pterodactylServer.pterodactylServerId();
-            String serverUid = pterodactylServer.pterodactylServerUid();
-            
-            for (int reinstall = 0; reinstall <= MAX_REINSTALLS; reinstall++) {
-                if (reinstall > 0) {
-                    LOGGER.info(String.format("[serverId: %s] reinstalling server (attempt %d/%d)", 
-                        serverId, reinstall, MAX_REINSTALLS));
-                    reinstallServer(serverId);
-                    Thread.sleep(POLL_INTERVAL_MS);
-                }
-                
-                for (int attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt++) {
-                    try {
-                        ServerStatus status = getServerStatus(serverUid);
-                        
-                        if (status == ServerStatus.RUNNING) {
-                            return;
-                        }
-                        
-                        if (List.of(ServerStatus.STOPPING, ServerStatus.STOPPED, ServerStatus.OFFLINE).contains(status)) {
-                            LOGGER.info(String.format("[serverId: %s] starting server (attempt %d/%d)", 
-                                serverId, attempt, MAX_START_ATTEMPTS));
-                            startServer(serverUid);
-                            acceptEula(serverUid);
-                        }
-                        
-                        for (int wait = 0; wait < MAX_WAIT_CYCLES; wait++) {
-                            Thread.sleep(POLL_INTERVAL_MS);
-                            status = getServerStatus(serverUid);
-                            
-                            if (status == ServerStatus.RUNNING) {
-                                return;
-                            }
-                            
-                            if (status != ServerStatus.STARTING) {
-                                break;
-                            }
-                        }
-                        
+        Long serverId = pterodactylServer.pterodactylServerId();
+        String serverUid = pterodactylServer.pterodactylServerUid();
 
-                    } catch (Exception e) {
-                        LOGGER.warning(String.format("[serverId: %s] start attempt %d failed: %s", 
-                            serverId, attempt, e.getMessage()));
-                        if (attempt == MAX_START_ATTEMPTS) {
-                            break;
-                        }
-                        Thread.sleep(POLL_INTERVAL_MS);
-                    }
+        // wait for server to be accessible (not installing)
+        waitForServerAccessible(serverUid, serverId, Duration.ofMinutes(3));
+        
+        // start server and wait for it to be running
+        startAndWaitForServer(serverUid, serverId, Duration.ofMinutes(10));
+    }
+
+    private void waitForServerAccessible(String serverUid, Long serverId, Duration timeout) {
+        Duration interval = Duration.ofSeconds(5);
+        Duration timePassed = Duration.ofSeconds(0);
+        
+        while (timePassed.compareTo(timeout) < 0) {
+            try {
+                Thread.sleep(interval.toMillis());
+                timePassed = timePassed.plus(interval);
+                
+                getServerStatus(serverUid);
+                return; // success
+                
+            } catch (Exception e) {
+                if (timePassed.compareTo(timeout) >= 0) {
+                    throw new RuntimeException(String.format("couldn't obtain status of pterodactyl server %s after %s", serverId, timeout));
                 }
             }
-            
-            throw new RuntimeException(String.format(
-                "[serverId: %s] server failed to start after %d reinstalls", 
-                serverId, MAX_REINSTALLS
-            ));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new PterodactylException("server startup interrupted", e);
         }
-
     }
+
+    private void startAndWaitForServer(String serverUid, Long serverId, Duration timeout) {
+        Duration interval = Duration.ofSeconds(30);
+        Duration timePassed = Duration.ofSeconds(0);
+        
+        while (timePassed.compareTo(timeout) < 0) {
+            try {
+                Thread.sleep(interval.toMillis());
+                timePassed = timePassed.plus(interval);
+                
+                ServerStatus status = getServerStatus(serverUid);
+                
+                if (status == ServerStatus.RUNNING) {
+                    return; // we're done
+                }
+                
+                if (List.of(ServerStatus.STOPPING, ServerStatus.STOPPED, ServerStatus.OFFLINE).contains(status)) {
+                    LOGGER.info(String.format("[serverId: %s] starting server (%ss/%ss)", serverId, timePassed.getSeconds(), timeout.getSeconds()));
+                    startServer(serverUid);
+                    Thread.sleep(Duration.ofSeconds(15).toMillis()); // wait a bit
+                    acceptEula(serverUid);
+                }
+                
+            } catch (Exception e) {
+                if (timePassed.compareTo(timeout) >= 0) {
+                    throw new RuntimeException(String.format("couldn't start pterodactyl server %s after %s", serverId, timeout));
+                }
+                // continue retrying if we haven't timed out
+            }
+        }
+        
+        throw new RuntimeException(String.format("pterodactyl server %s didn't start within %s", serverId, timeout));
+    }
+
 }
