@@ -235,7 +235,7 @@ public class DataFetchingService implements DataFetchingResource  {
             gameSeverSpecification.vcpu(),
             context.getRegion(),
             dnsCNameRecordName,
-            subscription.status(),
+            subscription.status().toString(),
             subscription.currentPeriodEnd(),
             subscription.currentPeriodStart(),
             subscription.cancelAtPeriodEnd(),

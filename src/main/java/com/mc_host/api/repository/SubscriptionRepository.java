@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.MarketingRegion;
+import com.mc_host.api.model.SubscriptionStatus;
 import com.mc_host.api.model.entity.ContentSubscription;
 
 @Service
@@ -45,7 +46,7 @@ public class SubscriptionRepository {
                     """);
                 ps.setString(1, subscriptionEntity.subscriptionId());
                 ps.setString(2, subscriptionEntity.customerId());
-                ps.setString(3, subscriptionEntity.status());
+                ps.setString(3, subscriptionEntity.status().toString());
                 ps.setString(4, subscriptionEntity.priceId());
                 ps.setTimestamp(5, Timestamp.from(subscriptionEntity.currentPeriodEnd()), 
                               java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
@@ -75,7 +76,7 @@ public class SubscriptionRepository {
                     WHERE subscription_id = ?;
                     """);
                 ps.setString(1, subscriptionEntity.customerId());
-                ps.setString(2, subscriptionEntity.status());
+                ps.setString(2, subscriptionEntity.status().toString());
                 ps.setString(3, subscriptionEntity.priceId());
                 ps.setTimestamp(4, Timestamp.from(subscriptionEntity.currentPeriodEnd()), 
                               java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
@@ -88,6 +89,48 @@ public class SubscriptionRepository {
             });
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to save subscription to database: " + e.getMessage(), e);
+        }
+    }
+
+    public void upsertSubscription(ContentSubscription subscriptionEntity) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    INSERT INTO subscription_ (
+                        subscription_id,
+                        customer_id,
+                        status_,
+                        price_id,
+                        current_period_end,
+                        current_period_start,
+                        cancel_at_period_end,
+                        initial_region
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (subscription_id) 
+                    DO UPDATE SET
+                        customer_id = EXCLUDED.customer_id,
+                        status_ = EXCLUDED.status_,
+                        price_id = EXCLUDED.price_id,
+                        current_period_end = EXCLUDED.current_period_end,
+                        current_period_start = EXCLUDED.current_period_start,
+                        cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+                        initial_region = EXCLUDED.initial_region
+                    """);
+                ps.setString(1, subscriptionEntity.subscriptionId());
+                ps.setString(2, subscriptionEntity.customerId());
+                ps.setString(3, subscriptionEntity.status().toString());
+                ps.setString(4, subscriptionEntity.priceId());
+                ps.setTimestamp(5, Timestamp.from(subscriptionEntity.currentPeriodEnd()), 
+                                java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
+                ps.setTimestamp(6, Timestamp.from(subscriptionEntity.currentPeriodStart()),
+                                java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
+                ps.setBoolean(7, subscriptionEntity.cancelAtPeriodEnd());
+                ps.setString(8, subscriptionEntity.initialRegion().name());
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to upsert subscription to database: " + e.getMessage(), e);
         }
     }
 
@@ -126,7 +169,7 @@ public class SubscriptionRepository {
                     return new ContentSubscription(
                         rs.getString("subscription_id"),
                         rs.getString("customer_id"),
-                        rs.getString("status_"),
+                        SubscriptionStatus.fromString(rs.getString("status_")),
                         rs.getString("price_id"),
                         rs.getTimestamp("current_period_end", 
                             java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC))).toInstant(),
@@ -164,7 +207,7 @@ public class SubscriptionRepository {
                     return new ContentSubscription(
                         rs.getString("subscription_id"),
                         rs.getString("customer_id"),
-                        rs.getString("status_"),
+                        SubscriptionStatus.fromString(rs.getString("status_")),
                         rs.getString("price_id"),
                         rs.getTimestamp("current_period_end", 
                             java.util.Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC))).toInstant(),

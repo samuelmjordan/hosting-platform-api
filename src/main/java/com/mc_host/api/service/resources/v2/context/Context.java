@@ -36,9 +36,8 @@ public class Context {
     private final Long newPterodactylServerId;
     private final String newCNameRecordId;
 
-    public static Context create(
+    public static Context newIdle(
         String subscriptionId, 
-        Mode mode, 
         MarketingRegion region, 
         String specificationId, 
         String title, 
@@ -46,8 +45,8 @@ public class Context {
         return new Context(
             subscriptionId,
             StepType.NEW,
-            mode,
-            Status.IN_PROGRESS,
+            Mode.DESTROY,
+            Status.COMPLETED,
             region,
             specificationId,
             title,

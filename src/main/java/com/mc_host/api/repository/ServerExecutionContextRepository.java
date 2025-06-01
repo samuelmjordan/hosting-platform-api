@@ -95,7 +95,92 @@ public class ServerExecutionContextRepository {
             });
         } catch (DataAccessException e) {
             throw new RuntimeException(
-                String.format("Failed to insert or update server execution context for subscription: %s, context:", context.getSubscriptionId(), context.toString()), e
+                String.format("failed to upsert context for sub: %s", context.getSubscriptionId()), e
+            );
+        }
+    }
+
+    public void insertOrIgnoreSubscription(Context context) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    INSERT INTO server_execution_context_ (
+                        subscription_id, step_type, mode, execution_status, region,
+                        specification_id, title, caption, node_id, a_record_id,
+                        pterodactyl_node_id, allocation_id, pterodactyl_server_id,
+                        c_name_record_id, new_node_id, new_a_record_id,
+                        new_pterodactyl_node_id, new_allocation_id,
+                        new_pterodactyl_server_id, new_c_name_record_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (subscription_id) DO NOTHING
+                    """);
+                ps.setString(1, context.getSubscriptionId());
+                ps.setString(2, context.getStepType().name());
+                ps.setString(3, context.getMode().name());
+                ps.setString(4, context.getStatus().name());
+                ps.setString(5, context.getRegion().name());
+                ps.setString(6, context.getSpecificationId());
+                ps.setString(7, context.getTitle());
+                ps.setString(8, context.getCaption());
+                ps.setObject(9, context.getNodeId());
+                ps.setString(10, context.getARecordId());
+                ps.setObject(11, context.getPterodactylNodeId());
+                ps.setObject(12, context.getAllocationId());
+                ps.setObject(13, context.getPterodactylServerId());
+                ps.setObject(14, context.getCNameRecordId());
+                ps.setObject(15, context.getNewNodeId());
+                ps.setString(16, context.getNewARecordId());
+                ps.setObject(17, context.getNewPterodactylNodeId());
+                ps.setObject(18, context.getNewAllocationId());
+                ps.setObject(19, context.getNewPterodactylServerId());
+                ps.setObject(20, context.getNewCNameRecordId());
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException(
+                String.format("failed to insert context for sub: %s", context.getSubscriptionId()), e
+            );
+        }
+    }
+
+    public void updateSubscription(Context context) {
+        try {
+            jdbcTemplate.update(connection -> {
+                var ps = connection.prepareStatement("""
+                    UPDATE server_execution_context_ SET
+                        step_type = ?, mode = ?, execution_status = ?, region = ?,
+                        specification_id = ?, title = ?, caption = ?, node_id = ?,
+                        a_record_id = ?, pterodactyl_node_id = ?, allocation_id = ?,
+                        pterodactyl_server_id = ?, c_name_record_id = ?, new_node_id = ?,
+                        new_a_record_id = ?, new_pterodactyl_node_id = ?, new_allocation_id = ?,
+                        new_pterodactyl_server_id = ?, new_c_name_record_id = ?
+                    WHERE subscription_id = ?
+                    """);
+                ps.setString(1, context.getStepType().name());
+                ps.setString(2, context.getMode().name());
+                ps.setString(3, context.getStatus().name());
+                ps.setString(4, context.getRegion().name());
+                ps.setString(5, context.getSpecificationId());
+                ps.setString(6, context.getTitle());
+                ps.setString(7, context.getCaption());
+                ps.setObject(8, context.getNodeId());
+                ps.setString(9, context.getARecordId());
+                ps.setObject(10, context.getPterodactylNodeId());
+                ps.setObject(11, context.getAllocationId());
+                ps.setObject(12, context.getPterodactylServerId());
+                ps.setObject(13, context.getCNameRecordId());
+                ps.setObject(14, context.getNewNodeId());
+                ps.setString(15, context.getNewARecordId());
+                ps.setObject(16, context.getNewPterodactylNodeId());
+                ps.setObject(17, context.getNewAllocationId());
+                ps.setObject(18, context.getNewPterodactylServerId());
+                ps.setObject(19, context.getNewCNameRecordId());
+                ps.setString(20, context.getSubscriptionId());
+                return ps;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException(
+                String.format("failed to update context for sub: %s", context.getSubscriptionId()), e
             );
         }
     }
