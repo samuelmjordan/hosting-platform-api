@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -286,7 +285,7 @@ public class PterodactylService {
                     Thread.sleep(Duration.ofSeconds(15).toMillis()); // wait a bit
                     acceptEula(serverUid);
                 }
-                
+
             } catch (Exception e) {
                 if (timePassed.compareTo(timeout) >= 0) {
                     throw new RuntimeException(String.format("couldn't start pterodactyl server %s after %s", serverId, timeout));
