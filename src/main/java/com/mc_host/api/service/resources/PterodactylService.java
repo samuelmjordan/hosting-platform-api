@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.client.PterodactylUserClient;
 import com.mc_host.api.client.PterodactylUserClient.PowerState;
+import com.mc_host.api.client.PterodactylUserClient.PterodactylUserResponse;
 import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
 import com.mc_host.api.client.PterodactylApplicationClient.AllocationAttributes;
 import com.mc_host.api.client.PterodactylApplicationClient.AllocationResponse;
@@ -44,6 +45,39 @@ public class PterodactylService {
         this.wingsService = wingsService;
     }
 
+    // USER MANAGEMENT
+    public Long createUser(String email, String firstName, String lastName, String username) {
+        LOGGER.log(Level.INFO, String.format("[email: %s] Creating pterodactyl user", email));
+        try {
+            // check if user already exists first
+            try {
+                PterodactylUserResponse existingUser = pterodactylUserClient.getUserByEmail(email);
+                LOGGER.log(Level.INFO, String.format("[email: %s] [pterodactylUserId: %s] User already exists", email, existingUser.attributes().id()));
+                return existingUser.attributes().id();
+            } catch (RuntimeException e) {
+                // user doesn't exist, continue with creation
+            }
+            
+            PterodactylUserResponse response = pterodactylUserClient.createUser(email, firstName, lastName, username);
+            LOGGER.log(Level.INFO, String.format("[email: %s] [pterodactylUserId: %s] Created pterodactyl user", email, response.attributes().id()));
+            return response.attributes().id();
+        } catch (Exception e) {
+            throw new PterodactylException(String.format("[email: %s] Error creating pterodactyl user", email), e);
+        }
+    }
+
+    public void deleteUser(Long pterodactylUserId) {
+        LOGGER.log(Level.INFO, String.format("[pterodactylUserId: %s] Deleting pterodactyl user", pterodactylUserId));
+        try {
+            pterodactylUserClient.deleteUser(pterodactylUserId);
+            LOGGER.log(Level.INFO, String.format("[pterodactylUserId: %s] Deleted pterodactyl user", pterodactylUserId));
+        } catch (Exception e) {
+            throw new PterodactylException(String.format("[pterodactylUserId: %s] Error deleting pterodactyl user", pterodactylUserId), e);
+        }
+    }
+
+
+    //APP MANAGEMENT
     public PterodactylNode createNode(DnsARecord dnsARecord) {
         LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Creating pterodactyl node", dnsARecord.aRecordId()));
         try {

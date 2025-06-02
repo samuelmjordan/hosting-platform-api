@@ -24,12 +24,14 @@ public class UserRepository {
                 """
                 INSERT INTO user_ (
                     clerk_id, 
-                    customer_id
+                    customer_id,
+                    pterodactyl_user_id
                 )
-                VALUES (?, ?)
+                VALUES (?, ?, ?)
                 """,
                 userEntity.clerkId(),
-                userEntity.customerId()
+                userEntity.customerId(),
+                userEntity.pterodactylUserId()
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to save subscription to database: " + e.getMessage(), e);
@@ -45,6 +47,22 @@ public class UserRepository {
                 WHERE clerk_id = ?
                 """,
                 (rs, rowNum) -> rs.getString("customer_id"),
+                clerkId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch customer ID for clerk ID: " + e.getMessage(), e);
+        }
+    }
+
+    public Optional<Long> selectPterodactylIdByClerkId(String clerkId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT pterodactyl_user_id
+                FROM user_
+                WHERE clerk_id = ?
+                """,
+                (rs, rowNum) -> rs.getLong("pterodactyl_user_id"),
                 clerkId
             ).stream().findFirst();
         } catch (DataAccessException e) {

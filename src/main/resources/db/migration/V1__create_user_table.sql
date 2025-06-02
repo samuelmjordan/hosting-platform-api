@@ -3,6 +3,7 @@ CREATE TABLE user_ (
    id BIGSERIAL PRIMARY KEY,
    clerk_id TEXT NOT NULL,
    customer_id TEXT NOT NULL,
+   pterodactyl_user_id BIGINT NOT NULL,
    
    -- Business fields
    currency TEXT NOT NULL DEFAULT 'XXX',

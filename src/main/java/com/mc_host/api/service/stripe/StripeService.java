@@ -233,7 +233,7 @@ public class StripeService implements StripeResource {
         );
         
         Customer stripeCustomer = Customer.create(customerParams);
-        userRepository.insertUser(new ApplicationUser(userId, stripeCustomer.getId()));
+        userRepository.insertUser(new ApplicationUser(userId, stripeCustomer.getId(), null));
 
         LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: " + userId);
         return stripeCustomer.getId();

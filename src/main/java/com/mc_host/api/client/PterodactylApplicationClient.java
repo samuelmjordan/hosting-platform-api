@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
 import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
+import com.mc_host.api.model.pterodactyl.response.PaginatedResponse;
 import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
 
 @Service
@@ -46,7 +47,7 @@ public class PterodactylApplicationClient extends BaseApiClient {
         PaginatedResponse<PterodactylServerResponse> paginatedResponse = objectMapper.readValue(response, 
             objectMapper.getTypeFactory().constructParametricType(
                 PaginatedResponse.class, PterodactylServerResponse.class));
-        return paginatedResponse.data;
+        return paginatedResponse.data();
     }
 
     public PterodactylServerResponse createServer(Map<String, Object> serverDetails) throws Exception {
@@ -78,7 +79,7 @@ public class PterodactylApplicationClient extends BaseApiClient {
         PaginatedResponse<PterodactylNodeResponse> paginatedResponse = objectMapper.readValue(response,
             objectMapper.getTypeFactory().constructParametricType(
                 PaginatedResponse.class, PterodactylNodeResponse.class));
-        return paginatedResponse.data;
+        return paginatedResponse.data();
     }
     
     public void deleteNode(Long nodeId) throws Exception {
@@ -100,7 +101,7 @@ public class PterodactylApplicationClient extends BaseApiClient {
         PaginatedResponse<AllocationResponse> paginatedResponse = objectMapper.readValue(response,
             objectMapper.getTypeFactory().constructParametricType(
                 PaginatedResponse.class, AllocationResponse.class));
-        return paginatedResponse.data;
+        return paginatedResponse.data();
     }
 
     public AllocationResponse createAllocation(Long nodeId, String ip, Integer port, String alias) throws Exception {
@@ -157,13 +158,4 @@ public class PterodactylApplicationClient extends BaseApiClient {
         LimitsObject limits
     ) {}
     public record LimitsObject(int memory, int disk, int cpu) {}
-    public record PaginatedResponse<T>(List<T> data, MetaData meta) {}
-    public record MetaData(Pagination pagination) {}
-    public record Pagination(
-        int total,
-        int count,
-        int perPage,
-        int currentPage,
-        int totalPages
-    ) {}
 }
