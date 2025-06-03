@@ -33,44 +33,6 @@ public class PterodactylUserClient extends BaseApiClient {
         return "Bearer " + pterodactylConfiguration.getClientApiToken();
     }
 
-    // USERS
-    public PterodactylUserResponse createUser(String email, String firstName, String lastName, String username) throws Exception {
-        var userRequest = Map.of(
-            "email", email,
-            "username", username,
-            "first_name", firstName,
-            "last_name", lastName,
-            "password", java.util.UUID.randomUUID().toString(), // random pw since they'll use oauth anyway
-            "root_admin", false
-        );
-        
-        String response = sendRequest("POST", "/api/application/users", userRequest);
-        return objectMapper.readValue(response, PterodactylUserResponse.class);
-    }
-
-    public PterodactylUserResponse getUser(Long userId) throws Exception {
-        String response = sendRequest("GET", "/api/application/users/" + userId);
-        return objectMapper.readValue(response, PterodactylUserResponse.class);
-    }
-
-    public PterodactylUserResponse getUserByEmail(String email) throws Exception {
-        String response = sendRequest("GET", "/api/application/users?filter[email]=" + email);
-        PaginatedResponse<PterodactylUserResponse> paginatedResponse = objectMapper.readValue(response,
-            objectMapper.getTypeFactory().constructParametricType(
-                PaginatedResponse.class, PterodactylUserResponse.class));
-        
-        if (paginatedResponse.data().isEmpty()) {
-            throw new RuntimeException("User not found with email: " + email);
-        }
-        
-        return paginatedResponse.data().get(0);
-    }
-
-    public void deleteUser(Long userId) throws Exception {
-        sendRequest("DELETE", "/api/application/users/" + userId);
-    }
-
-
     // SERVERS
     public void setPowerState(String serverUid, PowerState state) throws Exception {
         var action = Map.of("signal", state.toString().toLowerCase());

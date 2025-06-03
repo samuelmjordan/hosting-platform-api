@@ -3,12 +3,12 @@ CREATE TABLE user_ (
    id BIGSERIAL PRIMARY KEY,
    clerk_id TEXT NOT NULL,
    customer_id TEXT NOT NULL,
-   pterodactyl_user_id BIGINT NOT NULL,
    
    -- Business fields
    currency TEXT NOT NULL DEFAULT 'XXX',
    
    -- Audit fields
+   deleted_at TIMESTAMP WITH TIME ZONE,
    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
    last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

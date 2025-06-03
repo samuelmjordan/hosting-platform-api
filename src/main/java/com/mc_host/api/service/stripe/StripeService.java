@@ -1,40 +1,30 @@
 package com.mc_host.api.service.stripe;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.clerk.backend_api.models.components.User;
-import com.clerk.backend_api.models.errors.ClerkErrors;
-import com.clerk.backend_api.models.operations.GetUserResponse;
-import com.mc_host.api.configuration.ClerkConfiguration;
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
-import com.mc_host.api.exceptions.ClerkException;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.MetadataKey;
 import com.mc_host.api.model.stripe.request.CheckoutRequest;
 import com.mc_host.api.model.stripe.request.PortalRequest;
-import com.mc_host.api.model.user.ApplicationUser;
+import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.GameServerSpecRepository;
-import com.mc_host.api.repository.UserRepository;
+import com.mc_host.api.service.clerk.ClerkEventProcessor;
 import com.mc_host.api.service.data.DataFetchingService;
 import com.mc_host.api.service.stripe.events.StripeEventProcessor;
 import com.mc_host.api.util.Cache;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
 import com.stripe.model.Event;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
@@ -48,9 +38,8 @@ public class StripeService implements StripeResource {
     
     private final Cache cacheService;
     private final StripeConfiguration stripeConfiguration;
-    private final ClerkConfiguration clerkConfiguration;
+    private final ClerkEventProcessor clerkEventProcessor;
     private final StripeEventProcessor stripeEventProcessor;
-    private final UserRepository userRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
     private final DataFetchingService dataFetchingService;
     private final Executor virtualThreadExecutor;
@@ -58,18 +47,16 @@ public class StripeService implements StripeResource {
     public StripeService(
         Cache cacheService,
         StripeConfiguration stripeConfiguration,
-        ClerkConfiguration clerkConfiguration,
         StripeEventProcessor eventProcessor,
-        UserRepository userRepository,
+        ClerkEventProcessor clerkEventProcessor,
         GameServerSpecRepository gameServerSpecRepository,
         DataFetchingService dataFetchingService,
         Executor virtualThreadExecutor
     ) {
         this.cacheService = cacheService;
         this.stripeConfiguration = stripeConfiguration;
-        this.clerkConfiguration = clerkConfiguration;
         this.stripeEventProcessor = eventProcessor;
-        this.userRepository = userRepository;
+        this.clerkEventProcessor = clerkEventProcessor;
         this.gameServerSpecRepository = gameServerSpecRepository;
         this.dataFetchingService  = dataFetchingService;
         this.virtualThreadExecutor = virtualThreadExecutor;
@@ -179,64 +166,13 @@ public class StripeService implements StripeResource {
     }
 
     public String getCustomerId(String userId) throws CustomerNotFoundException {
-        CacheNamespace cacheNamespace = CacheNamespace.USER_CUSTOMER_ID;
-        Optional<String> stripeCustomerId = dataFetchingService.getUserCustomerId(userId);
-        if (stripeCustomerId.isPresent()) {
-            LOGGER.log(Level.INFO, "Completed fetching details - clerkId:  " + userId);
-            return stripeCustomerId.get();
+        Optional<String> customerId = dataFetchingService.getUserCustomerId(userId);
+        if (customerId.isEmpty()) {
+            virtualThreadExecutor.execute(() -> clerkEventProcessor.processEvent(new ClerkUserEvent("user.created", userId)));
+            new IllegalStateException("Failed to find user: " + userId);
         }
-        cacheService.evict(cacheNamespace, userId);
 
-        try {
-            LOGGER.log(Level.INFO, "Creating new customer - clerkId: " + userId);
-            String customerId = createNewStripeCustomer(userId);
-            cacheService.set(cacheNamespace, userId, Optional.of(customerId), Duration.ofMinutes(10));
-            LOGGER.log(Level.INFO, "Completed creating new customer - clerkId: " + userId);
-            return customerId;
-        } catch (ClerkErrors | ClerkException e) {
-            LOGGER.log(Level.SEVERE, "Clerk API error for clerkId: " + userId, e);
-            throw new CustomerNotFoundException("Failed to create customer due to Clerk API error", e);
-        } catch (StripeException e) {
-            LOGGER.log(Level.SEVERE, "Stripe API error for clerkId: " + userId, e);
-            throw new CustomerNotFoundException("Failed to create customer due to Stripe API error", e);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Unexpected error for clerkId: " + userId, e);
-            throw new CustomerNotFoundException("Failed to create customer due to unexpected error", e);
-        }
-    }
-
-    private String createNewStripeCustomer(String userId) throws ClerkErrors, ClerkException, StripeException, Exception {
-        GetUserResponse userResponse = clerkConfiguration.getClient().users().get()
-            .userId(userId)
-            .call();
-
-        User user = userResponse.user()
-            .orElseThrow(() -> new ClerkException("User not found"));
-
-        JsonNullable<String> primaryEmailIdNullable = user.primaryEmailAddressId();
-        if (!primaryEmailIdNullable.isPresent()) {
-            throw new ClerkException("No primary email ID set");
-        }
-        String primaryEmailId = primaryEmailIdNullable.get();
-
-        String primaryEmail = user.emailAddresses()
-            .orElseThrow(() -> new ClerkException("No email addresses found"))
-            .stream()
-            .filter(email -> email.id().isPresent() && email.id().get().equals(primaryEmailId))
-            .map(email -> email.emailAddress())
-            .findFirst()
-            .orElseThrow(() -> new ClerkException("Primary email address not found in list of user emails"));
-
-        Map<String, Object> customerParams = Map.of(
-            "email", primaryEmail,
-            "metadata", Collections.singletonMap("clerk_id", userId)
-        );
-        
-        Customer stripeCustomer = Customer.create(customerParams);
-        userRepository.insertUser(new ApplicationUser(userId, stripeCustomer.getId(), null));
-
-        LOGGER.log(Level.INFO, "Created new stripe customerId - clerkId: " + userId);
-        return stripeCustomer.getId();
+        return customerId.get();
     }
 
     @Override

@@ -24,19 +24,38 @@ public class UserRepository {
                 """
                 INSERT INTO user_ (
                     clerk_id, 
-                    customer_id,
-                    pterodactyl_user_id
+                    customer_id
                 )
-                VALUES (?, ?, ?)
+                VALUES (?, ?)
                 """,
                 userEntity.clerkId(),
-                userEntity.customerId(),
-                userEntity.pterodactylUserId()
+                userEntity.customerId()
             );
         } catch (DataAccessException e) {
             throw new RuntimeException("Failed to save subscription to database: " + e.getMessage(), e);
         }
     }   
+
+    public Optional<ApplicationUser> selectUser(String clerkId) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT 
+                    clerk_id,
+                    customer_id
+                FROM user_
+                WHERE clerk_id = ?
+                """,
+                (rs, rowNum) -> new ApplicationUser(
+                    rs.getString("clerk_id"),
+                    rs.getString("customer_id")
+                ),
+                clerkId
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to fetch customer ID for clerk ID: " + e.getMessage(), e);
+        }
+    }
 
     public Optional<String> selectCustomerIdByClerkId(String clerkId) {
         try {
@@ -47,22 +66,6 @@ public class UserRepository {
                 WHERE clerk_id = ?
                 """,
                 (rs, rowNum) -> rs.getString("customer_id"),
-                clerkId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch customer ID for clerk ID: " + e.getMessage(), e);
-        }
-    }
-
-    public Optional<Long> selectPterodactylIdByClerkId(String clerkId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT pterodactyl_user_id
-                FROM user_
-                WHERE clerk_id = ?
-                """,
-                (rs, rowNum) -> rs.getLong("pterodactyl_user_id"),
                 clerkId
             ).stream().findFirst();
         } catch (DataAccessException e) {
