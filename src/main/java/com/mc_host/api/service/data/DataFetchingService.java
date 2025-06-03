@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,8 @@ import com.mc_host.api.model.stripe.response.PaymentMethodResponse;
 import com.mc_host.api.model.stripe.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.stripe.response.PaymentMethodResponse.DisplayField;
 import com.mc_host.api.model.subscription.ContentSubscription;
+import com.mc_host.api.model.subscription.response.ServerProvisioningResponse;
+import com.mc_host.api.model.subscription.response.ServerProvisioningStatus;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.InvoiceRepository;
@@ -41,6 +44,7 @@ import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.service.resources.v2.context.Context;
+import com.mc_host.api.service.resources.v2.context.Status;
 import com.mc_host.api.util.Cache;
 
 @Service
@@ -281,6 +285,50 @@ public class DataFetchingService implements DataFetchingResource  {
             LOGGER.log(Level.SEVERE, String.format("Failed to fetch plans for specType %s", specType), e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @Override
+    public ResponseEntity<ServerProvisioningResponse> updateSubscriptionRegion(String userId, String subscriptionId) {
+        String subscriptionCustomerId = subscriptionRepository.selectSubscription(subscriptionId)
+            .map(ContentSubscription::customerId)
+            .orElseThrow(() -> new IllegalStateException("Couldnt fetch subscription: " + subscriptionId));
+        String requestCustomerId = userRepository.selectCustomerIdByClerkId(userId)
+            .orElseThrow(() -> new IllegalStateException("Couldnt fetch user: " + userId));
+
+        if (!requestCustomerId.equals(subscriptionCustomerId)) {
+            LOGGER.log(Level.SEVERE, String.format("Subscription does not belong to user: %s", subscriptionId));
+            return ResponseEntity.status(HttpStatusCode.valueOf(403)).build();
+        }
+
+        Context context = serverExecutionContextRepository.selectSubscription(subscriptionId)
+            .orElseThrow(() -> new IllegalStateException("Couldnt fetch subscription context: " + subscriptionId));
+
+        if (context.isCreated()) {
+            return ResponseEntity.ok(new ServerProvisioningResponse(ServerProvisioningStatus.READY));
+        }
+
+        if (context.isDestroyed()) {
+            return ResponseEntity.ok(new ServerProvisioningResponse(ServerProvisioningStatus.INACTIVE));
+        }
+
+        if (context.getStatus().equals(Status.FAILED)) {
+            return ResponseEntity.ok(new ServerProvisioningResponse(ServerProvisioningStatus.FAILED));
+        }
+
+        if (context.getMode().isMigrate()) {
+            return ResponseEntity.ok(new ServerProvisioningResponse(ServerProvisioningStatus.MIGRATING));
+        }
+
+        if (context.getMode().isCreate()) {
+            return ResponseEntity.ok(new ServerProvisioningResponse(ServerProvisioningStatus.PROVISIONING));
+        }
+
+        if (context.getMode().isDestroy()) {
+            return ResponseEntity.ok(new ServerProvisioningResponse(ServerProvisioningStatus.DESTROYING));
+        }
+
+        LOGGER.log(Level.SEVERE, String.format("Failed to get server status: %s", subscriptionId));
+        return ResponseEntity.internalServerError().build();
     }
     
 }
