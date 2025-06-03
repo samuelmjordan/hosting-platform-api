@@ -12,7 +12,7 @@ import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.exceptions.resources.CloudflareException;
 import com.mc_host.api.model.resource.DnsARecord;
 import com.mc_host.api.model.resource.DnsCNameRecord;
-import com.mc_host.api.model.resource.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.repository.GameServerRepository;
 
 @Service

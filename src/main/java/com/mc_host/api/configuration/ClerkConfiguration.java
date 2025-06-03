@@ -13,6 +13,7 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "clerk")
 public class ClerkConfiguration {
     private String key;
+    private String signingKey;
 
     @Bean
     public Clerk getClient() {

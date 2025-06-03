@@ -3,7 +3,7 @@ package com.mc_host.api.service.resources.v2.service.steps;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.mc_host.api.model.resource.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.resource.hetzner.HetznerServerType;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;

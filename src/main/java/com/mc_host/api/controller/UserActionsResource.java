@@ -5,9 +5,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mc_host.api.model.request.UpdateAddressRequest;
-import com.mc_host.api.model.request.UpdateRegionRequest;
-import com.mc_host.api.model.request.UpdateTitleRequest;
+import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
+import com.mc_host.api.model.subscription.request.UpdateRegionRequest;
+import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

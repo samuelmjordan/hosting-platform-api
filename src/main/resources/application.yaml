@@ -64,6 +64,7 @@ ssh:
 
 clerk:
   key: ${CLERK_SECRET_KEY}
+  signing-key: ${CLERK_SECRET_SIGNING_KEY}
 
 stripe:
   api-key: ${STRIPE_SECRET_KEY}

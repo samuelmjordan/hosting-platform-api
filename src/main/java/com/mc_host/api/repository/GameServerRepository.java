@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.resource.DnsCNameRecord;
-import com.mc_host.api.model.resource.PterodactylServer;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 
 @Service
 public class GameServerRepository {

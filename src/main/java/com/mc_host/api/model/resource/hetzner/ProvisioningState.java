@@ -1,4 +1,4 @@
-package com.mc_host.api.model.resource;
+package com.mc_host.api.model.resource.hetzner;
 
 import java.util.Set;
 

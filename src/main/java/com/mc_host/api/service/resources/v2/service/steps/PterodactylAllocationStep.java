@@ -4,8 +4,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.resource.DnsARecord;
-import com.mc_host.api.model.resource.PterodactylAllocation;
-import com.mc_host.api.model.resource.PterodactylNode;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.PterodactylService;

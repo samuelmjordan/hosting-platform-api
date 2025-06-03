@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.cache.StripeEventType;
-import com.mc_host.api.model.resource.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.stripe.MetadataKey;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;

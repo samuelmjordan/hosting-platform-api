@@ -8,10 +8,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.model.resource.DnsARecord;
-import com.mc_host.api.model.resource.HetznerNode;
-import com.mc_host.api.model.resource.PterodactylAllocation;
-import com.mc_host.api.model.resource.PterodactylNode;
+import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 
 @Service
 public class NodeRepository {
