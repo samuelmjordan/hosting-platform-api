@@ -1,5 +1,7 @@
 package com.mc_host.api.configuration;
 
+import java.util.List;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,11 +16,16 @@ import lombok.Data;
 public class ClerkConfiguration {
     private String key;
     private String signingKey;
+    private List<String> validEvents;
 
     @Bean
     public Clerk getClient() {
         return Clerk.builder()
             .bearerAuth(this.getKey())
             .build();
+    }
+
+    public Boolean isValidEventType(String type) {
+        return validEvents.contains(type);
     }
 }

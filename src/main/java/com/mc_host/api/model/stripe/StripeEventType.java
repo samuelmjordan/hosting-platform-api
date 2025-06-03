@@ -1,4 +1,4 @@
-package com.mc_host.api.model.cache;
+package com.mc_host.api.model.stripe;
 
 import lombok.Getter;
 

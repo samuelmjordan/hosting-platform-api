@@ -2,6 +2,7 @@ package com.mc_host.api.service.clerk;
 
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 import javax.crypto.Mac;
@@ -15,18 +16,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.ClerkConfiguration;
 import com.mc_host.api.controller.ClerkResource;
+import com.mc_host.api.model.user.ClerkUserEvent;
 
 @Service
 public class ClerkService implements ClerkResource {
-
     private static final Logger LOGGER = Logger.getLogger(ClerkService.class.getName());
 
-    private ClerkConfiguration clerkConfiguration;
+    private final ClerkConfiguration clerkConfiguration;
+    private final ClerkEventProcessor clerkEventProcessor;
+    private final Executor virtualThreadExecutor;
 
     public ClerkService(
-        ClerkConfiguration clerkConfiguration
+        ClerkConfiguration clerkConfiguration,
+        ClerkEventProcessor clerkEventProcessor,
+        Executor virtualThreadExecutor
     ) {
         this.clerkConfiguration = clerkConfiguration;
+        this.clerkEventProcessor = clerkEventProcessor;
+        this.virtualThreadExecutor = virtualThreadExecutor;
     }
 
     @Override
@@ -35,6 +42,22 @@ public class ClerkService implements ClerkResource {
             if(!verifySignature(payload, svixId, svixTimestamp, svixSignature)) {
                 return ResponseEntity.status(HttpStatusCode.valueOf(403)).build();
             }
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode event = mapper.readTree(payload);
+            String eventType = event.get("type").asText();
+
+            if(!clerkConfiguration.isValidEventType(eventType)) {
+                LOGGER.info("Invalid clerk webhook type: " + eventType);
+                return ResponseEntity.ok().build();
+            }
+
+            ClerkUserEvent clerkUserEvent = new ClerkUserEvent(
+                eventType,
+                event.get("data").get("id").asText()
+            );
+
+            virtualThreadExecutor.execute(() -> clerkEventProcessor.processEvent(clerkUserEvent));
 
         } catch (Exception e) {
             e.printStackTrace();

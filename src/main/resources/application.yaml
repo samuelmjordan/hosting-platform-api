@@ -65,6 +65,10 @@ ssh:
 clerk:
   key: ${CLERK_SECRET_KEY}
   signing-key: ${CLERK_SECRET_SIGNING_KEY}
+  valid-events:
+    - user.created
+    - user.deleted
+    - user.updated
 
 stripe:
   api-key: ${STRIPE_SECRET_KEY}

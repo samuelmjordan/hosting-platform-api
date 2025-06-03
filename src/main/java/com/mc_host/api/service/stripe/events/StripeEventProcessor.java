@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
-import com.mc_host.api.model.cache.StripeEventType;
+import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.util.Cache;
 import com.stripe.model.Event;
 import com.stripe.model.StripeObject;

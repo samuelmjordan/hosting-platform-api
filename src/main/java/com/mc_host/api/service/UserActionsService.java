@@ -5,8 +5,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.controller.UserActionsResource;
-import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.resource.DnsCNameRecord;
+import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
 import com.mc_host.api.model.subscription.request.UpdateRegionRequest;

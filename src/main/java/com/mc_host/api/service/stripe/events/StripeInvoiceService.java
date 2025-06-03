@@ -6,9 +6,9 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.CustomerInvoice;
+import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.repository.InvoiceRepository;
 import com.mc_host.api.util.Cache;
 import com.stripe.model.Invoice;

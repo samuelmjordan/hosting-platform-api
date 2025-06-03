@@ -8,9 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.model.cache.StripeEventType;
 import com.mc_host.api.model.stripe.CustomerPaymentMethod;
 import com.mc_host.api.model.stripe.PaymentMethodType;
+import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.repository.PaymentMethodRepository;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
