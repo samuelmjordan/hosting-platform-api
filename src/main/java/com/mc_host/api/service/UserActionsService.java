@@ -6,11 +6,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.controller.UserActionsResource;
 import com.mc_host.api.model.cache.StripeEventType;
-import com.mc_host.api.model.entity.ContentSubscription;
-import com.mc_host.api.model.game_server.DnsCNameRecord;
 import com.mc_host.api.model.request.UpdateAddressRequest;
 import com.mc_host.api.model.request.UpdateRegionRequest;
 import com.mc_host.api.model.request.UpdateTitleRequest;
+import com.mc_host.api.model.resource.DnsCNameRecord;
+import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;

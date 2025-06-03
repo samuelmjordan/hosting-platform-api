@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.HetznerCloudClient;
-import com.mc_host.api.model.ResourceType;
+import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.util.Task;
 

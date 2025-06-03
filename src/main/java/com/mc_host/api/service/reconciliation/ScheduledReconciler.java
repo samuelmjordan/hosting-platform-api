@@ -7,8 +7,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import com.mc_host.api.model.ResourceType;
 import com.mc_host.api.model.cache.Queue;
+import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.util.Cache;
 import com.mc_host.api.util.Task;
 

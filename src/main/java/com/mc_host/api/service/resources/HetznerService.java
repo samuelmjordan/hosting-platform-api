@@ -8,11 +8,11 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.HetznerCloudClient;
 import com.mc_host.api.exceptions.resources.HetznerException;
-import com.mc_host.api.model.hetzner.HetznerRegion;
-import com.mc_host.api.model.hetzner.HetznerServerResponse;
-import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
-import com.mc_host.api.model.hetzner.HetznerServerType;
-import com.mc_host.api.model.node.HetznerNode;
+import com.mc_host.api.model.resource.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.HetznerRegion;
+import com.mc_host.api.model.resource.hetzner.HetznerServerResponse;
+import com.mc_host.api.model.resource.hetzner.HetznerServerType;
+import com.mc_host.api.model.resource.hetzner.HetznerServerResponse.Server;
 
 @Service
 public class HetznerService {

@@ -5,7 +5,7 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-import com.mc_host.api.model.PaymentMethodType;
+import com.mc_host.api.model.stripe.PaymentMethodType;
 
 import lombok.Data;
 

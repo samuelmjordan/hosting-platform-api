@@ -2,8 +2,8 @@ package com.mc_host.api.service.resources.v2.service.steps;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.node.DnsARecord;
-import com.mc_host.api.model.node.PterodactylNode;
+import com.mc_host.api.model.resource.DnsARecord;
+import com.mc_host.api.model.resource.PterodactylNode;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.PterodactylService;

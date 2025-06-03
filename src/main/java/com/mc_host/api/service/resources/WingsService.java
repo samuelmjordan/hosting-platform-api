@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.SshConfiguration;
 import com.mc_host.api.exceptions.resources.SshException;
-import com.mc_host.api.model.node.DnsARecord;
+import com.mc_host.api.model.resource.DnsARecord;
 
 @Service
 public class WingsService {

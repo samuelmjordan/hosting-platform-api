@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
-import com.mc_host.api.model.pterodactyl.response.PaginatedResponse;
-import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
+import com.mc_host.api.model.resource.pterodactyl.request.PterodactylCreateNodeRequest;
+import com.mc_host.api.model.resource.pterodactyl.response.PaginatedResponse;
+import com.mc_host.api.model.resource.pterodactyl.response.PterodactylNodeResponse;
 
 @Service
 public class PterodactylApplicationClient extends BaseApiClient {

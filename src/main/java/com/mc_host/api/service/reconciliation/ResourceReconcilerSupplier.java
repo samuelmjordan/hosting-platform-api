@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.ResourceType;
+import com.mc_host.api.model.resource.ResourceType;
 
 @Service
 public class ResourceReconcilerSupplier {

@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.model.PaymentMethodType;
-import com.mc_host.api.model.entity.CustomerPaymentMethod;
+import com.mc_host.api.model.stripe.CustomerPaymentMethod;
+import com.mc_host.api.model.stripe.PaymentMethodType;
 
 @Service
 public class PaymentMethodRepository {

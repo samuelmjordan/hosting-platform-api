@@ -7,11 +7,11 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.hetzner.HetznerRegion;
-import com.mc_host.api.model.node.HetznerNode;
-import com.mc_host.api.model.node.PterodactylAllocation;
-import com.mc_host.api.model.node.PterodactylNode;
-import com.mc_host.api.model.node.DnsARecord;
+import com.mc_host.api.model.resource.DnsARecord;
+import com.mc_host.api.model.resource.HetznerNode;
+import com.mc_host.api.model.resource.PterodactylAllocation;
+import com.mc_host.api.model.resource.PterodactylNode;
+import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 
 @Service
 public class NodeRepository {

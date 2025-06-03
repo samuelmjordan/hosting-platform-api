@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.model.pterodactyl.response.PaginatedResponse;
+import com.mc_host.api.model.resource.pterodactyl.response.PaginatedResponse;
 
 @Service
 public class PterodactylUserClient extends BaseApiClient {

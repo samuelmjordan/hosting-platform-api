@@ -5,9 +5,9 @@ import java.time.Duration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerCloudConfiguration;
-import com.mc_host.api.model.hetzner.HetznerServerResponse;
-import com.mc_host.api.model.hetzner.HetznerServerResponse.Server;
-import com.mc_host.api.model.hetzner.HetznerServersResponse;
+import com.mc_host.api.model.resource.hetzner.HetznerServerResponse;
+import com.mc_host.api.model.resource.hetzner.HetznerServersResponse;
+import com.mc_host.api.model.resource.hetzner.HetznerServerResponse.Server;
 
 import java.util.List;
 import java.util.Map;

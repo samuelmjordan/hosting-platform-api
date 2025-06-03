@@ -3,8 +3,8 @@ package com.mc_host.api.service.resources.v2.service.steps;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.mc_host.api.model.game_server.PterodactylServer;
-import com.mc_host.api.model.node.PterodactylAllocation;
+import com.mc_host.api.model.resource.PterodactylAllocation;
+import com.mc_host.api.model.resource.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RestController
 @RequestMapping("/api/")
 public interface UserActionsResource {
+    
     @PostMapping("/user/{userId}/subscription/{subscriptionId}/title")
     public ResponseEntity<Void> updateSubscriptionTitle(
         @PathVariable String userId,

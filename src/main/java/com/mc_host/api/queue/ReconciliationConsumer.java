@@ -8,9 +8,9 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.ResourceType;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
+import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.service.reconciliation.ResourceReconcilerSupplier;
 import com.mc_host.api.util.Cache;
 

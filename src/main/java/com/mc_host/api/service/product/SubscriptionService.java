@@ -1,7 +1,7 @@
 package com.mc_host.api.service.product;
 
-import com.mc_host.api.model.entity.ContentSubscription;
-import com.mc_host.api.model.specification.SpecificationType;
+import com.mc_host.api.model.plan.SpecificationType;
+import com.mc_host.api.model.subscription.ContentSubscription;
 
 public interface SubscriptionService {
     public boolean isType(SpecificationType type); 

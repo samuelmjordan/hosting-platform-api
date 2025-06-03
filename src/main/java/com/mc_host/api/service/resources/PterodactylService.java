@@ -18,15 +18,15 @@ import com.mc_host.api.client.PterodactylApplicationClient.AllocationAttributes;
 import com.mc_host.api.client.PterodactylApplicationClient.AllocationResponse;
 import com.mc_host.api.client.PterodactylApplicationClient.PterodactylServerResponse;
 import com.mc_host.api.exceptions.resources.PterodactylException;
-import com.mc_host.api.model.game_server.PterodactylServer;
-import com.mc_host.api.model.hetzner.HetznerRegion;
-import com.mc_host.api.model.node.DnsARecord;
-import com.mc_host.api.model.node.PterodactylAllocation;
-import com.mc_host.api.model.node.PterodactylNode;
-import com.mc_host.api.model.pterodactyl.games.Egg;
-import com.mc_host.api.model.pterodactyl.games.Nest;
-import com.mc_host.api.model.pterodactyl.request.PterodactylCreateNodeRequest;
-import com.mc_host.api.model.pterodactyl.response.PterodactylNodeResponse;
+import com.mc_host.api.model.resource.DnsARecord;
+import com.mc_host.api.model.resource.PterodactylAllocation;
+import com.mc_host.api.model.resource.PterodactylNode;
+import com.mc_host.api.model.resource.PterodactylServer;
+import com.mc_host.api.model.resource.hetzner.HetznerRegion;
+import com.mc_host.api.model.resource.pterodactyl.games.Egg;
+import com.mc_host.api.model.resource.pterodactyl.games.Nest;
+import com.mc_host.api.model.resource.pterodactyl.request.PterodactylCreateNodeRequest;
+import com.mc_host.api.model.resource.pterodactyl.response.PterodactylNodeResponse;
 
 @Service
 public class PterodactylService {

@@ -6,8 +6,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.AcceptedCurrency;
-import com.mc_host.api.model.entity.ApplicationUser;
+import com.mc_host.api.model.plan.AcceptedCurrency;
+import com.mc_host.api.model.user.ApplicationUser;
 
 @Service
 public class UserRepository {

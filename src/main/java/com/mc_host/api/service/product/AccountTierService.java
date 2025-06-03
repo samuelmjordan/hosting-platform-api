@@ -2,8 +2,8 @@ package com.mc_host.api.service.product;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.entity.ContentSubscription;
-import com.mc_host.api.model.specification.SpecificationType;
+import com.mc_host.api.model.plan.SpecificationType;
+import com.mc_host.api.model.subscription.ContentSubscription;
 
 @Service
 public class AccountTierService implements SubscriptionService {

@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mc_host.api.model.request.CheckoutRequest;
-import com.mc_host.api.model.request.PortalRequest;
+import com.mc_host.api.model.stripe.request.CheckoutRequest;
+import com.mc_host.api.model.stripe.request.PortalRequest;
 
 @RestController
 @RequestMapping("/api/stripe")

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mc_host.api.model.request.CreatePaymentMethodRequest;
+import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 
 @RestController
 @RequestMapping("/api/stripe/user/{userId}/payment-method")

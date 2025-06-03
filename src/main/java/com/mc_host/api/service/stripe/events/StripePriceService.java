@@ -8,12 +8,12 @@ import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.AcceptedCurrency;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.StripeEventType;
-import com.mc_host.api.model.entity.ContentPrice;
-import com.mc_host.api.model.entity.PricePair;
-import com.mc_host.api.model.specification.SpecificationType;
+import com.mc_host.api.model.plan.AcceptedCurrency;
+import com.mc_host.api.model.plan.ContentPrice;
+import com.mc_host.api.model.plan.PricePair;
+import com.mc_host.api.model.plan.SpecificationType;
 import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.util.Cache;
 import com.mc_host.api.util.Task;

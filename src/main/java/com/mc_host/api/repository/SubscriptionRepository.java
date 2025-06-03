@@ -12,9 +12,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.MarketingRegion;
-import com.mc_host.api.model.SubscriptionStatus;
-import com.mc_host.api.model.entity.ContentSubscription;
+import com.mc_host.api.model.stripe.SubscriptionStatus;
+import com.mc_host.api.model.subscription.ContentSubscription;
+import com.mc_host.api.model.subscription.MarketingRegion;
 
 @Service
 public class SubscriptionRepository {
