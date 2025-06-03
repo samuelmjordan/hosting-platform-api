@@ -80,6 +80,25 @@ public class PlanRepository {
         }
     }
 
+    public Optional<String> selectPriceId(String specificationId, AcceptedCurrency currency) {
+        try {
+            return jdbcTemplate.query(
+                """
+                SELECT price_.price_id
+                FROM plan_
+                JOIN price_ ON price_.price_id = plan_.price_id
+                WHERE plan_.specification_id = ?
+                AND price_.currency = ?
+                """,
+                (rs, rowNum) -> rs.getString("price_id"),
+                specificationId,
+                currency.name()
+            ).stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new RuntimeException(String.format("Cannot find a plan with specification %s and currency %s", specificationId, currency), e);
+        }
+    }
+
     public Optional<String> selectPlanIdFromPriceId(String priceId) {
         try {
             return jdbcTemplate.query(

@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mc_host.api.controller.UserActionsResource;
 import com.mc_host.api.model.resource.DnsCNameRecord;
 import com.mc_host.api.model.stripe.StripeEventType;
+import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
 import com.mc_host.api.model.subscription.request.UpdateRegionRequest;
@@ -52,6 +53,9 @@ public class UserActionsService implements UserActionsResource {
     @Override
     @Transactional
     public ResponseEntity<Void> updateSubscriptionAddress(String userId, String subscriptionId, UpdateAddressRequest address) {
+        // TODO: this is shite
+        // Should probably be queable. Should also add the adress to the context, currently its tied to the cname which can dissapear!
+        // Or maybe the cname should be tied directly to the subscription? i guess it doesnt need to be taken down.
         Context context = serverExecutionContextRepository.selectSubscription(subscriptionId)
             .orElseThrow(() -> new IllegalStateException("No context found for subscription " + subscriptionId));
         if (context.getStatus().equals(Status.IN_PROGRESS)) {

@@ -14,11 +14,17 @@ import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.plan.AcceptedCurrency;
+import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.stripe.MetadataKey;
 import com.mc_host.api.model.stripe.request.CheckoutRequest;
 import com.mc_host.api.model.stripe.request.PortalRequest;
+import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
+import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.GameServerSpecRepository;
+import com.mc_host.api.repository.PlanRepository;
+import com.mc_host.api.repository.PriceRepository;
+import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.clerk.ClerkEventProcessor;
 import com.mc_host.api.service.data.DataFetchingService;
 import com.mc_host.api.service.stripe.events.StripeEventProcessor;
@@ -40,7 +46,10 @@ public class StripeService implements StripeResource {
     private final StripeConfiguration stripeConfiguration;
     private final ClerkEventProcessor clerkEventProcessor;
     private final StripeEventProcessor stripeEventProcessor;
+    private final SubscriptionRepository subscriptionRepository;
+    private final PriceRepository priceRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
+    private final PlanRepository planRepository;
     private final DataFetchingService dataFetchingService;
     private final Executor virtualThreadExecutor;
 
@@ -49,7 +58,10 @@ public class StripeService implements StripeResource {
         StripeConfiguration stripeConfiguration,
         StripeEventProcessor eventProcessor,
         ClerkEventProcessor clerkEventProcessor,
+        SubscriptionRepository subscriptionRepository,
+        PriceRepository priceRepository,
         GameServerSpecRepository gameServerSpecRepository,
+        PlanRepository planRepository,
         DataFetchingService dataFetchingService,
         Executor virtualThreadExecutor
     ) {
@@ -57,7 +69,10 @@ public class StripeService implements StripeResource {
         this.stripeConfiguration = stripeConfiguration;
         this.stripeEventProcessor = eventProcessor;
         this.clerkEventProcessor = clerkEventProcessor;
+        this.subscriptionRepository = subscriptionRepository;
+        this.priceRepository = priceRepository;
         this.gameServerSpecRepository = gameServerSpecRepository;
+        this.planRepository = planRepository;
         this.dataFetchingService  = dataFetchingService;
         this.virtualThreadExecutor = virtualThreadExecutor;
     }
@@ -210,6 +225,41 @@ public class StripeService implements StripeResource {
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .build();
+        }
+    }
+
+    @Override
+    public ResponseEntity<Void> updateSubscriptionSpecification(String userId, String subscriptionId, UpdateSpecificationRequest specificationRequest) {
+        String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
+            .map(ContentSubscription::priceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
+        ContentPrice oldPrice =  priceRepository.selectPrice(oldPriceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
+        String newPriceId = planRepository.selectPriceId(specificationRequest.specificationId(), oldPrice.currency())
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency %s", specificationRequest.specificationId(), oldPrice.currency())));
+        ContentPrice newPrice =  priceRepository.selectPrice(newPriceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
+
+        if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            Subscription subscription = Subscription.retrieve(subscriptionId);
+            SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+                .addItem(
+                    SubscriptionUpdateParams.Item.builder()
+                        .setId(subscription.getItems().getData().get(0).getId())
+                        .setPrice(newPriceId)
+                        .build()
+                )
+                .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
+                .build();
+                
+            subscription.update(params);
+            return ResponseEntity.ok().build();
+        } catch (StripeException e) {
+            throw new RuntimeException("rip subscription update: " + subscriptionId, e);
         }
     }
 }

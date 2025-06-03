@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mc_host.api.model.stripe.request.CheckoutRequest;
 import com.mc_host.api.model.stripe.request.PortalRequest;
+import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 
 @RestController
 @RequestMapping("/api/stripe")
@@ -41,5 +42,12 @@ public interface StripeResource {
     public ResponseEntity<Void> uncancelSubscription(
         @PathVariable String userId,
         @PathVariable String subscriptionId
+    );
+
+    @PostMapping("/user/{userId}/subscription/{subscriptionId}/specification")
+    public ResponseEntity<Void> updateSubscriptionSpecification(
+        @PathVariable String userId,
+        @PathVariable String subscriptionId,
+        @RequestBody UpdateSpecificationRequest specificationRequest
     );
 }
