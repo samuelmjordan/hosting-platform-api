@@ -24,6 +24,7 @@ import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.PriceRepository;
+import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.clerk.ClerkEventProcessor;
 import com.mc_host.api.service.data.DataFetchingService;
@@ -47,6 +48,7 @@ public class StripeService implements StripeResource {
     private final ClerkEventProcessor clerkEventProcessor;
     private final StripeEventProcessor stripeEventProcessor;
     private final SubscriptionRepository subscriptionRepository;
+    private final ServerExecutionContextRepository serverExecutionContextRepository;
     private final PriceRepository priceRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
     private final PlanRepository planRepository;
@@ -59,6 +61,7 @@ public class StripeService implements StripeResource {
         StripeEventProcessor eventProcessor,
         ClerkEventProcessor clerkEventProcessor,
         SubscriptionRepository subscriptionRepository,
+        ServerExecutionContextRepository serverExecutionContextRepository,
         PriceRepository priceRepository,
         GameServerSpecRepository gameServerSpecRepository,
         PlanRepository planRepository,
@@ -70,6 +73,7 @@ public class StripeService implements StripeResource {
         this.stripeEventProcessor = eventProcessor;
         this.clerkEventProcessor = clerkEventProcessor;
         this.subscriptionRepository = subscriptionRepository;
+        this.serverExecutionContextRepository = serverExecutionContextRepository;
         this.priceRepository = priceRepository;
         this.gameServerSpecRepository = gameServerSpecRepository;
         this.planRepository = planRepository;
@@ -245,6 +249,8 @@ public class StripeService implements StripeResource {
         }
 
         try {
+            serverExecutionContextRepository.updateSpecification(subscriptionId, specificationRequest.specificationId());
+
             Subscription subscription = Subscription.retrieve(subscriptionId);
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                 .addItem(
@@ -257,6 +263,7 @@ public class StripeService implements StripeResource {
                 .build();
                 
             subscription.update(params);
+
             return ResponseEntity.ok().build();
         } catch (StripeException e) {
             throw new RuntimeException("rip subscription update: " + subscriptionId, e);
