@@ -38,7 +38,8 @@ public class CloudNodeStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), context.getRegion().getHetznerRegion(), HetznerSpec.CAX11);
+        HetznerSpec hetznerSpecification = HetznerSpec.fromSpecificationId(context.getSpecificationId());
+        HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), context.getRegion().getHetznerRegion(), hetznerSpecification);
 
         Context transitionedContext = context.withNewNodeId(hetznerNode.nodeId());
         nodeRepository.insertHetznerCloudNode(hetznerNode);

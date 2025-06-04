@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
@@ -233,6 +234,7 @@ public class StripeService implements StripeResource {
     }
 
     @Override
+    @Transactional
     public ResponseEntity<Void> updateSubscriptionSpecification(String userId, String subscriptionId, UpdateSpecificationRequest specificationRequest) {
         String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::priceId)

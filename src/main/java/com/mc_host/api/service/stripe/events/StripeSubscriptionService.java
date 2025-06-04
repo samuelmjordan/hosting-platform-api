@@ -5,8 +5,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,7 +36,6 @@ public class StripeSubscriptionService implements StripeEventService {
 
     private final StripeEventProcessor stripeEventProcessor;
     private final ServerExecutor serverExecutor;
-    private final ScheduledExecutorService delayedTaskScheduler;
     private final SubscriptionRepository subscriptionRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
     private final PlanRepository planRepository;
@@ -48,7 +45,6 @@ public class StripeSubscriptionService implements StripeEventService {
     public StripeSubscriptionService(
         StripeEventProcessor stripeEventProcessor,
         ServerExecutor serverExecutor,
-        ScheduledExecutorService delayedTaskScheduler,
         SubscriptionRepository subscriptionRepository,
         ServerExecutionContextRepository serverExecutionContextRepository,
         PlanRepository planRepository,
@@ -57,7 +53,6 @@ public class StripeSubscriptionService implements StripeEventService {
     ) {
         this.stripeEventProcessor = stripeEventProcessor;
         this.serverExecutor = serverExecutor;
-        this.delayedTaskScheduler = delayedTaskScheduler;
         this.subscriptionRepository = subscriptionRepository;
         this.serverExecutionContextRepository = serverExecutionContextRepository;
         this.planRepository = planRepository;
@@ -155,7 +150,7 @@ public class StripeSubscriptionService implements StripeEventService {
                 HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())    
                     .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", context.getNodeId())));
                 MarketingRegion groundRegion = hetznerNode.hetznerRegion().getMarketingRegion();
-                String groundSpec = context.getSpecificationId(); // TODO: Determine the real spec of the server
+                String groundSpec = hetznerNode.hetznerSpec().getSpecificationId();
 
                 // if they do not match the desired state, and the server is active, execute a migration
                 Boolean regionChanged = !context.getRegion().equals(groundRegion);
