@@ -65,11 +65,13 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
     }
 
     protected void resetBackoff() {
+        LOGGER.fine("Resetting backoff for queue: " + getQueue().name());
         consecutiveBackoffs.set(0);
         currentDelayMs.set(INITIAL_DELAY_MS);
     }
     
     protected void applyBackoff() {
+        LOGGER.fine("Applying backoff for queue: " + getQueue().name());
         int backoffCount = consecutiveBackoffs.incrementAndGet();
         if (backoffCount > 1) {
             long newDelay = Math.min(currentDelayMs.get() * 2, MAX_DELAY_MS);

@@ -32,6 +32,12 @@ management:
       export:
         enabled: true
 
+logging:
+  level:
+    com:
+      mc_host:
+        api: DEBUG
+
 application:
   scheme: https
   domain: samuelmjordan.dev

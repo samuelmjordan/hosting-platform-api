@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.CustomerInvoice;
@@ -33,6 +34,7 @@ public class StripeInvoiceService implements StripeEventService{
         return StripeEventType.INVOICE;
     }
 
+    @Transactional
     public void process(String customerId) {
         try {
             LOGGER.info("Syncing invoice data for customer: " + customerId);
