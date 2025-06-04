@@ -18,6 +18,7 @@ import com.mc_host.api.util.Cache;
 public class ReconciliationConsumer extends AbstractQueueConsumer {
     private static final Logger LOGGER = Logger.getLogger(ReconciliationConsumer.class.getName());
     private static final CacheNamespace IN_PROGRESS_FLAG = CacheNamespace.RECONCILIATION_IN_PROGRESS;
+    protected static final long MAX_DELAY_MS = 100000;
     
     private final ResourceReconcilerSupplier resourceReconcilerSupplier;
     
@@ -28,6 +29,11 @@ public class ReconciliationConsumer extends AbstractQueueConsumer {
             ResourceReconcilerSupplier resourceReconcilerSupplier) {
         super(scheduledExecutor, taskExecutor, cacheService);
         this.resourceReconcilerSupplier = resourceReconcilerSupplier;
+    }
+
+    @Override
+    protected long getMaxDelayMs() {
+        return MAX_DELAY_MS;
     }
     
     @Override

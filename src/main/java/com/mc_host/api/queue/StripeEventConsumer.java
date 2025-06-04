@@ -19,6 +19,7 @@ import com.mc_host.api.util.Cache;
 @Service
 public class StripeEventConsumer extends AbstractQueueConsumer {
     private static final Logger LOGGER = Logger.getLogger(StripeEventConsumer.class.getName());
+    protected static final long MAX_DELAY_MS = 5000;
 
     private final Map<StripeEventType, StripeEventService> stripeEventServices;
 
@@ -34,6 +35,11 @@ public class StripeEventConsumer extends AbstractQueueConsumer {
                 StripeEventService::getType, 
                 Function.identity()
             ));
+    }
+
+    @Override
+    protected long getMaxDelayMs() {
+        return MAX_DELAY_MS;
     }
     
     @Override

@@ -38,6 +38,10 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
         this.taskExecutor = taskExecutor;
         this.cacheService = cacheService;
     }
+
+    protected long getMaxDelayMs() {
+        return MAX_DELAY_MS;
+    }
     
     @Override
     @PostConstruct
@@ -74,7 +78,7 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
         LOGGER.fine("Applying backoff for queue: " + getQueue().name());
         int backoffCount = consecutiveBackoffs.incrementAndGet();
         if (backoffCount > 1) {
-            long newDelay = Math.min(currentDelayMs.get() * 2, MAX_DELAY_MS);
+            long newDelay = Math.min(currentDelayMs.get() * 2, getMaxDelayMs());
             currentDelayMs.set(newDelay);
         }
     }
@@ -90,7 +94,7 @@ public abstract class AbstractQueueConsumer implements QueueConsumer {
         try {
             if (!GLOBAL_RATE_LIMITER.tryAcquire()) {
                 LOGGER.fine("Rate limited, delaying poll for queue: " + getQueue().name());
-                currentDelayMs.set(Math.min(currentDelayMs.get() * 2, MAX_DELAY_MS));
+                currentDelayMs.set(Math.min(currentDelayMs.get() * 2, getMaxDelayMs()));
                 return;
             }
             
