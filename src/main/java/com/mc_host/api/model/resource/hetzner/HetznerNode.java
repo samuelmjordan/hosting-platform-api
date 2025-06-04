@@ -4,6 +4,7 @@ public record HetznerNode(
     String subscriptionId,
     Long nodeId,
     HetznerRegion hetznerRegion,
+    HetznerSpec hetznerSpec,
     String ipv4
 ) {}
 

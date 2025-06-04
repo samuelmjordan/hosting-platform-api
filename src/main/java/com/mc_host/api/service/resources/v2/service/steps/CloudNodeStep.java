@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
-import com.mc_host.api.model.resource.hetzner.HetznerServerType;
+import com.mc_host.api.model.resource.hetzner.HetznerSpec;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.HetznerService;
@@ -38,7 +38,7 @@ public class CloudNodeStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), context.getRegion().getHetznerRegion(), HetznerServerType.CAX11);
+        HetznerNode hetznerNode = hetznerService.createCloudNode(context.getSubscriptionId(), context.getRegion().getHetznerRegion(), HetznerSpec.CAX11);
 
         Context transitionedContext = context.withNewNodeId(hetznerNode.nodeId());
         nodeRepository.insertHetznerCloudNode(hetznerNode);

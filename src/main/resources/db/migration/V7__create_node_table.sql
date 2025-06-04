@@ -4,6 +4,7 @@ CREATE TABLE cloud_node_ (
     subscription_id TEXT NOT NULL,
     node_id BIGINT NOT NULL,
     hetzner_region TEXT NOT NULL,
+    hetzner_spec TEXT NOT NULL,
     ipv4 TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

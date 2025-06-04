@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.mc_host.api.model.resource.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
+import com.mc_host.api.model.resource.hetzner.HetznerSpec;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 
@@ -30,13 +31,15 @@ public class NodeRepository {
                     subscription_id,
                     node_id,
                     hetzner_region,
+                    hetzner_spec,
                     ipv4
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 hetznerNode.subscriptionId(),
                 hetznerNode.nodeId(),
                 hetznerNode.hetznerRegion().toString(),
+                hetznerNode.hetznerSpec().toString(),
                 hetznerNode.ipv4()
             );
         } catch (DataAccessException e) {
@@ -52,6 +55,7 @@ public class NodeRepository {
                     subscription_id,
                     node_id,
                     hetzner_region,
+                    hetzner_spec,
                     ipv4
                 FROM cloud_node_
                 WHERE node_id = ?
@@ -60,6 +64,7 @@ public class NodeRepository {
                     rs.getString("subscription_id"),
                     rs.getLong("node_id"),
                     HetznerRegion.lookup(rs.getString("hetzner_region")),
+                    HetznerSpec.valueOf(rs.getString("hetzner_spec")),
                     rs.getString("ipv4")),
                     nodeId
             ).stream().findFirst();
@@ -76,6 +81,7 @@ public class NodeRepository {
                     subscription_id,
                     node_id,
                     hetzner_region,
+                    hetzner_spec,
                     ipv4
                 FROM cloud_node_
                 WHERE subscription_id = ?
@@ -86,6 +92,7 @@ public class NodeRepository {
                     rs.getString("subscription_id"),
                     rs.getLong("node_id"),
                     HetznerRegion.lookup(rs.getString("hetzner_region")),
+                    HetznerSpec.valueOf(rs.getString("hetzner_spec")),
                     rs.getString("ipv4")),
                     SubscriptionId
             ).stream().findFirst();

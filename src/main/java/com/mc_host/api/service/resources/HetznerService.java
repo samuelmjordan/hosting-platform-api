@@ -11,7 +11,7 @@ import com.mc_host.api.exceptions.resources.HetznerException;
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse;
-import com.mc_host.api.model.resource.hetzner.HetznerServerType;
+import com.mc_host.api.model.resource.hetzner.HetznerSpec;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse.Server;
 
 @Service
@@ -25,7 +25,7 @@ public class HetznerService {
         this.hetznerClient = hetznerClient;
     }
 
-    public HetznerNode createCloudNode(String subscriptionId, HetznerRegion hetznerRegion, HetznerServerType  hetznerServerType) {
+    public HetznerNode createCloudNode(String subscriptionId, HetznerRegion hetznerRegion, HetznerSpec hetznerServerType) {
         try {
             String uuid = UUID.randomUUID().toString();
             Server hetznerServer = hetznerClient.createServer(
@@ -38,6 +38,7 @@ public class HetznerService {
                 subscriptionId,
                 hetznerServer.id, 
                 hetznerRegion, 
+                hetznerServerType,
                 hetznerServer.public_net.ipv4.ip
             );
             
