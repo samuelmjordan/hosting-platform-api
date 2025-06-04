@@ -189,7 +189,7 @@ public class StripeService implements StripeResource {
         Optional<String> customerId = dataFetchingService.getUserCustomerId(userId);
         if (customerId.isEmpty()) {
             virtualThreadExecutor.execute(() -> clerkEventProcessor.processEvent(new ClerkUserEvent("user.created", userId)));
-            new IllegalStateException("Failed to find user: " + userId);
+            throw new IllegalStateException("Failed to find user: " + userId);
         }
 
         return customerId.get();
