@@ -246,9 +246,10 @@ public class StripeService implements StripeResource {
         ContentPrice newPrice =  priceRepository.selectPrice(newPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
 
-        if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
-            return ResponseEntity.badRequest().build();
-        }
+        //TODO: Enable validation
+        //if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
+        //    return ResponseEntity.badRequest().build();
+        //}
 
         try {
             serverExecutionContextRepository.updateSpecification(subscriptionId, specificationRequest.specificationId());
