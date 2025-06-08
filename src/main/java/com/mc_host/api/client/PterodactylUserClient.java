@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.model.resource.pterodactyl.response.PaginatedResponse;
+import com.mc_host.api.model.resource.pterodactyl.PowerState;
 
 @Service
 public class PterodactylUserClient extends BaseApiClient {
@@ -35,7 +35,7 @@ public class PterodactylUserClient extends BaseApiClient {
 
     // SERVERS
     public void setPowerState(String serverUid, PowerState state) throws Exception {
-        var action = Map.of("signal", state.toString().toLowerCase());
+        var action = Map.of("signal", state.toString());
         sendRequest("POST", "/api/client/servers/" + serverUid + "/power", action);
     }
     
@@ -51,10 +51,6 @@ public class PterodactylUserClient extends BaseApiClient {
         String status = (String) attributes.get("current_state");
         
         return ServerStatus.valueOf(status.toUpperCase());
-    }
-
-    public enum PowerState {
-        START, STOP, RESTART, KILL
     }
 
     public enum ServerStatus {

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.client.PterodactylUserClient;
-import com.mc_host.api.client.PterodactylUserClient.PowerState;
 import com.mc_host.api.client.PterodactylUserClient.PterodactylUserResponse;
 import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
 import com.mc_host.api.client.PterodactylApplicationClient.AllocationAttributes;
@@ -20,6 +19,7 @@ import com.mc_host.api.client.PterodactylApplicationClient.PterodactylServerResp
 import com.mc_host.api.exceptions.resources.PterodactylException;
 import com.mc_host.api.model.resource.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
+import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
