@@ -5,7 +5,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mc_host.api.model.panel.request.ServerCommandRequest;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
-import com.mc_host.api.model.resource.pterodactyl.PterodactylServerResources;
+import com.mc_host.api.model.resource.pterodactyl.panel.PterodactylServerResources;
+import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface ConsoleResource {
 
     @GetMapping("/websocket")
-    public ResponseEntity<String> getWebsocketCredentials(
+    public ResponseEntity<WebsocketCredentials> getWebsocketCredentials(
         @PathVariable String userId,
         @PathVariable String subscriptionId
     );

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
+import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 
 @Service
 public class PterodactylUserClient extends BaseApiClient {
@@ -92,11 +93,7 @@ public class PterodactylUserClient extends BaseApiClient {
         String uptime
     ) {}
 
-    public record WebsocketCredentialsResponse(WebsocketData data) {}
-    public record WebsocketData(
-        String token,
-        String socket
-    ) {}
+    public record WebsocketCredentialsResponse(WebsocketCredentials data) {}
 
     public record PterodactylUserResponse(UserAttributes attributes) {}
     public record UserAttributes(

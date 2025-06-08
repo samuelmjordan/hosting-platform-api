@@ -19,9 +19,10 @@ import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
-import com.mc_host.api.model.resource.pterodactyl.PterodactylServerResources;
 import com.mc_host.api.model.resource.pterodactyl.games.Egg;
 import com.mc_host.api.model.resource.pterodactyl.games.Nest;
+import com.mc_host.api.model.resource.pterodactyl.panel.PterodactylServerResources;
+import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.model.resource.pterodactyl.request.PterodactylCreateNodeRequest;
 
 @Service
@@ -172,8 +173,8 @@ public class PterodactylService {
         return userClient.getServerStatus(serverUid);
     }
 
-    public WebsocketCredentialsResponse getWebsocketCredentials(String serverUid) {   
-        return userClient.getWebsocketCredentials(serverUid);
+    public WebsocketCredentials getWebsocketCredentials(String serverUid) {   
+        return userClient.getWebsocketCredentials(serverUid).data();
     }
 
 

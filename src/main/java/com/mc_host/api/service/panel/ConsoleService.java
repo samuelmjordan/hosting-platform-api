@@ -9,7 +9,8 @@ import com.mc_host.api.controller.panel.ConsoleResource;
 import com.mc_host.api.model.panel.request.ServerCommandRequest;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
-import com.mc_host.api.model.resource.pterodactyl.PterodactylServerResources;
+import com.mc_host.api.model.resource.pterodactyl.panel.PterodactylServerResources;
+import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.resources.PterodactylService;
@@ -33,9 +34,10 @@ public class ConsoleService implements ConsoleResource {
     }
 
     @Override
-    public ResponseEntity<String> getWebsocketCredentials(String userId, String subscriptionId) {
+    public ResponseEntity<WebsocketCredentials> getWebsocketCredentials(String userId, String subscriptionId) {
         String serverUid = getServerUid(subscriptionId);
-        throw new UnsupportedOperationException("Unimplemented method 'getWebsocketCredentials'");
+        WebsocketCredentials credentials = pterodactylService.getWebsocketCredentials(serverUid);
+        return ResponseEntity.ok(credentials);
     }
 
     @Override

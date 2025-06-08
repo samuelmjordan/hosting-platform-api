@@ -1,4 +1,4 @@
-package com.mc_host.api.model.resource.pterodactyl;
+package com.mc_host.api.model.resource.pterodactyl.panel;
 
 public record PterodactylServerResources(
     String current_state,
