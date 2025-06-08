@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mc_host.api.model.panel.request.ServerCommandRequest;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylServerResources;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,29 +14,29 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
-@RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}")
+@RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/console")
 public interface ConsoleResource {
 
-    @GetMapping("websocket")
+    @GetMapping("/websocket")
     public ResponseEntity<String> getWebsocketCredentials(
         @PathVariable String userId,
         @PathVariable String subscriptionId
     );
 
-    @GetMapping("resources")
-    public ResponseEntity<String> getResourceUsage(
+    @GetMapping("/resources")
+    public ResponseEntity<PterodactylServerResources> getResourceUsage(
         @PathVariable String userId,
         @PathVariable String subscriptionId
     );
 
-    @PostMapping("command")
+    @PostMapping("/command")
     public ResponseEntity<Void> sendCommand(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
         @RequestBody ServerCommandRequest request 
     );
 
-    @PostMapping("signal/{command}")
+    @PostMapping("/signal/{command}")
     public ResponseEntity<Void> changePowerState(
         @PathVariable String userId,
         @PathVariable String subscriptionId,

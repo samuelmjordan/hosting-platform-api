@@ -10,13 +10,16 @@ import org.springframework.stereotype.Service;
 
 import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.client.PterodactylUserClient;
+import com.mc_host.api.client.PterodactylUserClient.ServerResourcesResponse;
 import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
+import com.mc_host.api.client.PterodactylUserClient.WebsocketCredentialsResponse;
 import com.mc_host.api.model.resource.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylServerResources;
 import com.mc_host.api.model.resource.pterodactyl.games.Egg;
 import com.mc_host.api.model.resource.pterodactyl.games.Nest;
 import com.mc_host.api.model.resource.pterodactyl.request.PterodactylCreateNodeRequest;
@@ -168,6 +171,32 @@ public class PterodactylService {
     public ServerStatus getServerStatus(String serverUid) {   
         return userClient.getServerStatus(serverUid);
     }
+
+    public WebsocketCredentialsResponse getWebsocketCredentials(String serverUid) {   
+        return userClient.getWebsocketCredentials(serverUid);
+    }
+
+
+    public PterodactylServerResources getServerResources(String serverUid) {   
+        ServerResourcesResponse resourcesResponse = userClient.getServerResources(serverUid);
+        return new PterodactylServerResources(
+            resourcesResponse.attributes().current_state(),
+            resourcesResponse.attributes().is_suspended(),
+            resourcesResponse.attributes().resources().memory_bytes(),
+            resourcesResponse.attributes().resources().memory_limit_bytes(),
+            resourcesResponse.attributes().resources().cpu_absolute(),
+            resourcesResponse.attributes().resources().network_rx_bytes(),
+            resourcesResponse.attributes().resources().network_tx_bytes(),
+            resourcesResponse.attributes().resources().disk_bytes(),
+            resourcesResponse.attributes().resources().uptime()
+        );
+    }
+
+
+    public void sendConsoleCommand(String serverUid, String command) {   
+        userClient.sendConsoleCommand(serverUid, command);
+    }
+
 
     public void reinstallServer(Long serverId) {
         appClient.reinstallServer(serverId);
