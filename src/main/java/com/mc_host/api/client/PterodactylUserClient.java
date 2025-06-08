@@ -12,45 +12,51 @@ import com.mc_host.api.model.resource.pterodactyl.PowerState;
 @Service
 public class PterodactylUserClient extends BaseApiClient {
 
-    private final PterodactylConfiguration pterodactylConfiguration;
+    private final PterodactylConfiguration config;
 
     PterodactylUserClient(
-        PterodactylConfiguration pterodactylConfiguration,
+        PterodactylConfiguration config,
         HttpClient httpClient,
         ObjectMapper objectMapper
     ) {
         super(httpClient, objectMapper);
-        this.pterodactylConfiguration = pterodactylConfiguration;
+        this.config = config;
     }
 
     @Override
     protected String getApiBase() {
-        return pterodactylConfiguration.getApiBase();
+        return config.getApiBase();
     }
 
     @Override
     protected String getAuthorizationHeader() {
-        return "Bearer " + pterodactylConfiguration.getClientApiToken();
+        return "Bearer " + config.getClientApiToken();
     }
 
     // SERVERS
-    public void setPowerState(String serverUid, PowerState state) throws Exception {
+    public void setPowerState(String serverUid, PowerState state) {
         var action = Map.of("signal", state.toString());
         sendRequest("POST", "/api/client/servers/" + serverUid + "/power", action);
     }
     
-    public void acceptMinecraftEula(String serverUid) throws Exception {
-        String requestBody = "eula=true";
-        sendRequest("POST", "/api/client/servers/" + serverUid + "/files/write?file=eula.txt", requestBody);
+    public void acceptMinecraftEula(String serverUid) {
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/files/write?file=eula.txt", "eula=true");
     }
 
-    public ServerStatus getServerStatus(String serverUid) throws Exception {
-        String response = sendRequest("GET", "/api/client/servers/" + serverUid + "/resources");
-        Map<String, Object> responseMap = objectMapper.readValue(response, Map.class);
-        Map<String, Object> attributes = (Map<String, Object>) responseMap.get("attributes");
-        String status = (String) attributes.get("current_state");
+    public ServerStatus getServerStatus(String serverUid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/resources");
         
-        return ServerStatus.valueOf(status.toUpperCase());
+        try {
+            @SuppressWarnings("unchecked")
+            var responseMap = (Map<String, Object>) objectMapper.readValue(response, Map.class);
+            @SuppressWarnings("unchecked")
+            var attributes = (Map<String, Object>) responseMap.get("attributes");
+            var status = (String) attributes.get("current_state");
+            
+            return ServerStatus.valueOf(status.toUpperCase());
+        } catch (Exception e) {
+            throw new RuntimeException("failed to parse server status", e);
+        }
     }
 
     public enum ServerStatus {
@@ -70,5 +76,4 @@ public class PterodactylUserClient extends BaseApiClient {
         String created_at,
         String updated_at
     ) {}
-
 }
