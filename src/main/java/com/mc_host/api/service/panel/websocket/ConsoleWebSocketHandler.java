@@ -1,21 +1,20 @@
 package com.mc_host.api.service.panel.websocket;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.controller.panel.ConsoleResource;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketEvent;
 
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ConsoleWebSocketHandler extends TextWebSocketHandler {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConsoleWebSocketHandler.class);
+    private static final Logger LOGGER = Logger.getLogger(ConsoleWebSocketHandler.class.getName());
     private static final String TOKEN_EXPIRING = "token expiring";
     private static final String TOKEN_EXPIRED = "token expired";
     
@@ -40,14 +39,14 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(@NonNull WebSocketSession pteroSession, @NonNull TextMessage message) throws Exception {
         try {
-            String event = objectMapper.readValue(message.getPayload(), WebsocketEvent.class).event();
-            
+            WebsocketEvent websocketEvent = objectMapper.readValue(message.getPayload(), WebsocketEvent.class);
+            String event = websocketEvent.event();
+            LOGGER.info(websocketEvent.toString());
+
             if (TOKEN_EXPIRING.equals(event)) {
-                LOGGER.info("pterodactyl token expiring, refreshing...");
                 refreshPterodactylToken(pteroSession);
                 return;
             } else if (TOKEN_EXPIRED.equals(event)) {
-                LOGGER.warn("pterodactyl token expired, attempting reconnection...");
                 forwardToBrowser(message);
                 return;
             }
@@ -65,7 +64,7 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
         if (token != null) {
             sendAuthMessage(pteroSession, token);
         } else {
-            LOGGER.error("no token found in browser session attributes");
+            LOGGER.log(Level.SEVERE, "no token found in browser session attributes");
         }
     }
     
@@ -76,13 +75,12 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
             if (newCreds != null) {
                 sendAuthMessage(pteroSession, newCreds.token());
                 browserSession.getAttributes().put("token", newCreds.token());
-                LOGGER.info("successfully refreshed pterodactyl token");
             } else {
-                LOGGER.error("received null credentials when refreshing token");
+                LOGGER.log(Level.SEVERE, "received null credentials when refreshing token");
             }
             
         } catch (Exception e) {
-            LOGGER.error("failed to refresh pterodactyl token", e);
+            LOGGER.log(Level.SEVERE, "failed to refresh pterodactyl token", e);
         }
     }
     
@@ -102,7 +100,7 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
                 browserSession.sendMessage(message);
             }
         } catch (Exception e) {
-            LOGGER.error("failed to forward message to browser", e);
+            LOGGER.log(Level.SEVERE, "failed to forward message to browser", e);
         }
     }
 }

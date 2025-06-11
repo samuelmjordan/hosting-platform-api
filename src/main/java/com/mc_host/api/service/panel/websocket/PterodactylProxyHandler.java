@@ -1,9 +1,9 @@
 package com.mc_host.api.service.panel.websocket;
 
 import java.net.URI;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -19,7 +19,7 @@ import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 
 @Component
 public class PterodactylProxyHandler extends TextWebSocketHandler {
-    private static final Logger log = LoggerFactory.getLogger(PterodactylProxyHandler.class);
+    private static final Logger LOGGER = Logger.getLogger(PterodactylProxyHandler.class.getName());
     private static final String PTERODACTYL_SESSION = "PTERODACTYL_SESSION";
     private static final String USER_ID = "USER_ID";
     private static final String SUBSCRIPTION_ID = "SUBSCRIPTION_ID";
@@ -40,7 +40,7 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
         String subscriptionId = extractSubscriptionId(session);
         String userId = extractUserId(session);
         
-        log.info("establishing pterodactyl connection for user {} subscription {}", userId, subscriptionId);
+        LOGGER.info("establishing pterodactyl connection for user %s subscription %s".formatted(userId, subscriptionId));
         
         // store ids for later use
         session.getAttributes().put(USER_ID, userId);
@@ -50,7 +50,7 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
             WebsocketCredentials creds = consoleResource.getWebsocketCredentials(userId, subscriptionId).getBody();
             
             if (creds == null) {
-                log.error("received null credentials for user {} subscription {}", userId, subscriptionId);
+                LOGGER.log(Level.SEVERE, "received null credentials for user %s subscription %s".formatted(userId, subscriptionId));
                 session.close(CloseStatus.SERVER_ERROR);
                 return;
             }
@@ -68,10 +68,10 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
             ).get();
 
             session.getAttributes().put(PTERODACTYL_SESSION, pteroSession);
-            log.info("successfully connected to pterodactyl for user {} subscription {}", userId, subscriptionId);
+            LOGGER.log(Level.SEVERE, "successfully connected to pterodactyl for user %s subscription %s".formatted(userId, subscriptionId));
             
         } catch (Exception e) {
-            log.error("failed to connect to pterodactyl for user {} subscription {}", userId, subscriptionId, e);
+            LOGGER.log(Level.SEVERE, "failed to connect to pterodactyl for user %s subscription %s".formatted(userId, subscriptionId), e);
             session.close(CloseStatus.SERVER_ERROR);
         }
     }
@@ -82,7 +82,7 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
         if (pteroSession != null && pteroSession.isOpen()) {
             pteroSession.sendMessage(message);
         } else {
-            log.warn("attempted to send message but pterodactyl session is closed");
+            LOGGER.log(Level.WARNING, "attempted to send message but pterodactyl session is closed");
         }
     }
     
@@ -91,13 +91,12 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
         String userId = (String) session.getAttributes().get(USER_ID);
         String subscriptionId = (String) session.getAttributes().get(SUBSCRIPTION_ID);
         
-        log.info("browser connection closed for user {} subscription {}, status: {}", 
-                userId, subscriptionId, status);
+        LOGGER.info("browser connection closed for user %s subscription %s, status: %s".formatted(userId, subscriptionId, status));
         
         WebSocketSession pteroSession = (WebSocketSession) session.getAttributes().get(PTERODACTYL_SESSION);
         if (pteroSession != null && pteroSession.isOpen()) {
             pteroSession.close(CloseStatus.NORMAL);
-            log.info("closed pterodactyl connection for user {} subscription {}", userId, subscriptionId);
+            LOGGER.info("closed pterodactyl connection for user %s subscription %s".formatted(userId, subscriptionId));
         }
     }
     
