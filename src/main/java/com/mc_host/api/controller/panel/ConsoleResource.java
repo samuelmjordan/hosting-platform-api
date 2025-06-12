@@ -11,8 +11,6 @@ import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/console")
@@ -29,19 +27,4 @@ public interface ConsoleResource {
         @PathVariable String userId,
         @PathVariable String subscriptionId
     );
-
-    @PostMapping("/command")
-    public ResponseEntity<Void> sendCommand(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
-        @RequestBody ServerCommandRequest request 
-    );
-
-    @PostMapping("/signal/{command}")
-    public ResponseEntity<Void> changePowerState(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
-        @PathVariable PowerState powerState 
-    );
-      
 }

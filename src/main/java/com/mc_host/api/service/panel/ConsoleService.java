@@ -47,18 +47,6 @@ public class ConsoleService implements ConsoleResource {
         return ResponseEntity.ok(resources);
     }
 
-    @Override
-    public ResponseEntity<Void> sendCommand(String userId, String subscriptionId, ServerCommandRequest request) {
-        String serverUid = getServerUid(subscriptionId);
-        throw new UnsupportedOperationException("Unimplemented method 'sendCommand'");
-    }
-
-    @Override
-    public ResponseEntity<Void> changePowerState(String userId, String subscriptionId, PowerState powerState) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'changePowerState'");
-    }
-
     private String getServerUid(String subscriptionId) {
         Long serverId = serverExecutionContextRepository.selectSubscription(subscriptionId)
             .map(Context::getPterodactylServerId)
