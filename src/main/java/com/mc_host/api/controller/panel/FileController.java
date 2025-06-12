@@ -1,103 +1,93 @@
 package com.mc_host.api.controller.panel;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.mc_host.api.model.resource.pterodactyl.request.GetDirectoryRequest;
-import com.mc_host.api.model.resource.pterodactyl.request.NewDirectoryRequest;
-import com.mc_host.api.model.resource.pterodactyl.request.CompressFilesRequest;
-import com.mc_host.api.model.resource.pterodactyl.request.CopyFileRequest;
-import com.mc_host.api.model.resource.pterodactyl.request.DecompressFileRequest;
-import com.mc_host.api.model.resource.pterodactyl.request.DeleteFilesRequest;
-import com.mc_host.api.model.resource.pterodactyl.request.FileRequest;
-import com.mc_host.api.model.resource.pterodactyl.request.RenameRequest;
+import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
+import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/file")
 public interface FileController {
 
-    @GetMapping("/directory")
-    public ResponseEntity<List<String>> getFiles(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
-        @RequestBody GetDirectoryRequest request
-    );
-
     @GetMapping("/contents")
-    public ResponseEntity<String> getFileContents(
+    ResponseEntity<String> getFileContents(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
-        @RequestBody FileRequest request
+        @RequestParam String file
     );
 
     @GetMapping("/download")
-    public ResponseEntity<String> getFileDownloadLink(
+    ResponseEntity<SignedUrl> getFileDownloadLink(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
-        @RequestBody FileRequest request
+        @RequestParam String file
     );
 
-    @GetMapping("/upload") 
-    public ResponseEntity<String> getFileUploadLink(
+    @GetMapping("/upload")
+    ResponseEntity<SignedUrl> getFileUploadLink(
         @PathVariable String userId,
         @PathVariable String subscriptionId
     );
 
     @PutMapping("/rename")
-    public ResponseEntity<Void> renameFiles(
+    ResponseEntity<Void> renameFiles(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
-        @RequestBody RenameRequest request 
-    );
-
-    @PostMapping("/directory")
-    public ResponseEntity<Void> createDirectory(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
-        @RequestBody NewDirectoryRequest request 
+        @RequestBody RenameRequest request
     );
 
     @PostMapping("/copy")
-    public ResponseEntity<Void> copyFile(
+    ResponseEntity<Void> copyFile(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
-        @RequestBody CopyFileRequest request 
+        @RequestBody CopyFileRequest request
     );
 
     @PostMapping("/write")
-    public ResponseEntity<Void> writeFile(
+    ResponseEntity<Void> writeFile(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
-        @RequestBody String content 
-    );
-
-    @PostMapping("/delete")
-    public ResponseEntity<Void> deleteFile(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
-        @RequestBody DeleteFilesRequest request 
+        @RequestParam String file,
+        @RequestBody String content
     );
 
     @PostMapping("/compress")
-    public ResponseEntity<Void> compressFiles(
+    ResponseEntity<FileObject> compressFiles(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
-        @RequestBody CompressFilesRequest request 
+        @RequestBody CompressRequest request
     );
 
     @PostMapping("/decompress")
-    public ResponseEntity<Void> decompressFile(
+    ResponseEntity<Void> decompressFile(
         @PathVariable String userId,
         @PathVariable String subscriptionId,
-        @RequestBody DecompressFileRequest request 
+        @RequestBody DecompressRequest request
     );
 
+    @PostMapping("/delete")
+    ResponseEntity<Void> deleteFiles(
+        @PathVariable String userId,
+        @PathVariable String subscriptionId,
+        @RequestBody DeleteRequest request
+    );
+
+    @PostMapping("/create-folder")
+    ResponseEntity<Void> createFolder(
+        @PathVariable String userId,
+        @PathVariable String subscriptionId,
+        @RequestBody CreateFolderRequest request
+    );
+
+    // Request DTOs
+    record RenameRequest(String root, List<RenameItem> files) {}
+    record RenameItem(String from, String to) {}
+    record CopyFileRequest(String location) {}
+    record CompressRequest(String root, List<String> files) {}
+    record DecompressRequest(String root, String file) {}
+    record DeleteRequest(String root, List<String> files) {}
+    record CreateFolderRequest(String root, String name) {}
 }

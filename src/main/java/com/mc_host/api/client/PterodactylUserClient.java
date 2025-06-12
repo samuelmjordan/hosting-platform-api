@@ -1,13 +1,19 @@
 package com.mc_host.api.client;
 
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
+import com.mc_host.api.controller.panel.FileController.*;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
+import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
+import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 
 @Service
@@ -62,6 +68,63 @@ public class PterodactylUserClient extends BaseApiClient {
     public void sendConsoleCommand(String serverUid, String command) {
         var payload = Map.of("command", command);
         sendRequest("POST", "/api/client/servers/" + serverUid + "/command", payload);
+    }
+
+    // FILE MANAGEMENT
+    public String getFileContents(String serverUid, String file) {
+        var encodedFile = encodeFilePath(file);
+        return sendRequest("GET", "/api/client/servers/" + serverUid + "/files/contents?file=" + encodedFile);
+    }
+
+    public SignedUrl getFileDownloadLink(String serverUid, String file) {
+        var encodedFile = encodeFilePath(file);
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/files/download?file=" + encodedFile);
+        return deserialize(response, SignedUrl.class);
+    }
+
+    public SignedUrl getFileUploadLink(String serverUid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/files/upload");
+        return deserialize(response, SignedUrl.class);
+    }
+
+    public void renameFiles(String serverUid, String root, List<RenameItem> files) {
+        var payload = Map.of("root", root, "files", files);
+        sendRequest("PUT", "/api/client/servers/" + serverUid + "/files/rename", payload);
+    }
+
+    public void copyFile(String serverUid, String location) {
+        var payload = Map.of("location", location);
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/files/copy", payload);
+    }
+
+    public void writeFile(String serverUid, String file, String content) {
+        var encodedFile = encodeFilePath(file);
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/files/write?file=" + encodedFile, content);
+    }
+
+    public FileObject compressFiles(String serverUid, String root, List<String> files) {
+        var payload = Map.of("root", root, "files", files);
+        var response = sendRequest("POST", "/api/client/servers/" + serverUid + "/files/compress", payload);
+        return deserialize(response, FileObject.class);
+    }
+
+    public void decompressFile(String serverUid, String root, String file) {
+        var payload = Map.of("root", root, "file", file);
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/files/decompress", payload);
+    }
+
+    public void deleteFiles(String serverUid, String root, List<String> files) {
+        var payload = Map.of("root", root, "files", files);
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/files/delete", payload);
+    }
+
+    public void createFolder(String serverUid, String root, String name) {
+        var payload = Map.of("root", root, "name", name);
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/files/create-folder", payload);
+    }
+
+    private String encodeFilePath(String file) {
+        return URLEncoder.encode(file, StandardCharsets.UTF_8);
     }
 
     private <T> T deserialize(String json, Class<T> clazz) {
