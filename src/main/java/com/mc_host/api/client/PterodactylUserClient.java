@@ -71,6 +71,13 @@ public class PterodactylUserClient extends BaseApiClient {
     }
 
     // FILE MANAGEMENT
+    public List<FileObject> listFiles(String serverUid, String directory) {
+        var encodedDirectory = encodeFilePath(directory);
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/files/list?directory=" + encodedDirectory);
+        var listResponse = deserialize(response, FileListResponse.class);
+        return listResponse.data().stream().toList();
+    }
+
     public String getFileContents(String serverUid, String file) {
         var encodedFile = encodeFilePath(file);
         return sendRequest("GET", "/api/client/servers/" + serverUid + "/files/contents?file=" + encodedFile);
@@ -157,6 +164,8 @@ public class PterodactylUserClient extends BaseApiClient {
     ) {}
 
     public record WebsocketCredentialsResponse(WebsocketCredentials data) {}
+
+    public record FileListResponse(String object, List<FileObject> data) {}
 
     public record PterodactylUserResponse(UserAttributes attributes) {}
     public record UserAttributes(

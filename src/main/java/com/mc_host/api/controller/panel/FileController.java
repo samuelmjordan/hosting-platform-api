@@ -2,6 +2,7 @@ package com.mc_host.api.controller.panel;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
@@ -11,6 +12,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/file")
 public interface FileController {
+
+    @GetMapping("/list")
+    ResponseEntity<List<FileObject>> listFiles(
+        @PathVariable String userId,
+        @PathVariable String subscriptionId,
+        @RequestParam String directory
+    );
 
     @GetMapping("/contents")
     ResponseEntity<String> getFileContents(
@@ -26,10 +34,11 @@ public interface FileController {
         @RequestParam String file
     );
 
-    @GetMapping("/upload")
-    ResponseEntity<SignedUrl> getFileUploadLink(
+    @PostMapping("/upload")
+    ResponseEntity<Void> uploadFile(
         @PathVariable String userId,
-        @PathVariable String subscriptionId
+        @PathVariable String subscriptionId,
+        @RequestParam("files") MultipartFile file
     );
 
     @PutMapping("/rename")

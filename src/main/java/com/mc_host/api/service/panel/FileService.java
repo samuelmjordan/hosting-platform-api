@@ -1,8 +1,17 @@
 package com.mc_host.api.service.panel;
 
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.mc_host.api.client.PterodactylUserClient;
@@ -25,6 +34,13 @@ public class FileService implements FileController {
     private final GameServerRepository gameServerRepository;
 
     @Override
+    public ResponseEntity<List<FileObject>> listFiles(String userId, String subscriptionId, String directory) {
+        var serverUid = getServerUid(subscriptionId);
+        var files = pterodactylClient.listFiles(serverUid, directory);
+        return ResponseEntity.ok(files);
+    }
+
+    @Override
     public ResponseEntity<String> getFileContents(String userId, String subscriptionId, String file) {
         var serverUid = getServerUid(subscriptionId);
         var contents = pterodactylClient.getFileContents(serverUid, file);
@@ -39,10 +55,51 @@ public class FileService implements FileController {
     }
 
     @Override
-    public ResponseEntity<SignedUrl> getFileUploadLink(String userId, String subscriptionId) {
-        var serverUid = getServerUid(subscriptionId);
-        var signedUrl = pterodactylClient.getFileUploadLink(serverUid);
-        return ResponseEntity.ok(signedUrl);
+    public ResponseEntity<Void> uploadFile(String userId, String subscriptionId, MultipartFile file) {
+        try {
+            var serverUid = getServerUid(subscriptionId);
+            
+            // Get the signed upload URL
+            var signedUrl = pterodactylClient.getFileUploadLink(serverUid);
+            
+            // Create multipart request to forward to Pterodactyl
+            var httpClient = HttpClient.newHttpClient();
+            
+            // Build multipart body
+            var boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+            var bodyBuilder = new StringBuilder();
+            
+            bodyBuilder.append("--").append(boundary).append("\r\n");
+            bodyBuilder.append("Content-Disposition: form-data; name=\"files\"; filename=\"")
+                       .append(file.getOriginalFilename()).append("\"\r\n");
+            bodyBuilder.append("Content-Type: ").append(file.getContentType()).append("\r\n\r\n");
+            
+            var fileBytes = file.getBytes();
+            var endBoundary = "\r\n--" + boundary + "--\r\n";
+            
+            // Combine parts
+            var bodyBytes = new ByteArrayOutputStream();
+            bodyBytes.write(bodyBuilder.toString().getBytes(StandardCharsets.UTF_8));
+            bodyBytes.write(fileBytes);
+            bodyBytes.write(endBoundary.getBytes(StandardCharsets.UTF_8));
+            
+            // Forward to Pterodactyl
+            var request = HttpRequest.newBuilder()
+                .uri(URI.create(signedUrl.attributes().url()))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(bodyBytes.toByteArray()))
+                .build();
+                
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() >= 400) {
+                throw new RuntimeException("Upload failed: " + response.statusCode());
+            }
+            
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            throw new RuntimeException("Upload failed", e);
+        }
     }
 
     @Override
