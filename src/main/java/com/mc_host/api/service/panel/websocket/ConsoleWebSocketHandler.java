@@ -41,7 +41,6 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
         try {
             WebsocketEvent websocketEvent = objectMapper.readValue(message.getPayload(), WebsocketEvent.class);
             String event = websocketEvent.event();
-            LOGGER.info(websocketEvent.toString());
 
             if (TOKEN_EXPIRING.equals(event)) {
                 refreshPterodactylToken(pteroSession);
