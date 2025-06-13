@@ -5,7 +5,6 @@ import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -44,7 +43,7 @@ public class WingsService {
         this.yamlMapper = yamlMapper;
     }
 
-    public void setupWings(DnsARecord dnsARecord, String jsonConfig) throws IOException {
+    public void setupWings(DnsARecord dnsARecord, String jsonConfig) {
         try (SSHClient ssh = new SSHClient()) {
             String privateKey = sshConfiguration.getPrivateKey()
                 .replace("\\n", "\n")

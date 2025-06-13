@@ -12,13 +12,10 @@ import com.mc_host.api.model.plan.SpecificationType;
 import com.mc_host.api.model.stripe.CustomerInvoice;
 import com.mc_host.api.model.stripe.response.PaymentMethodResponse;
 import com.mc_host.api.model.stripe.response.ServerSubscriptionResponse;
-import com.mc_host.api.model.subscription.request.UpdateRegionRequest;
 import com.mc_host.api.model.subscription.response.ServerProvisioningResponse;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 
 @RestController

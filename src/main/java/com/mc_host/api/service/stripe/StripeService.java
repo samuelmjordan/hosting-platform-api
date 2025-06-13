@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
@@ -188,7 +189,7 @@ public class StripeService implements StripeResource {
         Optional<String> customerId = dataFetchingService.getUserCustomerId(userId);
         if (customerId.isEmpty()) {
             virtualThreadExecutor.execute(() -> clerkEventProcessor.processEvent(new ClerkUserEvent("user.created", userId)));
-            new IllegalStateException("Failed to find user: " + userId);
+            throw new IllegalStateException("Failed to find user: " + userId);
         }
 
         return customerId.get();
@@ -233,6 +234,7 @@ public class StripeService implements StripeResource {
     }
 
     @Override
+    @Transactional
     public ResponseEntity<Void> updateSubscriptionSpecification(String userId, String subscriptionId, UpdateSpecificationRequest specificationRequest) {
         String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::priceId)
@@ -244,9 +246,10 @@ public class StripeService implements StripeResource {
         ContentPrice newPrice =  priceRepository.selectPrice(newPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
 
-        if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
-            return ResponseEntity.badRequest().build();
-        }
+        //TODO: Enable validation
+        //if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
+        //    return ResponseEntity.badRequest().build();
+        //}
 
         try {
             serverExecutionContextRepository.updateSpecification(subscriptionId, specificationRequest.specificationId());

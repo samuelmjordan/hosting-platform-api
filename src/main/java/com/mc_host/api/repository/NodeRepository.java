@@ -64,7 +64,7 @@ public class NodeRepository {
                     rs.getString("subscription_id"),
                     rs.getLong("node_id"),
                     HetznerRegion.lookup(rs.getString("hetzner_region")),
-                    HetznerSpec.valueOf(rs.getString("hetzner_spec")),
+                    HetznerSpec.lookup(rs.getString("hetzner_spec")),
                     rs.getString("ipv4")),
                     nodeId
             ).stream().findFirst();
@@ -92,7 +92,7 @@ public class NodeRepository {
                     rs.getString("subscription_id"),
                     rs.getLong("node_id"),
                     HetznerRegion.lookup(rs.getString("hetzner_region")),
-                    HetznerSpec.valueOf(rs.getString("hetzner_spec")),
+                    HetznerSpec.lookup(rs.getString("hetzner_spec")),
                     rs.getString("ipv4")),
                     SubscriptionId
             ).stream().findFirst();
