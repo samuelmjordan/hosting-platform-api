@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.mc_host.api.client.PterodactylUserClient;
-import com.mc_host.api.controller.panel.FileController;
+import com.mc_host.api.controller.panel.FileResource;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class FileService implements FileController {
+public class FileService implements FileResource {
 
     private final PterodactylUserClient pterodactylClient;
     private final ServerExecutionContextRepository serverExecutionContextRepository;

@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/file")
-public interface FileController {
+public interface FileResource {
 
     @GetMapping("/list")
     ResponseEntity<List<FileObject>> listFiles(

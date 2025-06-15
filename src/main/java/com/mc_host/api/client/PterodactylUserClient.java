@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.controller.panel.FileController.*;
+import com.mc_host.api.controller.panel.FileResource.*;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
