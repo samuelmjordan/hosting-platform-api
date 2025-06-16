@@ -43,6 +43,7 @@ fi
 
 # Clean and package the application
 echo -e "\033[36mBuilding the application with Maven...\033[0m"
+mvn clean package -DskipTests
 
 # Docker up
 docker compose up -d
@@ -54,7 +55,7 @@ echo -e "\033[36mStripe Webhook listener started with pid $!...\033[0m"
 if [ $? -eq 0 ]; then
     # Run the application
     echo -e "\033[36mStarting the Spring Boot application...\033[0m"
-    ./mvnw spring-boot:run
+    mvn spring-boot:run
 else
     echo -e "\033[31mMaven build failed!\033[0m"
     exit 1
