@@ -1,18 +1,7 @@
 package com.mc_host.api.service.stripe;
 
-import java.util.Optional;
-import java.util.concurrent.Executor;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
-import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
@@ -39,6 +28,15 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 public class StripeService implements StripeResource {
@@ -135,11 +133,7 @@ public class StripeService implements StripeResource {
 
             LOGGER.log(Level.INFO, "Complete checkout creation for clerkId: " + request.userId());
             return ResponseEntity.ok(session.getUrl());
-    
-        } catch (CustomerNotFoundException e) {
-            LOGGER.log(Level.SEVERE, "Failed to find or create customer", e);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Unable to find or create customer profile");
+
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during checkout creation", e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -162,11 +156,6 @@ public class StripeService implements StripeResource {
             com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
             LOGGER.log(Level.INFO, "Complete portal creation for clerkId: " + request.userId());
             return ResponseEntity.ok(portalSession.getUrl());
-        } catch (CustomerNotFoundException e) {
-            LOGGER.log(Level.SEVERE, "Failed to find or create customer", e);
-            return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .build();
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during portal creation", e);
             return ResponseEntity
@@ -185,7 +174,7 @@ public class StripeService implements StripeResource {
             .orElseThrow(() -> new IllegalStateException(String.format("No alternative for priceId %s in %s", priceId, currency)));
     }
 
-    public String getCustomerId(String userId) throws CustomerNotFoundException {
+    public String getCustomerId(String userId) {
         Optional<String> customerId = dataFetchingService.getUserCustomerId(userId);
         if (customerId.isEmpty()) {
             virtualThreadExecutor.execute(() -> clerkEventProcessor.processEvent(new ClerkUserEvent("user.created", userId)));
@@ -220,11 +209,6 @@ public class StripeService implements StripeResource {
             subscription.update(params);
             
             return ResponseEntity.ok().build();
-        } catch (CustomerNotFoundException e) {
-            LOGGER.log(Level.SEVERE, "Failed to find or create customer", e);
-            return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .build();
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during subscription update", e);
             return ResponseEntity

@@ -1,14 +1,6 @@
 package com.mc_host.api.service.stripe;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.controller.PaymentMethodResource;
-import com.mc_host.api.exceptions.CustomerNotFoundException;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
@@ -18,6 +10,12 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
 import com.stripe.param.CustomerUpdateParams;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 public class PaymentMethodService implements PaymentMethodResource{
@@ -52,8 +50,6 @@ public class PaymentMethodService implements PaymentMethodResource{
             Customer.retrieve(customerId).update(params);
             
             return ResponseEntity.ok().build();
-        } catch (CustomerNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during default payment method removal", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -75,8 +71,6 @@ public class PaymentMethodService implements PaymentMethodResource{
             stripeEventProcessor.enqueueEvent(StripeEventType.PAYMENT_METHOD, customerId);
             
             return ResponseEntity.ok().build();
-        } catch (CustomerNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during default payment method update", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -92,8 +86,6 @@ public class PaymentMethodService implements PaymentMethodResource{
     
             paymentMethod.detach();
             return ResponseEntity.ok().build();
-        } catch (CustomerNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during payment method removal", e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
@@ -123,11 +115,6 @@ public class PaymentMethodService implements PaymentMethodResource{
             com.stripe.model.checkout.Session portalSession = com.stripe.model.checkout.Session.create(params);
             LOGGER.log(Level.INFO, "Complete create payment method portal creation for clerkId: " + userId);
             return ResponseEntity.ok(portalSession.getUrl());
-        } catch (CustomerNotFoundException e) {
-            LOGGER.log(Level.SEVERE, "Failed to find or create customer", e);
-            return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .build();
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Stripe API error during create payment method portal creation", e);
             return ResponseEntity

@@ -1,19 +1,17 @@
 package com.mc_host.api.service.resources;
 
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.client.CloudflareClient;
 import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
 import com.mc_host.api.configuration.ApplicationConfiguration;
-import com.mc_host.api.exceptions.resources.CloudflareException;
 import com.mc_host.api.model.resource.DnsARecord;
 import com.mc_host.api.model.resource.DnsCNameRecord;
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.repository.GameServerRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 public class DnsService {
@@ -49,7 +47,7 @@ public class DnsService {
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Created DNS A record", hetznerNode.subscriptionId()));
             return dnsARecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error Creating DNS A record", hetznerNode.subscriptionId()), e);
+            throw new RuntimeException(String.format("[subscriptionId: %s] Error Creating DNS A record", hetznerNode.subscriptionId()), e);
         }
     }
 
@@ -59,7 +57,7 @@ public class DnsService {
             cloudflareClient.deleteDNSRecord(dnsARecord.zoneId(), dnsARecord.aRecordId());
             LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Deleted DNS A record", dnsARecord.aRecordId()));
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[aRecordId: %s] Error deleting DNS A record", dnsARecord.aRecordId()), e);
+            throw new RuntimeException(String.format("[aRecordId: %s] Error deleting DNS A record", dnsARecord.aRecordId()), e);
         }
     }
 
@@ -83,7 +81,7 @@ public class DnsService {
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Created DNS C NAME record", dnsARecord.subscriptionId()));
             return dnsCNameRecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error creating DNS C NAME record", dnsARecord.subscriptionId()), e);
+            throw new RuntimeException(String.format("[subscriptionId: %s] Error creating DNS C NAME record", dnsARecord.subscriptionId()), e);
         }
     }
 
@@ -108,7 +106,7 @@ public class DnsService {
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updated DNS C NAME record", dnsARecord.subscriptionId()));
             return newDnsCNameRecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsARecord.subscriptionId()), e);
+            throw new RuntimeException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsARecord.subscriptionId()), e);
         }
     }
 
@@ -133,7 +131,7 @@ public class DnsService {
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updated DNS C NAME record", dnsCNameRecord.subscriptionId()));
             return newDnsCNameRecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsCNameRecord.subscriptionId()), e);
+            throw new RuntimeException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsCNameRecord.subscriptionId()), e);
         }
     }
 
@@ -143,7 +141,7 @@ public class DnsService {
             cloudflareClient.deleteDNSRecord(dnsCNameRecord.zoneId(), dnsCNameRecord.cNameRecordId());
             LOGGER.log(Level.INFO, String.format("[cNameRecordId: %s] Deleted DNS C NAME record", dnsCNameRecord.cNameRecordId()));
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[cNameRecordId: %s] Error deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()), e);
+            throw new RuntimeException(String.format("[cNameRecordId: %s] Error deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()), e);
         }
     }
 

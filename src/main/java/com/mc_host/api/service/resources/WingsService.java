@@ -1,9 +1,14 @@
 package com.mc_host.api.service.resources;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mc_host.api.configuration.SshConfiguration;
+import com.mc_host.api.model.resource.DnsARecord;
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,14 +17,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.configuration.SshConfiguration;
-import com.mc_host.api.exceptions.resources.SshException;
-import com.mc_host.api.model.resource.DnsARecord;
 
 @Service
 public class WingsService {
@@ -134,7 +131,7 @@ public class WingsService {
             }
 
         } catch (Exception e) {
-            throw new SshException(String.format("[aRecordId: %s] Failed to setup Wings", dnsARecord.aRecordId()), e);
+            throw new RuntimeException(String.format("[aRecordId: %s] Failed to setup Wings", dnsARecord.aRecordId()), e);
         }
     }
 }

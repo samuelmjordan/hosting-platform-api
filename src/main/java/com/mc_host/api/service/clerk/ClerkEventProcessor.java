@@ -1,21 +1,19 @@
 package com.mc_host.api.service.clerk;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.logging.Logger;
-
-import org.openapitools.jackson.nullable.JsonNullable;
-import org.springframework.stereotype.Service;
-
 import com.clerk.backend_api.models.components.User;
 import com.clerk.backend_api.models.operations.GetUserResponse;
 import com.mc_host.api.configuration.ClerkConfiguration;
-import com.mc_host.api.exceptions.ClerkException;
 import com.mc_host.api.model.user.ApplicationUser;
 import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.UserRepository;
 import com.stripe.model.Customer;
+import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Logger;
 
 @Service
 public class ClerkEventProcessor {
@@ -62,20 +60,20 @@ public class ClerkEventProcessor {
                 .userId(clerkId)
                 .call();
             User user = userResponse.user()
-                .orElseThrow(() -> new ClerkException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
             JsonNullable<String> primaryEmailIdNullable = user.primaryEmailAddressId();
             if (!primaryEmailIdNullable.isPresent()) {
-                throw new ClerkException("No primary email ID set");
+                throw new RuntimeException("No primary email ID set");
             }
             String primaryEmailId = primaryEmailIdNullable.get();
             String primaryEmail = user.emailAddresses()
-                .orElseThrow(() -> new ClerkException("No email addresses found"))
+                .orElseThrow(() -> new RuntimeException("No email addresses found"))
                 .stream()
                 .filter(email -> email.id().isPresent() && email.id().get().equals(primaryEmailId))
                 .map(email -> email.emailAddress())
                 .findFirst()
-                .orElseThrow(() -> new ClerkException("Primary email address not found in list of user emails"));
+                .orElseThrow(() -> new RuntimeException("Primary email address not found in list of user emails"));
 
             String customerId = createNewStripeCustomer(clerkId, primaryEmail);
 
