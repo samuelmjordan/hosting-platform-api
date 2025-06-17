@@ -1,6 +1,6 @@
 package com.mc_host.api.repository;
 
-import com.mc_host.api.model.resource.DnsARecord;
+import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.hetzner.HetznerSpec;

@@ -1,7 +1,6 @@
-package com.mc_host.api.service.resources.v2.context;
+package com.mc_host.api.model.provisioning;
 
 import com.mc_host.api.model.subscription.MarketingRegion;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;

@@ -1,13 +1,12 @@
-package com.mc_host.api.service.resources.v2.service;
+package com.mc_host.api.service.provisioning;
 
-import java.util.logging.Logger;
-
+import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.provisioning.StepTransition;
+import com.mc_host.api.model.provisioning.StepType;
+import com.mc_host.api.repository.ServerExecutionContextRepository;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.resources.v2.context.Context;
-import com.mc_host.api.service.resources.v2.context.StepTransition;
-import com.mc_host.api.service.resources.v2.context.StepType;
+import java.util.logging.Logger;
 
 @Service
 public class TransitionService {

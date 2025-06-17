@@ -1,10 +1,10 @@
 package com.mc_host.api.repository;
 
+import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.provisioning.Mode;
+import com.mc_host.api.model.provisioning.Status;
+import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.subscription.MarketingRegion;
-import com.mc_host.api.service.resources.v2.context.Context;
-import com.mc_host.api.service.resources.v2.context.Mode;
-import com.mc_host.api.service.resources.v2.context.Status;
-import com.mc_host.api.service.resources.v2.context.StepType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 

@@ -1,6 +1,6 @@
 package com.mc_host.api.repository;
 
-import com.mc_host.api.model.resource.DnsCNameRecord;
+import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;

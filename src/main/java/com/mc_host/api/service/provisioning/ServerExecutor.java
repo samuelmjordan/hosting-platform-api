@@ -1,4 +1,11 @@
-package com.mc_host.api.service.resources.v2.service;
+package com.mc_host.api.service.provisioning;
+
+import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.provisioning.Status;
+import com.mc_host.api.model.provisioning.StepTransition;
+import com.mc_host.api.model.provisioning.StepType;
+import com.mc_host.api.service.provisioning.steps.Step;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
@@ -6,14 +13,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
-import com.mc_host.api.service.resources.v2.context.Context;
-import com.mc_host.api.service.resources.v2.context.Status;
-import com.mc_host.api.service.resources.v2.context.StepTransition;
-import com.mc_host.api.service.resources.v2.context.StepType;
-import com.mc_host.api.service.resources.v2.service.steps.Step;
 
 @Service
 public class ServerExecutor {

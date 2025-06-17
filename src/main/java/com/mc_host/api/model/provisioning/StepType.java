@@ -1,4 +1,4 @@
-package com.mc_host.api.service.resources.v2.context;
+package com.mc_host.api.model.provisioning;
 
 public enum StepType {
     NEW,

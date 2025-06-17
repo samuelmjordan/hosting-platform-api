@@ -1,18 +1,5 @@
 package com.mc_host.api.service.data;
 
-import java.time.Duration;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mc_host.api.configuration.PaymentMethodConfiguration;
@@ -24,13 +11,15 @@ import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.plan.JavaServerSpecification;
 import com.mc_host.api.model.plan.Plan;
 import com.mc_host.api.model.plan.SpecificationType;
-import com.mc_host.api.model.resource.DnsCNameRecord;
+import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.provisioning.Status;
+import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.stripe.CustomerInvoice;
 import com.mc_host.api.model.stripe.CustomerPaymentMethod;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.stripe.response.PaymentMethodResponse;
-import com.mc_host.api.model.stripe.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.stripe.response.PaymentMethodResponse.DisplayField;
+import com.mc_host.api.model.stripe.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.response.ServerProvisioningResponse;
 import com.mc_host.api.model.subscription.response.ServerProvisioningStatus;
@@ -43,9 +32,19 @@ import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.repository.UserRepository;
-import com.mc_host.api.service.resources.v2.context.Context;
-import com.mc_host.api.service.resources.v2.context.Status;
 import com.mc_host.api.util.Cache;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 public class DataFetchingService implements DataFetchingResource  {

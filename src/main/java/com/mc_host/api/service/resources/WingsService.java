@@ -3,7 +3,7 @@ package com.mc_host.api.service.resources;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.SshConfiguration;
-import com.mc_host.api.model.resource.DnsARecord;
+import com.mc_host.api.model.resource.dns.DnsARecord;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;

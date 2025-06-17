@@ -1,11 +1,11 @@
-package com.mc_host.api.service.resources.v2.service.steps;
+package com.mc_host.api.service.provisioning.steps;
+
+import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.provisioning.StepTransition;
+import com.mc_host.api.repository.ServerExecutionContextRepository;
+import com.mc_host.api.service.provisioning.TransitionService;
 
 import java.util.logging.Logger;
-
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.resources.v2.context.Context;
-import com.mc_host.api.service.resources.v2.context.StepTransition;
-import com.mc_host.api.service.resources.v2.service.TransitionService;
 
 public abstract class AbstractStep implements Step {
     protected static final Logger LOGGER = Logger.getLogger(AbstractStep.class.getName());

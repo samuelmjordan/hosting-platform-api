@@ -1,19 +1,10 @@
 package com.mc_host.api.service.resources;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.client.PterodactylUserClient;
 import com.mc_host.api.client.PterodactylUserClient.ServerResourcesResponse;
 import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
-import com.mc_host.api.client.PterodactylUserClient.WebsocketCredentialsResponse;
-import com.mc_host.api.model.resource.DnsARecord;
+import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
@@ -24,6 +15,13 @@ import com.mc_host.api.model.resource.pterodactyl.games.Nest;
 import com.mc_host.api.model.resource.pterodactyl.panel.PterodactylServerResources;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.model.resource.pterodactyl.request.PterodactylCreateNodeRequest;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.logging.Logger;
 
 @Service
 public class PterodactylService {
