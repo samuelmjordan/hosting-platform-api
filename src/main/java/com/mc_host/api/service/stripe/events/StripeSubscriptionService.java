@@ -10,6 +10,7 @@ import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.MarketingRegion;
+import com.mc_host.api.queue.v2.service.JobScheduler;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
@@ -21,7 +22,6 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ import java.util.logging.Logger;
 public class StripeSubscriptionService implements StripeEventService {
     private static final Logger LOGGER = Logger.getLogger(StripeSubscriptionService.class.getName());
 
-    private final StripeEventProcessor stripeEventProcessor;
+    private final JobScheduler jobScheduler;
     private final ServerExecutor serverExecutor;
     private final SubscriptionRepository subscriptionRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
@@ -42,7 +42,7 @@ public class StripeSubscriptionService implements StripeEventService {
     private final PersistenceContext persistenceContext;
 
     public StripeSubscriptionService(
-        StripeEventProcessor stripeEventProcessor,
+        JobScheduler jobScheduler,
         ServerExecutor serverExecutor,
         SubscriptionRepository subscriptionRepository,
         ServerExecutionContextRepository serverExecutionContextRepository,
@@ -50,7 +50,7 @@ public class StripeSubscriptionService implements StripeEventService {
         NodeRepository nodeRepository,
         PersistenceContext persistenceContext
     ) {
-        this.stripeEventProcessor = stripeEventProcessor;
+        this.jobScheduler = jobScheduler;
         this.serverExecutor = serverExecutor;
         this.subscriptionRepository = subscriptionRepository;
         this.serverExecutionContextRepository = serverExecutionContextRepository;
@@ -123,7 +123,7 @@ public class StripeSubscriptionService implements StripeEventService {
         // retry failed provisioning
         if (context.getStatus().equals(Status.FAILED)) {
             serverExecutor.execute(context.inProgress());
-            scheduleEnqueue(subscription, 180);
+            scheduleEnqueue(subscription, 10);
             return;
         }
 
@@ -168,7 +168,7 @@ public class StripeSubscriptionService implements StripeEventService {
     }
 
     private void scheduleEnqueue(ContentSubscription subscription, Integer delay) {
-        stripeEventProcessor.scheduledEventRetry(getType(), subscription.customerId(), Duration.ofSeconds(30));
+        jobScheduler.scheduleSubscriptionSync(subscription.customerId(), delay);
     }
 
     private ContentSubscription stripeSubscriptionToEntity(Subscription subscription, String customerId) {

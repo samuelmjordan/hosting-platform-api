@@ -1,13 +1,5 @@
 package com.mc_host.api.service.stripe.events;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
@@ -20,10 +12,17 @@ import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Price;
 import com.stripe.param.PriceListParams;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 public class StripePriceService implements StripeEventService{
-    private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(StripePriceService.class.getName());
 
     private final Cache cacheService;
     private final PriceRepository priceRepository;

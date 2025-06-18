@@ -2,26 +2,26 @@ package com.mc_host.api.queue.v2.service.processor;
 
 import com.mc_host.api.queue.v2.model.Job;
 import com.mc_host.api.queue.v2.model.JobType;
-import com.mc_host.api.service.stripe.events.StripeSubscriptionService;
+import com.mc_host.api.service.stripe.events.StripePaymentMethodService;
 import org.springframework.stereotype.Component;
 
 import java.util.logging.Logger;
 
 @Component
-public class SubscriptionSyncJobProcessor implements JobProcessor {
-	private static final Logger LOGGER = Logger.getLogger(SubscriptionSyncJobProcessor.class.getName());
+public class PaymentMethodSyncJobProcessor implements JobProcessor {
+	private static final Logger LOGGER = Logger.getLogger(PaymentMethodSyncJobProcessor.class.getName());
 
-	private final StripeSubscriptionService stripeSubscriptionService;
+	private final StripePaymentMethodService stripePaymentMethodService;
 
-	public SubscriptionSyncJobProcessor(
-		StripeSubscriptionService stripeSubscriptionService
+	public PaymentMethodSyncJobProcessor(
+		StripePaymentMethodService stripePaymentMethodService
 	) {
-		this.stripeSubscriptionService = stripeSubscriptionService;
+		this.stripePaymentMethodService = stripePaymentMethodService;
 	}
 
 	@Override
 	public JobType getJobType() {
-		return JobType.SUBSCRIPTION_SYNC;
+		return JobType.PAYMENT_METHOD_SYNC;
 	}
 
 	@Override
@@ -29,7 +29,7 @@ public class SubscriptionSyncJobProcessor implements JobProcessor {
 		LOGGER.info("processing subscription sync job: %s".formatted(job.jobId()));
 		LOGGER.info("syncing subscription: %s".formatted(job.payload()));
 
-		stripeSubscriptionService.process(job.payload());
+		stripePaymentMethodService.process(job.payload());
 
 		LOGGER.info("subscription sync completed for: %s".formatted(job.payload()));
 	}

@@ -2,10 +2,9 @@ package com.mc_host.api.service.stripe;
 
 import com.mc_host.api.controller.PaymentMethodResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
-import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
+import com.mc_host.api.queue.v2.service.JobScheduler;
 import com.mc_host.api.service.data.DataFetchingService;
-import com.mc_host.api.service.stripe.events.StripeEventProcessor;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
@@ -23,16 +22,16 @@ public class PaymentMethodService implements PaymentMethodResource{
 
     private final StripeService stripeService;
     private final DataFetchingService dataFetchingService;
-    private final StripeEventProcessor stripeEventProcessor;
+    private final JobScheduler jobScheduler;
 
     public PaymentMethodService(
         StripeService stripeService,
         DataFetchingService dataFetchingService,
-        StripeEventProcessor stripeEventProcessor
+        JobScheduler jobScheduler
     ) {
         this.stripeService = stripeService;
         this.dataFetchingService = dataFetchingService;
-        this.stripeEventProcessor = stripeEventProcessor;
+        this.jobScheduler = jobScheduler;
     }
 
     @Override
@@ -45,9 +44,9 @@ public class PaymentMethodService implements PaymentMethodResource{
                         .setDefaultPaymentMethod("")
                         .build())
                 .build();
-                
-            stripeEventProcessor.enqueueEvent(StripeEventType.PAYMENT_METHOD, customerId);
+
             Customer.retrieve(customerId).update(params);
+            jobScheduler.schedulePaymentMethodSync(customerId);
             
             return ResponseEntity.ok().build();
         } catch (StripeException e) {
@@ -68,7 +67,7 @@ public class PaymentMethodService implements PaymentMethodResource{
                 .build();
                 
             Customer.retrieve(customerId).update(params);
-            stripeEventProcessor.enqueueEvent(StripeEventType.PAYMENT_METHOD, customerId);
+            jobScheduler.schedulePaymentMethodSync(customerId);
             
             return ResponseEntity.ok().build();
         } catch (StripeException e) {
@@ -91,7 +90,7 @@ public class PaymentMethodService implements PaymentMethodResource{
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         } finally {
             if (customerId != null) {
-                stripeEventProcessor.enqueueEvent(StripeEventType.PAYMENT_METHOD, customerId);
+                jobScheduler.schedulePaymentMethodSync(customerId);
             }
         }
     }

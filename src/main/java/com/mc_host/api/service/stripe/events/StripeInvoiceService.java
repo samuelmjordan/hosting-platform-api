@@ -1,32 +1,27 @@
 package com.mc_host.api.service.stripe.events;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.CustomerInvoice;
 import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.repository.InvoiceRepository;
-import com.mc_host.api.util.Cache;
 import com.stripe.model.Invoice;
 import com.stripe.param.InvoiceListParams;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.logging.Logger;
 
 @Service
 public class StripeInvoiceService implements StripeEventService{
     private static final Logger LOGGER = Logger.getLogger(StripeInvoiceService.class.getName());
 
-    private final Cache cacheService;
     private final InvoiceRepository invoiceRepository;
 
     public StripeInvoiceService(
-        Cache cacheService,
         InvoiceRepository invoiceRepository
     ) {
-        this.cacheService = cacheService;
         this.invoiceRepository = invoiceRepository;
     }
 

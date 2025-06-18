@@ -4,41 +4,43 @@ import com.mc_host.api.controller.UserActionsResource;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
-import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
 import com.mc_host.api.model.subscription.request.UpdateRegionRequest;
 import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
+import com.mc_host.api.queue.v2.service.JobScheduler;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.DnsService;
-import com.mc_host.api.service.stripe.events.StripeEventProcessor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.logging.Logger;
+
 @Service
+@Transactional
 public class UserActionsService implements UserActionsResource {
-    //private final static Logger LOGGER = Logger.getLogger(UserActionsService.class.getName());
+    private final static Logger LOGGER = Logger.getLogger(UserActionsService.class.getName());
 
     private final GameServerRepository gameServerRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
-    private final StripeEventProcessor stripeEventProcessor;
+    private final JobScheduler jobScheduler;
     private final DnsService dnsService;
 
     public UserActionsService(
         GameServerRepository gameServerRepository,
         SubscriptionRepository subscriptionRepository,
         ServerExecutionContextRepository serverExecutionContextRepository,
-        StripeEventProcessor stripeEventProcessor,
+        JobScheduler jobScheduler,
         DnsService dnsService
     ) {
         this.gameServerRepository = gameServerRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.serverExecutionContextRepository = serverExecutionContextRepository;
-        this.stripeEventProcessor = stripeEventProcessor;
+        this.jobScheduler = jobScheduler;
         this.dnsService = dnsService;
     }
 
@@ -49,7 +51,6 @@ public class UserActionsService implements UserActionsResource {
     }
 
     @Override
-    @Transactional
     public ResponseEntity<Void> updateSubscriptionAddress(String userId, String subscriptionId, UpdateAddressRequest address) {
         // TODO: this is shite
         // Should probably be queable. Should also add the adress to the context, currently its tied to the cname which can dissapear!
@@ -78,18 +79,17 @@ public class UserActionsService implements UserActionsResource {
         String customerId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::customerId)
             .orElseThrow(() -> new IllegalStateException("No subscription found " + subscriptionId));
-        stripeEventProcessor.enqueueEvent(StripeEventType.SUBSCRIPTION, customerId);
+        jobScheduler.scheduleSubscriptionSync(customerId);
         return ResponseEntity.ok().build();
     }
 
     @Override
-    @Transactional
     public ResponseEntity<Void> updateSubscriptionRegion(String userId, String subscriptionId, UpdateRegionRequest region) {
         String customerId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::customerId)
             .orElseThrow(() -> new IllegalStateException("No subscription found " + subscriptionId));
         serverExecutionContextRepository.updateRegion(subscriptionId, region.region());
-        stripeEventProcessor.enqueueEvent(StripeEventType.SUBSCRIPTION, customerId);
+        jobScheduler.scheduleSubscriptionSync(customerId);
         return ResponseEntity.ok().build();
     }
     

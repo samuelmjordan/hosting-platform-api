@@ -1,111 +1,64 @@
 package com.mc_host.api.service.stripe.events;
 
-import java.time.Duration;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mc_host.api.configuration.StripeConfiguration;
+import com.mc_host.api.model.stripe.StripeEventType;
+import com.mc_host.api.queue.v2.model.JobType;
+import com.mc_host.api.queue.v2.service.JobScheduler;
+import com.stripe.model.Event;
+import com.stripe.model.StripeObject;
+import org.springframework.stereotype.Service;
+
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.configuration.StripeConfiguration;
-import com.mc_host.api.model.cache.CacheNamespace;
-import com.mc_host.api.model.cache.Queue;
-import com.mc_host.api.model.stripe.StripeEventType;
-import com.mc_host.api.util.Cache;
-import com.stripe.model.Event;
-import com.stripe.model.StripeObject;
-
 @Service
 public class StripeEventProcessor {
     private static final Logger LOGGER = Logger.getLogger(StripeEventProcessor.class.getName());
-    private static final Queue QUEUE_NAME = Queue.STRIPE_EVENT;
 
     private final StripeConfiguration stripeConfiguration;
-    private final Cache cacheService;
-    private final ScheduledExecutorService delayedTaskScheduler;
-
+    private final JobScheduler jobScheduler;
     private final Map<StripeEventType, EventConfig> eventConfigs;
 
     private record EventConfig(
-        CacheNamespace scheduledFlag,
-        CacheNamespace debounceFlag, 
+        JobType jobType,
         String extractionField,
         Predicate<String> eventTypePredicate
     ) {}
 
     public StripeEventProcessor(
         StripeConfiguration stripeConfiguration,
-        Cache cacheService,
-        ScheduledExecutorService delayedTaskScheduler
+        JobScheduler jobScheduler
     ) {
         this.stripeConfiguration = stripeConfiguration;
-        this.cacheService = cacheService;
-        this.delayedTaskScheduler = delayedTaskScheduler;
-        
+        this.jobScheduler = jobScheduler;
         this.eventConfigs = Map.of(
             StripeEventType.INVOICE, new EventConfig(
-                CacheNamespace.INVOICE_SCHEDULED,
-                CacheNamespace.INVOICE_DEBOUNCE, 
+                JobType.INVOICE_SYNC,
                 "customer",
                 stripeConfiguration.isInvoiceEvent()
             ),
             StripeEventType.SUBSCRIPTION, new EventConfig(
-                CacheNamespace.SUBSCRIPTION_SCHEDULED,
-                CacheNamespace.SUBSCRIPTION_DEBOUNCE, 
+                JobType.SUBSCRIPTION_SYNC,
                 "customer",
                 stripeConfiguration.isSubscriptionEvent()
             ),
             StripeEventType.PRICE, new EventConfig(
-                CacheNamespace.PRICE_SCHEDULED,
-                CacheNamespace.PRICE_DEBOUNCE, 
+                JobType.PRICE_SYNC,
                 "product",
                 stripeConfiguration.isPriceEvent()
             ),
             StripeEventType.PAYMENT_METHOD, new EventConfig(
-                CacheNamespace.PAYMENT_METHOD_SCHEDULED,
-                CacheNamespace.PAYMENT_METHOD_DEBOUNCE, 
+                JobType.PAYMENT_METHOD_SYNC,
                 "customer",
                 stripeConfiguration.isPaymentMethodEvent()
             )
         );
     }
-
-    public void enqueueEvent(StripeEventType eventType, String entityId) {
-        EventConfig config = getConfig(eventType);
-        
-        queuePushDebounce(eventType, config, entityId);
-        
-        LOGGER.log(Level.INFO, String.format(
-            "[Thread: %s] manually enqueued %s event for %s: %s",
-            Thread.currentThread().getName(),
-            eventType,
-            config.extractionField,
-            entityId
-        ));
-    }
-
-    public void scheduledEventRetry(StripeEventType eventType, String entityId, Duration duration) {
-        EventConfig config = getConfig(eventType);
-        
-        if (cacheService.flagIfAbsent(config.scheduledFlag(), entityId, duration)) {
-            delayedTaskScheduler.schedule(() -> enqueueEvent(eventType, entityId), duration.toMillis(), TimeUnit.MILLISECONDS);
-        }
-    }
-
-    private EventConfig getConfig(StripeEventType eventType) {
-        EventConfig config = eventConfigs.get(eventType);
-        if (config == null) {
-            throw new IllegalArgumentException("unsupported event type: " + eventType);
-        }
-        return config;
-    }
-
     
     public void processEvent(Event event) {
         try {
@@ -130,7 +83,7 @@ public class StripeEventProcessor {
                             String.format("failed to extract %s from event %s (type: %s)", 
                                 config.extractionField, event.getId(), event.getType())
                         ));
-                    queuePushDebounce(eventType, config, extractedId);
+                    jobScheduler.schedule(config.jobType(), extractedId);
                 });
 
             LOGGER.log(Level.INFO, String.format(
@@ -147,7 +100,6 @@ public class StripeEventProcessor {
             throw e;
         }
     }
-
 
     @SuppressWarnings("deprecation")
     public static Optional<String> extractValueFromEvent(Event event, String valueName) {
@@ -168,19 +120,4 @@ public class StripeEventProcessor {
         }
     }
 
-    private void queuePushDebounce(StripeEventType eventType, EventConfig config, String entityId) {
-        if (cacheService.flagIfAbsent(
-                config.debounceFlag,
-                entityId,
-                Duration.ofMillis(stripeConfiguration.getEventDebounceTtlMs())
-            )
-        ) {
-            delayedTaskScheduler.schedule(
-                () -> cacheService.queueLeftPush(QUEUE_NAME, 
-                    String.join(":", eventType.name(), entityId)),
-                stripeConfiguration.getEventDebounceTtlMs(), 
-                TimeUnit.MILLISECONDS
-            );
-        }
-    }
 }

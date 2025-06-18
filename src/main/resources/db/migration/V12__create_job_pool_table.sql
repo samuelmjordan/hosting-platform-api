@@ -23,11 +23,17 @@ CREATE TABLE job_queue_ (
     duplicate_count INTEGER NOT NULL DEFAULT 0,
 
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    -- Constraints
-    CONSTRAINT unique_dedup_per_type UNIQUE (type, dedup_key)
+    last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- then add your partial unique indexes
+CREATE UNIQUE INDEX idx_unique_dedup_pending_retrying
+ON job_queue_ (type, dedup_key)
+WHERE status IN ('PENDING', 'RETRYING');
+
+CREATE UNIQUE INDEX idx_unique_dedup_processing
+ON job_queue_ (type, dedup_key)
+WHERE status = 'PROCESSING';
 
 -- Indexes
 CREATE INDEX idx_job_queue_pending_ready ON job_queue_(status, delayed_until, job_id)
