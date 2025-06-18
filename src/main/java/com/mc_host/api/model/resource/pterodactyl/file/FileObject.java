@@ -12,7 +12,6 @@ public record FileObject(
         long size,
         @JsonProperty("is_file") boolean isFile,
         @JsonProperty("is_symlink") boolean isSymlink,
-        @JsonProperty("is_editable") boolean isEditable,
         String mimetype,
         @JsonProperty("created_at") String createdAt,
         @JsonProperty("modified_at") String modifiedAt
