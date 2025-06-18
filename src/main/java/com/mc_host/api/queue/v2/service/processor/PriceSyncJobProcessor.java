@@ -21,7 +21,7 @@ public class PriceSyncJobProcessor implements JobProcessor {
 
 	@Override
 	public JobType getJobType() {
-		return JobType.PRICE_SYNC;
+		return JobType.PRODUCT_PRICE_SYNC;
 	}
 
 	@Override

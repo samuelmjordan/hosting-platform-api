@@ -21,7 +21,7 @@ public class PaymentMethodSyncJobProcessor implements JobProcessor {
 
 	@Override
 	public JobType getJobType() {
-		return JobType.PAYMENT_METHOD_SYNC;
+		return JobType.CUSTOMER_PAYMENT_METHOD_SYNC;
 	}
 
 	@Override

@@ -21,7 +21,7 @@ public class SubscriptionSyncJobProcessor implements JobProcessor {
 
 	@Override
 	public JobType getJobType() {
-		return JobType.SUBSCRIPTION_SYNC;
+		return JobType.CUSTOMER_SUBSCRIPTION_SYNC;
 	}
 
 	@Override

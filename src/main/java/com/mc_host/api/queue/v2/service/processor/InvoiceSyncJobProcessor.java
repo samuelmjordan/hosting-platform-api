@@ -21,7 +21,7 @@ public class InvoiceSyncJobProcessor implements JobProcessor {
 
 	@Override
 	public JobType getJobType() {
-		return JobType.INVOICE_SYNC;
+		return JobType.CUSTOMER_INVOICE_SYNC;
 	}
 
 	@Override

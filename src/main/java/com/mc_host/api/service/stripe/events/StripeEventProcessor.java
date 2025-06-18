@@ -38,22 +38,22 @@ public class StripeEventProcessor {
         this.jobScheduler = jobScheduler;
         this.eventConfigs = Map.of(
             StripeEventType.INVOICE, new EventConfig(
-                JobType.INVOICE_SYNC,
+                JobType.CUSTOMER_INVOICE_SYNC,
                 "customer",
                 stripeConfiguration.isInvoiceEvent()
             ),
             StripeEventType.SUBSCRIPTION, new EventConfig(
-                JobType.SUBSCRIPTION_SYNC,
+                JobType.CUSTOMER_SUBSCRIPTION_SYNC,
                 "customer",
                 stripeConfiguration.isSubscriptionEvent()
             ),
             StripeEventType.PRICE, new EventConfig(
-                JobType.PRICE_SYNC,
+                JobType.PRODUCT_PRICE_SYNC,
                 "product",
                 stripeConfiguration.isPriceEvent()
             ),
             StripeEventType.PAYMENT_METHOD, new EventConfig(
-                JobType.PAYMENT_METHOD_SYNC,
+                JobType.CUSTOMER_PAYMENT_METHOD_SYNC,
                 "customer",
                 stripeConfiguration.isPaymentMethodEvent()
             )
