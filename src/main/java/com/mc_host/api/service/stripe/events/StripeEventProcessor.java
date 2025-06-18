@@ -63,7 +63,7 @@ public class StripeEventProcessor {
     public void processEvent(Event event) {
         try {
             if (!stripeConfiguration.isAcceptableEvent().test(event.getType())) {
-                LOGGER.log(Level.WARNING, String.format(
+                LOGGER.log(Level.FINE, String.format(
                     "[Thread: %s] discarding event %s, type %s is unsupported",
                     Thread.currentThread().getName(),
                     event.getId(),
@@ -74,8 +74,7 @@ public class StripeEventProcessor {
 
             eventConfigs.entrySet().stream()
                 .filter(entry -> entry.getValue().eventTypePredicate.test(event.getType()))
-                .findFirst()
-                .ifPresent(entry -> {
+                .forEach(entry -> {
                     StripeEventType eventType = entry.getKey();
                     EventConfig config = entry.getValue();
                     String extractedId = extractValueFromEvent(event, config.extractionField)
@@ -86,7 +85,7 @@ public class StripeEventProcessor {
                     jobScheduler.schedule(config.jobType(), extractedId);
                 });
 
-            LOGGER.log(Level.INFO, String.format(
+            LOGGER.log(Level.FINE, String.format(
                 "[Thread: %s] processed event %s (type: %s)",
                 Thread.currentThread().getName(),
                 event.getId(),

@@ -29,7 +29,7 @@ public class JobRepository extends BaseRepository {
 		rs.getInt("maximum_retries"),
 		rs.getString("error_message"),
 		rs.getTimestamp("delayed_until") != null ?
-				rs.getTimestamp("delayed_until").toInstant() : null
+			rs.getTimestamp("delayed_until").toInstant() : null
 	);
 
 	public Optional<Job> findById(String jobId) {
@@ -37,62 +37,6 @@ public class JobRepository extends BaseRepository {
 			"SELECT * FROM job_queue_ WHERE job_id = ?",
 			jobMapper,
 			jobId
-		);
-	}
-
-	public Optional<Job> findDuplicateJob(JobType type, String dedupKey) {
-		return selectOne("""
-			SELECT *
-			FROM job_queue_
-			WHERE type = ?
-			AND dedup_key = ?
-			AND status IN ('PENDING', 'RETRYING')
-			""",
-			jobMapper,
-			type.name(),
-			dedupKey
-		);
-	}
-
-	public Optional<Job> findActiveDuplicateJobs(JobType type, String dedupKey) {
-		return selectOne("""
-			SELECT *
-			FROM job_queue_
-			WHERE type = ?
-			AND dedup_key = ?
-			AND status IN ('PROCESSING')
-			""",
-			jobMapper,
-			type.name(),
-			dedupKey
-		);
-	}
-
-	public List<Job> findPendingJobs(int limit) {
-		return selectMany(
-			"""
-			SELECT *
-			FROM job_queue_
-			WHERE status = 'PENDING'
-			AND (delayed_until <= NOW())
-			ORDER BY delayed_until ASC, job_id ASC
-			LIMIT ?
-			""",
-			jobMapper,
-			limit
-		);
-	}
-
-	public List<Job> findRetryableJobs() {
-		return selectMany(
-			"""
-			SELECT *
-			FROM job_queue_
-			WHERE status = 'RETRYING'
-			AND (delayed_until <= NOW())
-			ORDER BY delayed_until ASC
-			""",
-			jobMapper
 		);
 	}
 
@@ -106,6 +50,13 @@ public class JobRepository extends BaseRepository {
 				SELECT job_id FROM job_queue_
 				WHERE status = ?
 				AND delayed_until <= NOW()
+				-- additional safety: ensure no other job with same dedup is already processing
+				AND NOT EXISTS (
+					SELECT 1 FROM job_queue_ j2 
+					WHERE j2.type = job_queue_.type 
+					AND j2.dedup_key = job_queue_.dedup_key 
+					AND j2.status = 'PROCESSING'
+				)
 			ORDER BY delayed_until ASC, job_id ASC
 			LIMIT ?
 			FOR UPDATE SKIP LOCKED
@@ -118,8 +69,8 @@ public class JobRepository extends BaseRepository {
 		);
 	}
 
-	public void insertJob(Job job) {
-		execute(
+	public Job upsertJob(Job job) {
+		return selectOne(
 			"""
 			INSERT INTO job_queue_ (
 				job_id,
@@ -129,9 +80,21 @@ public class JobRepository extends BaseRepository {
 				payload,
 				retry_count,
 				maximum_retries,
-				delayed_until)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				delayed_until
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (type, dedup_key) 
+			WHERE status IN ('PENDING', 'RETRYING')
+			DO UPDATE SET
+				payload = EXCLUDED.payload,
+				duplicate_count = job_queue_.duplicate_count + 1,
+				last_seen = NOW(),
+				delayed_until = LEAST(
+					COALESCE(job_queue_.delayed_until, EXCLUDED.delayed_until), 
+					COALESCE(EXCLUDED.delayed_until, job_queue_.delayed_until)
+				)
+			RETURNING *
 			""",
+			jobMapper,
 			job.jobId(),
 			job.dedupKey(),
 			job.type().name(),
@@ -140,34 +103,15 @@ public class JobRepository extends BaseRepository {
 			job.retryCount(),
 			job.maximumRetries(),
 			job.delayedUntil() != null ? java.sql.Timestamp.from(job.delayedUntil()) : null
-		);
-	}
-
-	public void mergeJobKeepingEarliestSchedule(String jobId, String newPayload, Instant newDelayedUntil) {
-		upsert(
-				"""
-				UPDATE job_queue_
-				SET payload = ?,
-					duplicate_count = duplicate_count + 1,
-					last_seen = NOW(),
-					delayed_until = LEAST(COALESCE(delayed_until, ?), COALESCE(?, delayed_until))
-				WHERE job_id = ?
-				""",
-				ps -> {
-					ps.setString(1, newPayload);
-					ps.setTimestamp(2, newDelayedUntil != null ? java.sql.Timestamp.from(newDelayedUntil) : null);
-					ps.setTimestamp(3, newDelayedUntil != null ? java.sql.Timestamp.from(newDelayedUntil) : null);
-					ps.setString(4, jobId);
-				}
-		);
+		).orElseThrow(() -> new RuntimeException("upsert failed to return job"));
 	}
 
 	public void updateJobStatus(String jobId, JobStatus status, String errorMessage) {
 		execute(
-				"UPDATE job_queue_ SET status = ?, error_message = ?, processed_at = NOW() WHERE job_id = ?",
-				status.name(),
-				errorMessage,
-				jobId
+			"UPDATE job_queue_ SET status = ?, error_message = ?, processed_at = NOW() WHERE job_id = ?",
+			status.name(),
+			errorMessage,
+			jobId
 		);
 	}
 
@@ -201,9 +145,71 @@ public class JobRepository extends BaseRepository {
 
 	public void moveToDeadLetter(String jobId, String errorMessage) {
 		execute(
-				"UPDATE job_queue_ SET status = 'DEAD_LETTER', error_message = ?, processed_at = NOW() WHERE job_id = ?",
-				errorMessage,
-				jobId
+			"UPDATE job_queue_ SET status = 'DEAD_LETTER', error_message = ?, processed_at = NOW() WHERE job_id = ?",
+			errorMessage,
+			jobId
 		);
+	}
+
+	public int archiveAndDeleteCompletedJobs() {
+		return execute("""
+			WITH archived AS (
+				INSERT INTO job_audit_ (
+					job_id,
+					dedup_key,
+					type,
+					status,
+					payload,
+					retry_count,
+					maximum_retries,
+					error_message,
+					delayed_until,
+					processed_at,
+					last_seen,
+					duplicate_count,
+					created_at,
+					last_updated
+				)
+				SELECT
+					job_id,
+					dedup_key,
+					type,
+					status,
+					payload,
+					retry_count,
+					maximum_retries,
+					error_message,
+					delayed_until,
+					processed_at,
+					last_seen,
+					duplicate_count,
+					created_at,
+					last_updated
+				FROM job_queue_
+				WHERE status IN ('COMPLETED', 'DEAD_LETTER')
+				AND processed_at < NOW() - INTERVAL '1 minute'
+				RETURNING job_id
+			)
+			DELETE FROM job_queue_
+			WHERE job_id IN (SELECT job_id FROM archived)
+			""");
+	}
+
+	public boolean tryAcquireCleanupLock() {
+		try {
+			return selectOne(
+				"SELECT pg_try_advisory_lock(12345678)",
+				(rs, rowNum) -> rs.getBoolean(1)
+			).orElse(false);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	public void releaseCleanupLock() {
+		try {
+			execute("SELECT pg_advisory_unlock(12345678)");
+		} catch (Exception e) {
+		}
 	}
 }

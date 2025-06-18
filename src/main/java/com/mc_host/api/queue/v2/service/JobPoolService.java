@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
@@ -45,7 +44,7 @@ public class JobPoolService {
 		enqueue(type, payload, delayedUntil, 3);
 	}
 
-	public void enqueue(JobType type, String payload, Instant delayedUntil, Integer maxRetries) {
+	public Job enqueue(JobType type, String payload, Instant delayedUntil, Integer maxRetries) {
 		try {
 			processorFactory.getProcessor(type);
 		} catch (IllegalArgumentException e) {
@@ -53,14 +52,8 @@ public class JobPoolService {
 		}
 
 		String dedupKey = String.join("::", type.name(), payload);
-
-		Optional<Job> existingJob = jobRepository.findDuplicateJob(type, dedupKey);
-		if (existingJob.isPresent()) {
-			jobRepository.mergeJobKeepingEarliestSchedule(existingJob.get().jobId(), payload, delayedUntil);
-			return;
-		}
-
 		String jobId = UUID.randomUUID().toString();
+
 		Job job = new Job(
 			jobId,
 			dedupKey,
@@ -73,8 +66,17 @@ public class JobPoolService {
 			delayedUntil
 		);
 
-		jobRepository.insertJob(job);
-		LOGGER.info("enqueued new job: %s of type: %s".formatted(jobId, type));
+		Job resultJob = jobRepository.upsertJob(job);
+
+		boolean wasNewJob = resultJob.jobId().equals(jobId);
+		if (wasNewJob) {
+			LOGGER.info("enqueued new job: %s of type: %s".formatted(jobId, type));
+		} else {
+			LOGGER.log(Level.FINE, "merged duplicate job: %s (original: %s) of type: %s"
+				.formatted(jobId, resultJob.jobId(), type));
+		}
+
+		return resultJob;
 	}
 
 	public void processJobs() {
@@ -103,11 +105,6 @@ public class JobPoolService {
 			LOGGER.log(Level.SEVERE, "no processor found for job type: {}", job.type());
 			handleJobFailure(job, e);
 			return;
-		}
-
-		Optional<Job> processingJob = jobRepository.findActiveDuplicateJobs(job.type(), job.dedupKey());
-		if (processingJob.isPresent()) {
-			handleJobCollision(job);
 		}
 
 		try {

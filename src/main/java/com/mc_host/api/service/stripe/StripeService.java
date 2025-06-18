@@ -84,7 +84,7 @@ public class StripeService implements StripeResource {
     public ResponseEntity<String> handleStripeWebhook(String payload, String sigHeader) {
         try {
             Event event = Webhook.constructEvent(payload, sigHeader, stripeConfiguration.getSigningKey());
-            LOGGER.log(Level.INFO, String.format(
+            LOGGER.log(Level.FINE, String.format(
                 "[Thread: %s] Stripe Event Received - Type: %s, ID: %s",
                 Thread.currentThread().getName(),
                 event.getType(),
