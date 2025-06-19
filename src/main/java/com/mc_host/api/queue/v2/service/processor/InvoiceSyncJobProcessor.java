@@ -26,11 +26,10 @@ public class InvoiceSyncJobProcessor implements JobProcessor {
 
 	@Override
 	public void process(Job job) throws Exception {
-		LOGGER.info("processing subscription sync job: %s".formatted(job.jobId()));
-		LOGGER.info("syncing subscription: %s".formatted(job.payload()));
+		LOGGER.info("Processing %s job: %s".formatted(getJobType(), job.jobId()));
 
 		stripeInvoiceService.process(job.payload());
 
-		LOGGER.info("subscription sync completed for: %s".formatted(job.payload()));
+		LOGGER.info("%s job completed for: %s".formatted(getJobType(), job.jobId()));
 	}
 }

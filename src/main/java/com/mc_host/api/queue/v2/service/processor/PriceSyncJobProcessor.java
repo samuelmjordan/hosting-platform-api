@@ -26,11 +26,10 @@ public class PriceSyncJobProcessor implements JobProcessor {
 
 	@Override
 	public void process(Job job) throws Exception {
-		LOGGER.info("processing price sync job: %s".formatted(job.jobId()));
-		LOGGER.info("syncing price: %s".formatted(job.payload()));
+		LOGGER.info("Processing %s job: %s".formatted(getJobType(), job.jobId()));
 
 		stripePriceService.process(job.payload());
 
-		LOGGER.info("price sync completed for: %s".formatted(job.payload()));
+		LOGGER.info("%s job completed for: %s".formatted(getJobType(), job.jobId()));
 	}
 }
