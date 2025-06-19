@@ -1,4 +1,4 @@
-package com.mc_host.api.queue.v2.service;
+package com.mc_host.api.queuev2.service;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.mc_host.api.queue.v2.model;
+package com.mc_host.api.queuev2.model;
 
 public enum JobStatus {
 	PENDING,

@@ -1,5 +1,9 @@
 package com.mc_host.api.queue;
 
+import com.mc_host.api.util.Cache;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -8,11 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.mc_host.api.util.Cache;
-
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 
 public abstract class AbstractQueueConsumer implements QueueConsumer {
     private static final Logger LOGGER = Logger.getLogger(AbstractQueueConsumer.class.getName());

@@ -1,5 +1,11 @@
 package com.mc_host.api.queue;
 
+import com.mc_host.api.model.cache.Queue;
+import com.mc_host.api.model.stripe.StripeEventType;
+import com.mc_host.api.service.stripe.events.StripeEventService;
+import com.mc_host.api.util.Cache;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -8,13 +14,6 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
-import com.mc_host.api.model.cache.Queue;
-import com.mc_host.api.model.stripe.StripeEventType;
-import com.mc_host.api.service.stripe.events.StripeEventService;
-import com.mc_host.api.util.Cache;
 
 @Service
 public class StripeEventConsumer extends AbstractQueueConsumer {

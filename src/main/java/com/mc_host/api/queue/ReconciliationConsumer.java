@@ -1,18 +1,17 @@
 package com.mc_host.api.queue;
 
-import java.time.Duration;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.cache.Queue;
 import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.service.reconciliation.ResourceReconcilerSupplier;
 import com.mc_host.api.util.Cache;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 public class ReconciliationConsumer extends AbstractQueueConsumer {
