@@ -1,11 +1,5 @@
 package com.mc_host.api.controller;
 
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.Plan;
 import com.mc_host.api.model.plan.SpecificationType;
@@ -13,9 +7,13 @@ import com.mc_host.api.model.stripe.CustomerInvoice;
 import com.mc_host.api.model.stripe.response.PaymentMethodResponse;
 import com.mc_host.api.model.stripe.response.ServerSubscriptionResponse;
 import com.mc_host.api.model.subscription.response.ServerProvisioningResponse;
-
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 
 @RestController
@@ -48,7 +46,7 @@ public interface DataFetchingResource {
     );
 
     @GetMapping("/user/{userId}/subscription/{subscriptionId}/status")
-    public ResponseEntity<ServerProvisioningResponse> updateSubscriptionRegion(
+    public ResponseEntity<ServerProvisioningResponse> getSubscriptionServerStatus(
         @PathVariable String userId,
         @PathVariable String subscriptionId
     );

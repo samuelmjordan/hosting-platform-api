@@ -1,11 +1,9 @@
 package com.mc_host.api.service.data;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mc_host.api.configuration.PaymentMethodConfiguration;
 import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
 import com.mc_host.api.controller.DataFetchingResource;
-import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.plan.JavaServerSpecification;
@@ -32,12 +30,10 @@ import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.repository.UserRepository;
-import com.mc_host.api.util.Cache;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,7 +46,6 @@ import java.util.logging.Logger;
 public class DataFetchingService implements DataFetchingResource  {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
-    private final Cache cacheService;
     private final PaymentMethodConfiguration paymentMethodConfiguration;
     private final PriceRepository priceRepository;
     private final PlanRepository planRepository;
@@ -63,7 +58,6 @@ public class DataFetchingService implements DataFetchingResource  {
     private final ServerExecutionContextRepository serverExecutionContextRepository;
 
     public DataFetchingService(
-        Cache cacheService,
         PaymentMethodConfiguration paymentMethodConfiguration,
         PriceRepository priceRepository,
         PlanRepository planRepository,
@@ -75,7 +69,6 @@ public class DataFetchingService implements DataFetchingResource  {
         PaymentMethodRepository paymentMethodRepository,
         ServerExecutionContextRepository serverExecutionContextRepository
     ) {
-        this.cacheService = cacheService;
         this.paymentMethodConfiguration = paymentMethodConfiguration;
         this.priceRepository = priceRepository;
         this.planRepository = planRepository;
@@ -94,23 +87,7 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     public AcceptedCurrency getUserCurrencyInner(String userId) {
-        LOGGER.log(Level.INFO, String.format("Fetching currency for clerkId %s", userId));
-
-        CacheNamespace cacheNamespace = CacheNamespace.USER_CURRENCY;
-        Optional<AcceptedCurrency> cachedCurrency = cacheService.retrieve(cacheNamespace, userId, AcceptedCurrency.class);
-        if (cachedCurrency.isPresent()) {
-            return cachedCurrency.get();
-        }
-
-        Optional<AcceptedCurrency> currency = userRepository.selectUserCurrency(userId);
-        if (currency.isPresent()) {
-            cacheService.set(cacheNamespace, userId, currency.get(), Duration.ofMinutes(10));
-            return currency.get();
-        }
-
-        AcceptedCurrency defaulAcceptedCurrency = AcceptedCurrency.XXX;
-        cacheService.set(cacheNamespace, userId, defaulAcceptedCurrency, Duration.ofHours(2));
-        return defaulAcceptedCurrency;
+        return userRepository.selectUserCurrency(userId).orElse(AcceptedCurrency.XXX);
     }
 
     @Override
@@ -208,15 +185,7 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     public Optional<String> getUserCustomerId(String userId) {
-        CacheNamespace cacheNamespace = CacheNamespace.USER_CUSTOMER_ID;
-        Optional<Optional<String>> cachedCustomerId = cacheService.retrieve(cacheNamespace, userId, new TypeReference<Optional<String>>() {});
-        if (cachedCustomerId.isPresent()) {
-            return cachedCustomerId.get();
-        }
-
-        Optional<String> customerId = userRepository.selectCustomerIdByClerkId(userId);
-        cacheService.set(cacheNamespace, userId, customerId, Duration.ofMinutes(10));
-        return customerId;
+        return userRepository.selectCustomerIdByClerkId(userId);
     }
 
     private ServerSubscriptionResponse getServerSubscriptionResponse(ContentSubscription subscription) {
@@ -252,19 +221,8 @@ public class DataFetchingService implements DataFetchingResource  {
     @Override
     public ResponseEntity<List<Plan>> getPlansForSpecType(SpecificationType specType) {
         LOGGER.log(Level.INFO, String.format(String.format("Fetching plans for specType %s", specType)));
-        if (specType == null) {
-            return ResponseEntity.badRequest().build();
-        }
     
         try {
-            CacheNamespace cacheNamespace = CacheNamespace.SPECIFICATION_PLANS;
-            Optional<List<Plan>> cachedPlans = cacheService.retrieve(
-                cacheNamespace, specType.name(), new TypeReference<List<Plan>>() {}
-            );
-            if (cachedPlans.isPresent() && !cachedPlans.get().isEmpty()) {
-                return ResponseEntity.ok(cachedPlans.get());
-            }
-    
             List<Plan> plans;
             switch(specType)  {
                 case SpecificationType.GAME_SERVER:
@@ -277,8 +235,7 @@ public class DataFetchingService implements DataFetchingResource  {
             if (plans.isEmpty()) {
                 throw new RuntimeException(String.format("specType %s had no plans. Is this the correct Id?", specType));
             }
-            cacheService.set(cacheNamespace, specType.name(), plans, Duration.ofMinutes(10));
-            
+
             return ResponseEntity.ok(plans);
         } catch (RuntimeException e) {
             LOGGER.log(Level.SEVERE, String.format("Failed to fetch plans for specType %s", specType), e);
@@ -287,7 +244,7 @@ public class DataFetchingService implements DataFetchingResource  {
     }
 
     @Override
-    public ResponseEntity<ServerProvisioningResponse> updateSubscriptionRegion(String userId, String subscriptionId) {
+    public ResponseEntity<ServerProvisioningResponse> getSubscriptionServerStatus(String userId, String subscriptionId) {
         String subscriptionCustomerId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::customerId)
             .orElseThrow(() -> new IllegalStateException("Couldnt fetch subscription: " + subscriptionId));

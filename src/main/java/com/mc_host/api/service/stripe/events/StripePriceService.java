@@ -1,13 +1,10 @@
 package com.mc_host.api.service.stripe.events;
 
-import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.plan.PricePair;
-import com.mc_host.api.model.plan.SpecificationType;
 import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.repository.PriceRepository;
-import com.mc_host.api.util.Cache;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Price;
@@ -24,14 +21,11 @@ import java.util.logging.Logger;
 public class StripePriceService implements StripeEventService{
     private static final Logger LOGGER = Logger.getLogger(StripePriceService.class.getName());
 
-    private final Cache cacheService;
     private final PriceRepository priceRepository;
 
     public StripePriceService(
-        Cache cacheService,
         PriceRepository priceRepository
     ) {
-        this.cacheService = cacheService;
         this.priceRepository = priceRepository;
     }
 
@@ -78,8 +72,6 @@ public class StripePriceService implements StripeEventService{
                     "Update price " + pricePair.getOldPrice().priceId(),
                     () -> priceRepository.insertPrice(pricePair.getNewPrice())
                 )).toList();
-
-            cacheService.evict(CacheNamespace.SPECIFICATION_PLANS, SpecificationType.fromProductId(productId).name());
 
             List<CompletableFuture<Void>> allTasks = new ArrayList<>();
             allTasks.addAll(deleteTasks);

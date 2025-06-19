@@ -2,7 +2,6 @@ package com.mc_host.api.service.stripe;
 
 import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
-import com.mc_host.api.model.cache.CacheNamespace;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.stripe.MetadataKey;
@@ -19,7 +18,6 @@ import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.clerk.ClerkEventProcessor;
 import com.mc_host.api.service.data.DataFetchingService;
 import com.mc_host.api.service.stripe.events.StripeEventProcessor;
-import com.mc_host.api.util.Cache;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
@@ -42,7 +40,6 @@ import java.util.logging.Logger;
 public class StripeService implements StripeResource {
     private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
     
-    private final Cache cacheService;
     private final StripeConfiguration stripeConfiguration;
     private final ClerkEventProcessor clerkEventProcessor;
     private final StripeEventProcessor stripeEventProcessor;
@@ -55,7 +52,6 @@ public class StripeService implements StripeResource {
     private final Executor virtualThreadExecutor;
 
     public StripeService(
-        Cache cacheService,
         StripeConfiguration stripeConfiguration,
         StripeEventProcessor eventProcessor,
         ClerkEventProcessor clerkEventProcessor,
@@ -67,7 +63,6 @@ public class StripeService implements StripeResource {
         DataFetchingService dataFetchingService,
         Executor virtualThreadExecutor
     ) {
-        this.cacheService = cacheService;
         this.stripeConfiguration = stripeConfiguration;
         this.stripeEventProcessor = eventProcessor;
         this.clerkEventProcessor = clerkEventProcessor;
@@ -165,7 +160,6 @@ public class StripeService implements StripeResource {
     }
 
     private String getPriceInCorrectCurrency(String priceId, String userId) {
-        cacheService.evict(CacheNamespace.USER_CURRENCY, userId);
         AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);
         if (currency.equals(AcceptedCurrency.XXX)) {
             return priceId;
