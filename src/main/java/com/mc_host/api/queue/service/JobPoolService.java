@@ -8,6 +8,8 @@ import com.mc_host.api.queue.service.processor.JobProcessorFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -118,20 +120,21 @@ public class JobPoolService {
 	private void handleJobFailure(Job job, Exception e) {
 		int newRetryCount = job.retryCount() + 1;
 
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		e.printStackTrace(pw);
+		String fullTrace = sw.toString();
+
 		if (newRetryCount >= job.maximumRetries()) {
-			jobRepository.moveToDeadLetter(job.jobId(), e.getMessage());
+			jobRepository.moveToDeadLetter(job.jobId(), fullTrace);
 			LOGGER.log(Level.SEVERE, "job moved to dead letter: %s after %s attempts".formatted(job.jobId(), newRetryCount));
 		} else {
 			long delaySeconds = (long) Math.max(Math.pow(2, newRetryCount), 30);
 			Instant retryAt = Instant.now().plus(Duration.ofSeconds(delaySeconds));
 
-			jobRepository.updateJobForRetry(job.jobId(), newRetryCount, retryAt, e.getMessage());
+			jobRepository.updateJobForRetry(job.jobId(), newRetryCount, retryAt, fullTrace);
 			LOGGER.log(Level.SEVERE, "job scheduled for retry: %s attempt %s in %s seconds"
 				.formatted(job.jobId(), newRetryCount, delaySeconds));
 		}
-	}
-
-	private void handleJobCollision(Job job) {
-		jobRepository.updateJobForNonFailureRetry(job.jobId(), Instant.now().plus(Duration.ofSeconds(30)));
 	}
 }

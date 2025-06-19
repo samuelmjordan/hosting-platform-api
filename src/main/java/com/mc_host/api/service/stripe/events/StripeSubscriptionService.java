@@ -5,7 +5,6 @@ import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
-import com.mc_host.api.model.stripe.MetadataKey;
 import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
@@ -76,7 +75,7 @@ public class StripeSubscriptionService implements StripeEventService {
                 serverExecutionContextRepository.insertOrIgnoreSubscription(
                     Context.newIdle(
                         subscription.subscriptionId(),
-                        MarketingRegion.WEST_EUROPE, //Region is hardcoded
+                        subscription.initialRegion(),
                         specificationId, 
                         "My New Server", 
                         "A Minecraft Server"
@@ -169,7 +168,7 @@ public class StripeSubscriptionService implements StripeEventService {
             Instant.ofEpochMilli(subscription.getCurrentPeriodEnd()), 
             Instant.ofEpochMilli(subscription.getCurrentPeriodStart()), 
             subscription.getCancelAtPeriodEnd(),
-            MarketingRegion.valueOf(subscription.getMetadata().get(MetadataKey.REGION.name()))
+            MarketingRegion.WEST_EUROPE
         );
     }
 }
