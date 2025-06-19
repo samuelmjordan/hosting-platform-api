@@ -1,16 +1,15 @@
 package com.mc_host.api.service.reconciliation;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.client.HetznerCloudClient;
 import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.util.Task;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 @Service
@@ -39,14 +38,14 @@ public class HetznerCloudNodeReconciler implements ResourceReconciler {
         try {
             List<Long> actualHetznerNodes = fetchActualResources();
             List<Long> expectedHetznerNodes = fetchExpectedResources();
-            List<Long> subscriptionsToDestroy = actualHetznerNodes.stream()
+            List<Long> nodesToDestroy = actualHetznerNodes.stream()
                 .filter(hetznerNodeId -> expectedHetznerNodes.stream().noneMatch(hetznerNodeId::equals))
                 .toList();
-            LOGGER.log(Level.INFO, String.format("Found %s hetzner nodes to destroy", subscriptionsToDestroy.size()));
+            LOGGER.log(Level.INFO, String.format("Found %s hetzner nodes to destroy", nodesToDestroy.size()));
 
-            if (subscriptionsToDestroy.size() == 0) return;
+            if (nodesToDestroy.size() == 0) return;
 
-            List<CompletableFuture<Void>> deleteTasks = subscriptionsToDestroy.stream()
+            List<CompletableFuture<Void>> deleteTasks = nodesToDestroy.stream()
                 .map(hetznerNodeId -> Task.alwaysAttempt(
                     "Delete hetznerNode " + hetznerNodeId,
                     () -> {
