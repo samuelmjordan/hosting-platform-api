@@ -82,11 +82,6 @@ public class StripeSubscriptionService implements StripeEventService {
                         "A Minecraft Server"
                     )
                 );
-
-                // make sure context has up to date spec details
-                Context context = serverExecutionContextRepository.selectSubscription(subscription.subscriptionId())
-                    .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + subscription.subscriptionId()));
-                serverExecutionContextRepository.upsertSubscription(context);
             }));
 
             List<CompletableFuture<Void>> tasks = stripeSubscriptions.stream()
@@ -141,20 +136,18 @@ public class StripeSubscriptionService implements StripeEventService {
         // active subscription states (to 'CREATE' or 'MIGRATE_CREATE')
         if (subscription.status().isActive() || subscription.status().equals(SubscriptionStatus.PAST_DUE)) {
             if (context.isCreated()) {
-                // what is the actual spec / region that is provisioned
+                // what is the actual spec that is provisioned
                 HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())    
                     .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", context.getNodeId())));
-                MarketingRegion groundRegion = hetznerNode.hetznerRegion().getMarketingRegion();
                 String groundSpec = hetznerNode.hetznerSpec().getSpecificationId();
 
                 // if they do not match the desired state, and the server is active, execute a migration
-                Boolean regionChanged = !context.getRegion().equals(groundRegion);
                 Boolean specificationChanged = !context.getSpecificationId().equals(groundSpec);
-                if (specificationChanged || regionChanged) {
+                if (specificationChanged) {
                     serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
                 }
             } else if (context.isDestroyed()) {
-                // else create with new desired state
+                // if the server is not active, we can create a fresh one
                 serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
             }
             return;
