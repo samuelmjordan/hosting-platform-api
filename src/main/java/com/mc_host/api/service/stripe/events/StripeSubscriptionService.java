@@ -95,14 +95,10 @@ public class StripeSubscriptionService implements StripeEventService {
                     () -> processSubscription(pair)
                 )).toList();
             Task.awaitCompletion(tasks);
-                
-            CompletableFuture<Void> updateCurrency = Task.criticalTask(
-                "Update user currency for " + customerId,
-                () -> subscriptionRepository.updateUserCurrencyFromSubscription(customerId)
-            );
-            Task.awaitCompletion(updateCurrency);
 
-            LOGGER.log(Level.INFO, "Executed subscription db sync for customer: " + customerId);
+            subscriptionRepository.updateUserCurrencyFromSubscription(customerId);
+
+            LOGGER.log(Level.FINE, "Executed subscription db sync for customer: " + customerId);
         } catch (StripeException e) {
             LOGGER.log(Level.SEVERE, "Failed to sync subscription data for customer: " + customerId, e);
             throw new RuntimeException("Failed to sync subscription data", e);
