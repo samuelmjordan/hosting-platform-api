@@ -4,7 +4,6 @@ import com.mc_host.api.configuration.StripeConfiguration;
 import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
-import com.mc_host.api.model.stripe.MetadataKey;
 import com.mc_host.api.model.stripe.request.CheckoutRequest;
 import com.mc_host.api.model.stripe.request.PortalRequest;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
@@ -116,7 +115,6 @@ public class StripeService implements StripeResource {
                 .setSuccessUrl(request.success())
                 .setCancelUrl(request.cancel())
                 .setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
-                    .putMetadata(MetadataKey.REGION.name(), request.region().name())
                     .build()) 
                 .addLineItem(SessionCreateParams.LineItem.builder()
                     .setPrice(priceId)

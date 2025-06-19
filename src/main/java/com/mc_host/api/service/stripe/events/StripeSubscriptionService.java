@@ -75,8 +75,8 @@ public class StripeSubscriptionService implements StripeEventService {
                 subscriptionRepository.upsertSubscription(subscription);
                 serverExecutionContextRepository.insertOrIgnoreSubscription(
                     Context.newIdle(
-                        subscription.subscriptionId(), 
-                        subscription.initialRegion(), 
+                        subscription.subscriptionId(),
+                        MarketingRegion.WEST_EUROPE, //Region is hardcoded
                         specificationId, 
                         "My New Server", 
                         "A Minecraft Server"

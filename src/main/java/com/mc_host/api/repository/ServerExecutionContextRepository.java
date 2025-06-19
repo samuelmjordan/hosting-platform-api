@@ -158,10 +158,6 @@ public class ServerExecutionContextRepository extends BaseRepository {
         execute("UPDATE server_execution_context_ SET caption = ? WHERE subscription_id = ?", caption, subId);
     }
 
-    public void updateRegion(String subId, MarketingRegion region) {
-        execute("UPDATE server_execution_context_ SET region = ? WHERE subscription_id = ?", region.name(), subId);
-    }
-
     public void updateSpecification(String subId, String specId) {
         execute("UPDATE server_execution_context_ SET specification_id = ? WHERE subscription_id = ?", specId, subId);
     }

@@ -6,7 +6,6 @@ import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
-import com.mc_host.api.model.subscription.request.UpdateRegionRequest;
 import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
 import com.mc_host.api.queue.service.JobScheduler;
 import com.mc_host.api.repository.GameServerRepository;
@@ -79,16 +78,6 @@ public class UserActionsService implements UserActionsResource {
         String customerId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::customerId)
             .orElseThrow(() -> new IllegalStateException("No subscription found " + subscriptionId));
-        jobScheduler.scheduleSubscriptionSync(customerId);
-        return ResponseEntity.ok().build();
-    }
-
-    @Override
-    public ResponseEntity<Void> updateSubscriptionRegion(String userId, String subscriptionId, UpdateRegionRequest region) {
-        String customerId = subscriptionRepository.selectSubscription(subscriptionId)
-            .map(ContentSubscription::customerId)
-            .orElseThrow(() -> new IllegalStateException("No subscription found " + subscriptionId));
-        serverExecutionContextRepository.updateRegion(subscriptionId, region.region());
         jobScheduler.scheduleSubscriptionSync(customerId);
         return ResponseEntity.ok().build();
     }

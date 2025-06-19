@@ -1,16 +1,13 @@
 package com.mc_host.api.controller;
 
+import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
+import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
-import com.mc_host.api.model.subscription.request.UpdateRegionRequest;
-import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
-
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
@@ -29,12 +26,5 @@ public interface UserActionsResource {
         @PathVariable String userId,
         @PathVariable String subscriptionId,
         @RequestBody UpdateAddressRequest address
-    );
-
-    @PostMapping("/user/{userId}/subscription/{subscriptionId}/region")
-    public ResponseEntity<Void> updateSubscriptionRegion(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
-        @RequestBody UpdateRegionRequest region
     );
 }
