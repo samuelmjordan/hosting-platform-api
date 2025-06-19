@@ -8,7 +8,7 @@ import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
 import com.mc_host.api.model.subscription.request.UpdateRegionRequest;
 import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
-import com.mc_host.api.queuev2.service.JobScheduler;
+import com.mc_host.api.queue.service.JobScheduler;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;

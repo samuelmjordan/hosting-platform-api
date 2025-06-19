@@ -1,10 +1,10 @@
-package com.mc_host.api.queuev2.service;
+package com.mc_host.api.queue.service;
 
-import com.mc_host.api.queuev2.model.Job;
-import com.mc_host.api.queuev2.model.JobStatus;
-import com.mc_host.api.queuev2.model.JobType;
-import com.mc_host.api.queuev2.service.processor.JobProcessor;
-import com.mc_host.api.queuev2.service.processor.JobProcessorFactory;
+import com.mc_host.api.queue.model.Job;
+import com.mc_host.api.queue.model.JobStatus;
+import com.mc_host.api.queue.model.JobType;
+import com.mc_host.api.queue.service.processor.JobProcessor;
+import com.mc_host.api.queue.service.processor.JobProcessorFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

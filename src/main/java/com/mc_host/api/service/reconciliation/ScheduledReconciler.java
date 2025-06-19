@@ -1,8 +1,8 @@
 package com.mc_host.api.service.reconciliation;
 
 import com.mc_host.api.model.resource.ResourceType;
-import com.mc_host.api.queuev2.model.JobType;
-import com.mc_host.api.queuev2.service.JobScheduler;
+import com.mc_host.api.queue.model.JobType;
+import com.mc_host.api.queue.service.JobScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,6 @@ public class ScheduledReconciler {
     @Scheduled(fixedDelay = 1000*60*60)
     public void reconcileAllResources() {
         for (ResourceType resourceType : ResourceType.values()) {
-            LOGGER.info("here");
             jobScheduler.schedule(JobType.RECONCILE_RESOURCE_TYPE, resourceType.name());
         }
     }

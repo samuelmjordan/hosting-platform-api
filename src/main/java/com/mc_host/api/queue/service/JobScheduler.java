@@ -1,6 +1,6 @@
-package com.mc_host.api.queuev2.service;
+package com.mc_host.api.queue.service;
 
-import com.mc_host.api.queuev2.model.JobType;
+import com.mc_host.api.queue.model.JobType;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;

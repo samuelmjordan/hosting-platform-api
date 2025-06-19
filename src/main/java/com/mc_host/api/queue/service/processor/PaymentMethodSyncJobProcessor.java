@@ -1,7 +1,7 @@
-package com.mc_host.api.queuev2.service.processor;
+package com.mc_host.api.queue.service.processor;
 
-import com.mc_host.api.queuev2.model.Job;
-import com.mc_host.api.queuev2.model.JobType;
+import com.mc_host.api.queue.model.Job;
+import com.mc_host.api.queue.model.JobType;
 import com.mc_host.api.service.stripe.events.StripePaymentMethodService;
 import org.springframework.stereotype.Component;
 
