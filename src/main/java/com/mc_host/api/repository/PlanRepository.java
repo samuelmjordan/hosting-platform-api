@@ -2,8 +2,8 @@ package com.mc_host.api.repository;
 
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
-import com.mc_host.api.model.plan.JavaServerSpecification;
 import com.mc_host.api.model.plan.Plan;
+import com.mc_host.api.model.plan.ServerSpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -54,13 +54,13 @@ public class PlanRepository extends BaseRepository {
 
     private Plan mapPlan(ResultSet rs, int rowNum) throws SQLException {
         return new Plan(
-            new JavaServerSpecification(
+            new ServerSpecification(
                 rs.getString("specification_id"),
                 rs.getString("title"),
                 rs.getString("caption"),
-                rs.getString("ram_gb"),
-                rs.getString("vcpu"),
-                rs.getString("ssd_gb")),
+                Integer.valueOf(rs.getString("ram_gb")),
+                Integer.valueOf(rs.getString("vcpu")),
+                Integer.valueOf(rs.getString("ssd_gb"))),
             new ContentPrice(
                 rs.getString("price_id"),
                 rs.getString("product_id"),

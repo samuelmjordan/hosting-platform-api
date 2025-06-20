@@ -1,7 +1,7 @@
 package com.mc_host.api.repository;
 
 import com.mc_host.api.model.plan.AcceptedCurrency;
-import com.mc_host.api.model.plan.JavaServerSpecification;
+import com.mc_host.api.model.plan.ServerSpecification;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +23,7 @@ public class GameServerSpecRepository extends BaseRepository {
             """, (rs, rowNum) -> rs.getString("price_id"), priceId, currency.name());
     }
 
-    public Optional<JavaServerSpecification> selectSpecification(String specId) {
+    public Optional<ServerSpecification> selectSpecification(String specId) {
         return selectOne("""
             SELECT
                 specification_id,
@@ -40,13 +40,14 @@ public class GameServerSpecRepository extends BaseRepository {
         );
     }
 
-    private JavaServerSpecification mapSpecification(ResultSet rs, int rowNum) throws SQLException {
-        return new JavaServerSpecification(
+    private ServerSpecification mapSpecification(ResultSet rs, int rowNum) throws SQLException {
+        return new ServerSpecification(
             rs.getString("specification_id"),
             rs.getString("title"),
             rs.getString("caption"),
-            rs.getString("ram_gb"),
-            rs.getString("vcpu"),
-            rs.getString("ssd_gb"));
+            //TODO: db schema should be int
+            Integer.valueOf(rs.getString("ram_gb")),
+            Integer.valueOf(rs.getString("vcpu")),
+            Integer.valueOf(rs.getString("ssd_gb")));
     }
 }

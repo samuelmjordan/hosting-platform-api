@@ -6,8 +6,8 @@ import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
 import com.mc_host.api.controller.DataFetchingResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
-import com.mc_host.api.model.plan.JavaServerSpecification;
 import com.mc_host.api.model.plan.Plan;
+import com.mc_host.api.model.plan.ServerSpecification;
 import com.mc_host.api.model.plan.SpecificationType;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Status;
@@ -193,7 +193,7 @@ public class DataFetchingService implements DataFetchingResource  {
             .orElseThrow(() -> new IllegalStateException("Couldnt find price for price " + subscription.priceId()));
         String specificationId = planRepository.selectSpecificationId(subscription.priceId())
             .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
-        JavaServerSpecification gameSeverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
+        ServerSpecification gameSeverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
             .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
         String dnsCNameRecordName = gameServerRepository.selectDnsCNameRecordWithSubscriptionId(subscription.subscriptionId())
             .map(DnsCNameRecord::recordName)
@@ -205,8 +205,8 @@ public class DataFetchingService implements DataFetchingResource  {
             subscription.subscriptionId(),
             context.getTitle(),
             gameSeverSpecification.title(),
-            gameSeverSpecification.ram_gb(),
-            gameSeverSpecification.vcpu(),
+            gameSeverSpecification.ram_gb().toString(),
+            gameSeverSpecification.vcpu().toString(),
             context.getRegion(),
             dnsCNameRecordName,
             subscription.status().toString(),

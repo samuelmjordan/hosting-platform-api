@@ -1,11 +1,13 @@
 package com.mc_host.api.service.provisioning.steps;
 
+import com.mc_host.api.model.plan.ServerSpecification;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;
+import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.provisioning.TransitionService;
@@ -18,11 +20,13 @@ public class PterodactylServerStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
     private final GameServerRepository gameServerRepository;
+    private final GameServerSpecRepository gameServerSpecRepository;
     private final PterodactylService pterodactylService;
 
     protected PterodactylServerStep(
         ServerExecutionContextRepository contextRepository,
         GameServerRepository gameServerRepository,
+        GameServerSpecRepository gameServerSpecRepository,
         TransitionService transitionService,
         NodeRepository nodeRepository,
         PterodactylService pterodactylService
@@ -31,6 +35,7 @@ public class PterodactylServerStep extends AbstractStep {
         this.nodeRepository = nodeRepository;
         this.gameServerRepository = gameServerRepository;
         this.pterodactylService = pterodactylService;
+        this.gameServerSpecRepository = gameServerSpecRepository;
     }
 
     @Override
@@ -43,7 +48,9 @@ public class PterodactylServerStep extends AbstractStep {
     public StepTransition create(Context context) {
         PterodactylAllocation allocationAttributes = nodeRepository.selectPterodactylAllocation(context.getNewAllocationId())
             .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found: " + context));
-        PterodactylServer pterodactylServer = pterodactylService.createServer(context.getSubscriptionId(), allocationAttributes);
+        ServerSpecification serverSpecification = gameServerSpecRepository.selectSpecification(context.getSpecificationId())
+            .orElseThrow(() -> new IllegalStateException("DNS A Record not found:" + context.getNewARecordId()));
+        PterodactylServer pterodactylServer = pterodactylService.createServer(context.getSubscriptionId(), allocationAttributes, serverSpecification);
 
         Context transitionedContext = context.withNewPterodactylServerId(pterodactylServer.pterodactylServerId());
         gameServerRepository.insertPterodactylServer(pterodactylServer);

@@ -1,10 +1,12 @@
 package com.mc_host.api.service.provisioning.steps;
 
+import com.mc_host.api.model.plan.ServerSpecification;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
+import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.provisioning.TransitionService;
@@ -16,16 +18,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class PterodactylNodeStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
+    private final GameServerSpecRepository gameServerSpecRepository;
     private final PterodactylService pterodactylService;
 
     protected PterodactylNodeStep(
         ServerExecutionContextRepository contextRepository,
         TransitionService transitionService,
         NodeRepository nodeRepository,
+        GameServerSpecRepository gameServerSpecRepository,
         PterodactylService pterodactylService
     ) {
         super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
+        this.gameServerSpecRepository = gameServerSpecRepository;
         this.pterodactylService = pterodactylService;
     }
 
@@ -39,7 +44,9 @@ public class PterodactylNodeStep extends AbstractStep {
     public StepTransition create(Context context) {
         DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getNewARecordId())
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found:" + context.getNewARecordId()));
-        PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord);
+        ServerSpecification serverSpecification = gameServerSpecRepository.selectSpecification(context.getSpecificationId())
+            .orElseThrow(() -> new IllegalStateException("DNS A Record not found:" + context.getNewARecordId()));
+        PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord, serverSpecification);
 
         Context transitionedContext = context.withNewPterodactylNodeId(pterodactylNode.pterodactylNodeId());
         nodeRepository.insertPterodactylNode(pterodactylNode);

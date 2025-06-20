@@ -4,6 +4,7 @@ import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.client.PterodactylUserClient;
 import com.mc_host.api.client.PterodactylUserClient.ServerResourcesResponse;
 import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
+import com.mc_host.api.model.plan.ServerSpecification;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
@@ -41,7 +42,7 @@ public class PterodactylService {
         this.wingsService = wingsService;
     }
 
-    public PterodactylNode createNode(DnsARecord dnsARecord) {   
+    public PterodactylNode createNode(DnsARecord dnsARecord, ServerSpecification serverSpecification) {
         var nodeRequest = PterodactylCreateNodeRequest.builder()
             .name(UUID.randomUUID().toString())
             .description(dnsARecord.subscriptionId())
@@ -50,9 +51,9 @@ public class PterodactylService {
             .fqdn(dnsARecord.recordName())
             .scheme("https")
             .behindProxy(false)
-            .memory(1024)
+            .memory(serverSpecification.ram_gb() * 1024 - 512)
             .memoryOverallocate(0)
-            .disk(50000)
+            .disk(serverSpecification.ssd_gb() * 1024)
             .diskOverallocate(0)
             .uploadSize(100)
             .daemonSftp(2022)
@@ -106,7 +107,7 @@ public class PterodactylService {
         );
     }
 
-    public PterodactylServer createServer(String subscriptionId, PterodactylAllocation allocation) {
+    public PterodactylServer createServer(String subscriptionId, PterodactylAllocation allocation, ServerSpecification serverSpecification) {
         var serverDetails = Map.ofEntries(
             Map.entry("name", "Minecraft - " + subscriptionId),
             Map.entry("user", 1),
@@ -122,11 +123,11 @@ public class PterodactylService {
                 "MAX_PLAYERS", "20"
             )),
             Map.entry("limits", Map.of(
-                "memory", 3584,
+                "memory", serverSpecification.ram_gb() * 1024 - 512,
                 "swap", 0,
-                "disk", 15000,
+                "disk", serverSpecification.ssd_gb() * 1024,
                 "io", 500,
-                "cpu", 150
+                "cpu", serverSpecification.vcpu() * 100 * 0.9
             )),
             Map.entry("feature_limits", Map.of(
                 "databases", 1,
