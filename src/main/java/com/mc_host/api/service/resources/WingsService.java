@@ -24,7 +24,7 @@ public class WingsService {
     private static final String USERNAME = "root";
     private static final int PORT = 22;
     private static final int TIMEOUT = 300;
-    private static final int DELAY = 3000;
+    private static final int DELAY = 500;
 
     private final SshConfiguration sshConfiguration;
     private final ObjectMapper objectMapper;
@@ -63,7 +63,7 @@ public class WingsService {
                     Thread.sleep(delay);
                     delay *= 1.2;
                     retries++;
-                    if (retries >= 3) {
+                    if (retries >= 15) {
                         throw e;
                     }
                 }
