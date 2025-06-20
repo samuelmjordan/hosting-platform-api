@@ -56,7 +56,7 @@ public class PterodactylServerStep extends AbstractStep {
         gameServerRepository.insertPterodactylServer(pterodactylServer);
 
         if (context.getMode().isMigrate()) {
-            return transitionService.persistAndProgress(transitionedContext, StepType.START_SERVER);
+            return transitionService.persistAndProgress(transitionedContext, StepType.TRANSFER_DATA);
         }
         return transitionService.persistAndProgress(transitionedContext, StepType.C_NAME_RECORD);
     }

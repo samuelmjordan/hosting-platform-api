@@ -27,7 +27,7 @@ public class TransferService {
 	private final GameServerRepository gameServerRepository;
 	private final NodeRepository nodeRepository;
 
-	public void transferServerDataViaSftp(Long sourceServerId, Long targetServerId) throws Exception {
+	public void transferServerData(Long sourceServerId, Long targetServerId) throws Exception {
 		LOGGER.info("starting sshj sftp transfer from %s to %s".formatted(sourceServerId, targetServerId));
 
 		var sourceSftpDetails = getSftpDetails(sourceServerId);
@@ -51,12 +51,25 @@ public class TransferService {
 		}
 	}
 
-	private SSHClient createSshClient(SftpDetails details) throws IOException {
-		SSHClient client = new SSHClient();
-		client.addHostKeyVerifier(new PromiscuousVerifier());
-		client.connect(details.host, details.port);
-		client.authPassword(details.username, details.password);
-		return client;
+	private SSHClient createSshClient(SftpDetails details) throws IOException, InterruptedException {
+		int retries = 0;
+		int delay = 500;
+		while (true) {
+			try {
+				SSHClient client = new SSHClient();
+				client.addHostKeyVerifier(new PromiscuousVerifier());
+				client.connect(details.host, details.port);
+				client.authPassword(details.username, details.password);
+				return client;
+			} catch(Exception e) {
+				Thread.sleep(delay);
+				delay *= 1.2;
+				retries++;
+				if (retries >= 15) {
+					throw e;
+				}
+			}
+		}
 	}
 
 	private void transferDirectoryRecursive(SFTPClient source, SFTPClient target,

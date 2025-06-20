@@ -34,14 +34,14 @@ public class TransferDataStep extends AbstractStep {
         if (!context.getMode().isMigrate()) {
             throw new UnsupportedOperationException("Data Transfer step is migration only.");
         }
+
         try {
-            //transferService.transferServerData(context.getPterodactylServerId(), context.getNewPterodactylServerId());
+            transferService.transferServerData(context.getPterodactylServerId(), context.getNewPterodactylServerId());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-
-        return transitionService.persistAndProgress(null, StepType.START_SERVER);
+        return transitionService.persistAndProgress(context, StepType.START_SERVER);
     }
 
     @Override

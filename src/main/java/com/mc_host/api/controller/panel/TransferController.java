@@ -23,7 +23,7 @@ public class TransferController {
 	public ResponseEntity<?> transferServerData(@RequestBody TransferRequest request) throws Exception {
 		LOGGER.info("Received transfer request from %s to %s".formatted(request.sourceId(), request.targetId()));
 
-		transferService.transferServerDataViaSftp(request.sourceId(), request.targetId());
+		transferService.transferServerData(request.sourceId(), request.targetId());
 
 		return ResponseEntity.accepted().body(Map.of(
 			"message", "Transfer finished"
