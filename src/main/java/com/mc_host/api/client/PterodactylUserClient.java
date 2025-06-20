@@ -8,9 +8,15 @@ import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +97,45 @@ public class PterodactylUserClient extends BaseApiClient {
     public SignedUrl getFileUploadLink(String serverUid) {
         var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/files/upload");
         return deserialize(response, SignedUrl.class);
+    }
+
+    public void uploadFile(String serverUid, MultipartFile file) throws IOException, InterruptedException {
+        // Get the signed upload URL
+        var signedUrl = getFileUploadLink(serverUid);
+
+        // Create multipart request to forward to Pterodactyl
+        var httpClient = HttpClient.newHttpClient();
+
+        // Build multipart body
+        var boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+        var bodyBuilder = new StringBuilder();
+
+        bodyBuilder.append("--").append(boundary).append("\r\n");
+        bodyBuilder.append("Content-Disposition: form-data; name=\"files\"; filename=\"")
+            .append(file.getOriginalFilename()).append("\"\r\n");
+        bodyBuilder.append("Content-Type: ").append(file.getContentType()).append("\r\n\r\n");
+
+        var fileBytes = file.getBytes();
+        var endBoundary = "\r\n--" + boundary + "--\r\n";
+
+        // Combine parts
+        var bodyBytes = new ByteArrayOutputStream();
+        bodyBytes.write(bodyBuilder.toString().getBytes(StandardCharsets.UTF_8));
+        bodyBytes.write(fileBytes);
+        bodyBytes.write(endBoundary.getBytes(StandardCharsets.UTF_8));
+
+        // Forward to Pterodactyl
+        var request = HttpRequest.newBuilder()
+            .uri(URI.create(signedUrl.attributes().url()))
+            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .POST(HttpRequest.BodyPublishers.ofByteArray(bodyBytes.toByteArray()))
+            .build();
+
+        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Upload failed: " + response.statusCode());
+        }
     }
 
     public void renameFiles(String serverUid, String root, List<RenameItem> files) {

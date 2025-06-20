@@ -2,22 +2,21 @@ package com.mc_host.api.service.panel;
 
 import com.mc_host.api.client.PterodactylUserClient;
 import com.mc_host.api.model.panel.request.transfer.TempFileMultipartFile;
-import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
+import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -25,103 +24,142 @@ import java.util.logging.Logger;
 @RequiredArgsConstructor
 public class TransferService {
 	private final static Logger LOGGER = Logger.getLogger(TransferService.class.getName());
+	private final static long MAX_BACKUP_SIZE_BYTES = 1_000_000 * 1024; // 1gb
+	private final static int BACKUP_TIMEOUT_ATTEMPTS = 60;
+	private final static int BACKUP_POLL_INTERVAL_SECONDS = 5;
 
 	private final PterodactylUserClient pterodactylClient;
-	private final ServerExecutionContextRepository serverExecutionContextRepository;
 	private final GameServerRepository gameServerRepository;
-	private final FileService fileService;
 
-	public void transferServerData(String sourceSubscriptionId, String targetSubscriptionId) throws Exception {
-		LOGGER.info("Starting server data transfer from %s to %s".formatted(sourceSubscriptionId, targetSubscriptionId));
+	public void transferServerData(Long sourceServerId, Long targetServerId) throws Exception {
+		LOGGER.info("starting server data transfer from %s to %s".formatted(sourceServerId, targetServerId));
 
-		var sourceServerUid = getServerUid(sourceSubscriptionId);
-		var targetServerUid = getServerUid(targetSubscriptionId);
+		var sourceServer = getServer(sourceServerId);
+		var targetServer = getServer(targetServerId);
 
-		// create backup on source server
-		LOGGER.info("Creating backup on source server %s".formatted(sourceServerUid));
-		var backupResponse = pterodactylClient.createBackup(sourceServerUid, "transfer-backup-" + System.currentTimeMillis());
-		var backupUuid = backupResponse.attributes().uuid();
+		var backupUid = createAndWaitForBackup(sourceServer.pterodactylServerUid());
 
-		// wait for backup to complete
-		waitForBackupCompletion(sourceServerUid, backupUuid);
+		try {
+			var tempFile = downloadBackupToTempFile(sourceServer.pterodactylServerUid(), backupUid);
+			try {
+				uploadBackupToTarget(targetServer.pterodactylServerUid(), tempFile);
+				decompressBackupOnTarget(targetServer.pterodactylServerUid());
+			} finally {
+				cleanupTempFile(tempFile);
+			}
+		} finally {
+			cleanupSourceBackup(sourceServer.pterodactylServerUid(), backupUid);
+		}
 
-		// get download link
-		LOGGER.info("Getting download link for backup %s".formatted(backupUuid));
-		var downloadUrl = pterodactylClient.getBackupDownloadLink(sourceServerUid, backupUuid);
-
-		// stream transfer the backup
-		transferBackupFile(downloadUrl.attributes().url(), targetSubscriptionId);
-
-		// decompress on target server
-		LOGGER.info("Decompressing backup on target server %s".formatted(targetServerUid));
-		pterodactylClient.decompressFile(targetServerUid, "/", "transfer-backup.tar.gz");
-
-		// cleanup backup from source
-		LOGGER.info("Cleaning up backup from source server");
-		pterodactylClient.deleteBackup(sourceServerUid, backupUuid);
-
-		LOGGER.info("Server data transfer completed successfully");
+		LOGGER.info("server data transfer completed successfully");
 	}
 
-	private void waitForBackupCompletion(String serverUid, String backupUuid) throws InterruptedException {
-		LOGGER.info("Waiting for backup %s to complete".formatted(backupUuid));
+	private String createAndWaitForBackup(String sourceServerUid) throws Exception {
+		LOGGER.info("creating backup on source server %s".formatted(sourceServerUid));
 
-		for (int attempts = 0; attempts < 60; attempts++) { // max 10 minutes
-			var backup = pterodactylClient.getBackupDetails(serverUid, backupUuid);
+		var backupResponse = pterodactylClient.createBackup(
+			sourceServerUid,
+			"transfer-backup-" + System.currentTimeMillis()
+		);
+
+		var backupUid = backupResponse.attributes().uuid();
+
+		if (backupResponse.attributes().bytes() >= MAX_BACKUP_SIZE_BYTES) {
+			throw new IllegalStateException("backup too large: %d bytes".formatted(backupResponse.attributes().bytes()));
+		}
+
+		waitForBackupCompletion(sourceServerUid, backupUid);
+		return backupUid;
+	}
+
+	private Path downloadBackupToTempFile(String sourceServerUid, String backupUid) throws Exception {
+		LOGGER.info("getting download link for backup %s".formatted(backupUid));
+		var downloadUrl = pterodactylClient.getBackupDownloadLink(sourceServerUid, backupUid);
+
+		var tempFile = Files.createTempFile("server-transfer-", ".tar.gz");
+		LOGGER.info("created temp file %s for transfer".formatted(tempFile));
+
+		var httpClient = HttpClient.newHttpClient();
+		var downloadRequest = HttpRequest.newBuilder()
+			.uri(URI.create(downloadUrl.attributes().url()))
+			.GET()
+			.build();
+
+		LOGGER.info("downloading backup file");
+		httpClient.send(downloadRequest, HttpResponse.BodyHandlers.ofFile(tempFile));
+
+		return tempFile;
+	}
+
+	private void uploadBackupToTarget(String targetServerUid, Path tempFile) throws Exception {
+		var multipartFile = new TempFileMultipartFile("files", "transfer-backup.tar.gz", tempFile);
+
+		clearServer(targetServerUid);
+
+		LOGGER.info("uploading backup to target server");
+		pterodactylClient.uploadFile(targetServerUid, multipartFile);
+	}
+
+	private void decompressBackupOnTarget(String targetServerUid) {
+		LOGGER.info("decompressing backup on target server %s".formatted(targetServerUid));
+		pterodactylClient.decompressFile(targetServerUid, "/", "transfer-backup.tar.gz");
+	}
+
+	private void cleanupTempFile(Path tempFile) {
+		if (tempFile != null) {
+			try {
+				Files.deleteIfExists(tempFile);
+				LOGGER.info("cleaned up temp file %s".formatted(tempFile));
+			} catch (Exception e) {
+				LOGGER.warning("failed to cleanup temp file %s: %s".formatted(tempFile, e.getMessage()));
+			}
+		}
+	}
+
+	private void cleanupSourceBackup(String sourceServerUid, String backupUid) {
+		try {
+			LOGGER.info("cleaning up backup from source server");
+			pterodactylClient.deleteBackup(sourceServerUid, backupUid);
+		} catch (Exception e) {
+			LOGGER.warning("failed to cleanup source backup %s: %s".formatted(backupUid, e.getMessage()));
+		}
+	}
+
+	private void waitForBackupCompletion(String serverUid, String backupUid) throws InterruptedException {
+		LOGGER.info("waiting for backup %s to complete".formatted(backupUid));
+
+		for (int attempts = 0; attempts < BACKUP_TIMEOUT_ATTEMPTS; attempts++) {
+			var backup = pterodactylClient.getBackupDetails(serverUid, backupUid);
 			var completedAt = backup.attributes().completed_at();
 
 			if (completedAt != null && !completedAt.isEmpty()) {
-				LOGGER.info("Backup completed at %s".formatted(completedAt));
+				LOGGER.info("backup completed at %s".formatted(completedAt));
 				return;
 			}
 
-			LOGGER.info("Backup still in progress, attempt %s/60".formatted(attempts + 1));
-			TimeUnit.SECONDS.sleep(10);
+			LOGGER.info("backup still in progress, attempt %s/%d".formatted(attempts + 1, BACKUP_TIMEOUT_ATTEMPTS));
+			TimeUnit.SECONDS.sleep(BACKUP_POLL_INTERVAL_SECONDS);
 		}
 
-		throw new RuntimeException("Backup did not complete within timeout");
+		throw new RuntimeException("backup did not complete within timeout");
 	}
 
-	private void transferBackupFile(String downloadUrl, String targetSubscriptionId) throws IOException, InterruptedException {
-		Path tempFile = null;
-
-		try {
-			// create temp file for streaming
-			tempFile = Files.createTempFile("server-transfer-", ".tar.gz");
-			LOGGER.info("Created temp file %s for transfer".formatted(tempFile));
-
-			// stream download to temp file
-			var httpClient = HttpClient.newHttpClient();
-			var downloadRequest = HttpRequest.newBuilder()
-				.uri(URI.create(downloadUrl))
-				.GET()
-				.build();
-
-			LOGGER.info("Downloading backup file");
-			httpClient.send(downloadRequest, HttpResponse.BodyHandlers.ofFile(tempFile));
-
-			// create multipart file from temp file
-			var multipartFile = new TempFileMultipartFile("files", "transfer-backup.tar.gz", tempFile);
-
-			// upload to target server
-			LOGGER.info("Uploading backup to target server");
-			fileService.uploadFile("system", targetSubscriptionId, multipartFile);
-
-		} finally {
-			// cleanup temp file
-			if (tempFile != null) {
-				Files.deleteIfExists(tempFile);
-				LOGGER.info("Cleaned up temp file %s".formatted(tempFile));
-			}
+	private void clearServer(String serverUid) {
+		List<String> fileNames = pterodactylClient.listFiles(serverUid, "/").stream()
+			.map(FileObject::attributes)
+			.map(FileObject.FileAttributes::name)
+			.toList();
+		if (fileNames.isEmpty()) {
+			return;
 		}
+		pterodactylClient.deleteFiles(serverUid, "/", fileNames);
 	}
 
-	private String getServerUid(String subscriptionId) {
-		Long serverId = serverExecutionContextRepository.selectSubscription(subscriptionId)
-			.map(Context::getPterodactylServerId)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Subscription %s not found".formatted(subscriptionId)));
+	private PterodactylServer getServer(Long serverId) {
 		return gameServerRepository.selectPterodactylServer(serverId)
-			.map(PterodactylServer::pterodactylServerUid)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Server %s not found".formatted(serverId)));
+			.orElseThrow(() -> new ResponseStatusException(
+				HttpStatusCode.valueOf(404),
+				"server %s not found".formatted(serverId)
+			));
 	}
 }

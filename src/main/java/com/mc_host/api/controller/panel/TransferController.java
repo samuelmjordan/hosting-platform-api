@@ -21,9 +21,9 @@ public class TransferController {
 
 	@PostMapping("/server-data")
 	public ResponseEntity<?> transferServerData(@RequestBody TransferRequest request) throws Exception {
-		LOGGER.info("Received transfer request from %s to %s".formatted(request.sourceSubscriptionId(), request.targetSubscriptionId()));
+		LOGGER.info("Received transfer request from %s to %s".formatted(request.sourceId(), request.targetId()));
 
-		transferService.transferServerData(request.sourceSubscriptionId(), request.targetSubscriptionId());
+		transferService.transferServerData(request.sourceId(), request.targetId());
 
 		return ResponseEntity.accepted().body(Map.of(
 			"message", "Transfer finished"
@@ -32,8 +32,8 @@ public class TransferController {
 
 	// request/response records
 	public record TransferRequest(
-		String sourceSubscriptionId,
-		String targetSubscriptionId
+		Long sourceId,
+		Long targetId
 	) {}
 
 }
