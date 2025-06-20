@@ -55,7 +55,7 @@ public class PterodactylService {
             .memoryOverallocate(0)
             .disk(serverSpecification.ssd_gb() * 1024)
             .diskOverallocate(0)
-            .uploadSize(100)
+            .uploadSize(1024)
             .daemonSftp(2022)
             .daemonListen(8080)
             .build();
