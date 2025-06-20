@@ -133,6 +133,41 @@ public class PterodactylUserClient extends BaseApiClient {
         return URLEncoder.encode(file, StandardCharsets.UTF_8);
     }
 
+    // BACKUP MANAGEMENT
+    public BackupListResponse listBackups(String serverUid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/backups");
+        return deserialize(response, BackupListResponse.class);
+    }
+
+    public BackupResponse createBackup(String serverUid, String name) {
+        var payload = name != null ? Map.of("name", name) : Map.of();
+        var response = sendRequest("POST", "/api/client/servers/" + serverUid + "/backups", payload);
+        return deserialize(response, BackupResponse.class);
+    }
+
+    public BackupResponse createBackup(String serverUid) {
+        return createBackup(serverUid, null);
+    }
+
+    public BackupResponse getBackupDetails(String serverUid, String backupUuid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/backups/" + backupUuid);
+        return deserialize(response, BackupResponse.class);
+    }
+
+    public SignedUrl getBackupDownloadLink(String serverUid, String backupUuid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/backups/" + backupUuid + "/download");
+        return deserialize(response, SignedUrl.class);
+    }
+
+    public void restoreBackup(String serverUid, String backupUuid) {
+        var payload = Map.of("truncate", false);
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/backups/" + backupUuid + "/restore", payload);
+    }
+
+    public void deleteBackup(String serverUuid, String backupUuid) {
+        sendRequest("DELETE", "/api/client/servers/" + serverUuid + "/backups/" + backupUuid);
+    }
+
     private <T> T deserialize(String json, Class<T> clazz) {
         try {
             return objectMapper.readValue(json, clazz);
@@ -166,17 +201,31 @@ public class PterodactylUserClient extends BaseApiClient {
 
     public record FileListResponse(String object, List<FileObject> data) {}
 
-    public record PterodactylUserResponse(UserAttributes attributes) {}
-    public record UserAttributes(
-        Long id,
-        String email,
-        String username,
-        String first_name,
-        String last_name,
-        String language,
-        Boolean root_admin,
-        Boolean use_totp,
+    public record BackupListResponse(String object, List<BackupObject> data, BackupMeta meta) {}
+
+    public record BackupResponse(String object, BackupAttributes attributes) {}
+
+    public record BackupObject(String object, BackupAttributes attributes) {}
+
+    public record BackupAttributes(
+        String uuid,
+        String name,
+        List<String> ignored_files,
+        String sha256_hash,
+        long bytes,
         String created_at,
-        String updated_at
+        String completed_at
     ) {}
+
+    public record BackupMeta(BackupPagination pagination) {}
+
+    public record BackupPagination(
+        int total,
+        int count,
+        int per_page,
+        int current_page,
+        int total_pages,
+        Map<String, String> links
+    ) {}
+
 }
