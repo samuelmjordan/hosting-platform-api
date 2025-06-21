@@ -190,7 +190,7 @@ public class DataFetchingService implements DataFetchingResource  {
 
     private ServerSubscriptionResponse getServerSubscriptionResponse(ContentSubscription subscription) {
         ContentPrice price = priceRepository.selectPrice(subscription.priceId())
-            .orElseThrow(() -> new IllegalStateException("Couldnt find price for price " + subscription.priceId()));
+            .orElseThrow(() -> new IllegalStateException("Couldnt find price " + subscription.priceId()));
         String specificationId = planRepository.selectSpecificationId(subscription.priceId())
             .orElseThrow(() -> new IllegalStateException("Couldnt find specification for price " + subscription.priceId()));
         ServerSpecification gameSeverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
@@ -207,6 +207,7 @@ public class DataFetchingService implements DataFetchingResource  {
             gameSeverSpecification.title(),
             gameSeverSpecification.ram_gb().toString(),
             gameSeverSpecification.vcpu().toString(),
+            gameSeverSpecification.ssd_gb().toString(),
             context.getRegion(),
             dnsCNameRecordName,
             subscription.status().toString(),
