@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class BackupService implements BackupResource {
@@ -90,6 +91,7 @@ public class BackupService implements BackupResource {
 	}
 
 	private Backup mapToBackup(PterodactylUserClient.BackupAttributes backupResponse) {
+		System.out.println(backupResponse);
 		return new Backup(
 			backupResponse.uuid(),
 			backupResponse.name(),
@@ -97,7 +99,9 @@ public class BackupService implements BackupResource {
 			backupResponse.sha256_hash(),
 			backupResponse.bytes(),
 			Instant.parse(backupResponse.created_at()),
-			Instant.parse(backupResponse.completed_at())
+			Optional.ofNullable(backupResponse.completed_at())
+				.map(Instant::parse)
+				.orElse(null)
 		);
 	}
 }
