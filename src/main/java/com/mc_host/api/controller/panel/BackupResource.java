@@ -5,43 +5,46 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/backup")
 public interface BackupResource {
 
 	@GetMapping
-	ResponseEntity<?> listBackups(
+	ResponseEntity<List<Backup>> listBackups(
 		@PathVariable String userId,
 		@PathVariable String subscriptionId
 	);
 
 	@PostMapping
-	ResponseEntity<?> createBackup(
+	ResponseEntity<Backup> createBackup(
 		@PathVariable String userId,
 		@PathVariable String subscriptionId,
-		@RequestBody(required = false) CreateBackupRequest request
+		@RequestParam(required = false) String name
 	);
 
 	@GetMapping("/{backupId}")
-	ResponseEntity<?> getBackupDetails(
+	ResponseEntity<Backup> getBackupDetails(
 		@PathVariable String userId,
 		@PathVariable String subscriptionId,
 		@PathVariable String backupId
 	);
 
 	@GetMapping("/{backupId}/download")
-	ResponseEntity<?> getBackupDownloadLink(
+	ResponseEntity<String> getBackupDownloadLink(
 		@PathVariable String userId,
 		@PathVariable String subscriptionId,
 		@PathVariable String backupId
 	);
 
 	@PostMapping("/{backupId}/restore")
-	ResponseEntity<?> restoreBackup(
+	ResponseEntity<Void> restoreBackup(
 		@PathVariable String userId,
 		@PathVariable String subscriptionId,
 		@PathVariable String backupId
@@ -54,6 +57,13 @@ public interface BackupResource {
 		@PathVariable String backupId
 	);
 
-	// request dto
-	record CreateBackupRequest(String name) {}
+	record Backup(
+		String id,
+		String name,
+		List<String> ignoredFiles,
+		String hash,
+		long bytes,
+		Instant createdAt,
+		Instant completedAt
+	) {}
 }
