@@ -202,6 +202,18 @@ public class PterodactylService {
         appClient.reinstallServer(serverId);
     }
 
+    public void createSftpSubsuser(String email, String serverUid) {
+        userClient.createUser(serverUid, email, List.of(
+            "file.archive",
+            "file.delete",
+            "file.update",
+            "file.read-content",
+            "file.read",
+            "file.create",
+            "file.sftp"
+        ));
+    }
+
     public void startNewPterodactylServer(PterodactylServer server) {
         var serverId = server.pterodactylServerId();
         var serverUid = server.pterodactylServerUid();

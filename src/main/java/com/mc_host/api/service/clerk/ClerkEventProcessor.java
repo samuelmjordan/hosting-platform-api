@@ -159,9 +159,9 @@ public class ClerkEventProcessor {
                     FAKER.animal().name(),
                     FAKER.word().verb() + 's',
                     String.valueOf(FAKER.number().numberBetween(10, 99)))
-                .map(this::stringFormatter)
                 .reduce(String::concat).get()
-                .replace(" ", "");
+                .replace(" ", "")
+                .toLowerCase();
 		} while (userRepository.usernameExists(username));
         return username;
     }
@@ -174,10 +174,6 @@ public class ClerkEventProcessor {
             .mapToObj(chars::charAt)
             .map(Object::toString)
             .collect(Collectors.joining());
-    }
-
-    private String stringFormatter(String str) {
-        return str.toLowerCase().substring(0, 1).toUpperCase() + str.substring(1);
     }
 
     private String createNewStripeCustomer(String clerkId, String primaryEmail) {

@@ -69,6 +69,22 @@ public class UserRepository extends BaseRepository {
             this::mapUser, clerkId);
     }
 
+    public Optional<ApplicationUser> selectUserByCustomerId(String customerId) {
+        return selectOne("""
+                SELECT
+                    clerk_id,
+                    customer_id,
+                    pterodactyl_user_id,
+                    pterodactyl_username,
+                    pterodactyl_password,
+                    primary_email,
+                    dummy_email
+                FROM user_
+                WHERE customer_id = ?
+                """,
+            this::mapUser, customerId);
+    }
+
     public boolean usernameExists(String username) {
         return selectOne("SELECT 1 FROM user_ WHERE pterodactyl_username = ?",
             (rs, rowNum) -> true, username)

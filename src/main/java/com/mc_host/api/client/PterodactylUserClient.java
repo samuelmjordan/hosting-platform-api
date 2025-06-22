@@ -213,6 +213,36 @@ public class PterodactylUserClient extends BaseApiClient {
         sendRequest("DELETE", "/api/client/servers/" + serverUuid + "/backups/" + backupUuid);
     }
 
+    // USER MANAGEMENT
+    public UserListResponse listUsers(String serverUid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/users");
+        return deserialize(response, UserListResponse.class);
+    }
+
+    public UserResponse createUser(String serverUid, String email, List<String> permissions) {
+        var payload = Map.of(
+            "email", email,
+            "permissions", permissions
+        );
+        var response = sendRequest("POST", "/api/client/servers/" + serverUid + "/users", payload);
+        return deserialize(response, UserResponse.class);
+    }
+
+    public UserResponse getUserDetails(String serverUid, String subuserUuid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/users/" + subuserUuid);
+        return deserialize(response, UserResponse.class);
+    }
+
+    public UserResponse updateUser(String serverUid, String subuserUuid, List<String> permissions) {
+        var payload = Map.of("permissions", permissions);
+        var response = sendRequest("POST", "/api/client/servers/" + serverUid + "/users/" + subuserUuid, payload);
+        return deserialize(response, UserResponse.class);
+    }
+
+    public void deleteUser(String serverUid, String subuserUuid) {
+        sendRequest("DELETE", "/api/client/servers/" + serverUid + "/users/" + subuserUuid);
+    }
+
     private <T> T deserialize(String json, Class<T> clazz) {
         try {
             return objectMapper.readValue(json, clazz);
@@ -272,5 +302,40 @@ public class PterodactylUserClient extends BaseApiClient {
         int total_pages,
         Map<String, String> links
     ) {}
+
+    public record UserListResponse(String object, List<UserObject> data) {}
+
+    public record UserResponse(String object, UserAttributes attributes) {}
+
+    public record UserObject(String object, UserAttributes attributes) {}
+
+    public record UserAttributes(
+        String uuid,
+        String username,
+        String email,
+        String image,
+        boolean tfa_enabled, // note: api returns "2fa_enabled" but java records prefer underscore
+        String created_at,
+        List<String> permissions
+    ) {
+        // constructor to handle the json field name mismatch
+        public UserAttributes(
+            String uuid,
+            String username,
+            String email,
+            String image,
+            @com.fasterxml.jackson.annotation.JsonProperty("2fa_enabled") boolean tfa_enabled,
+            String created_at,
+            List<String> permissions
+        ) {
+            this.uuid = uuid;
+            this.username = username;
+            this.email = email;
+            this.image = image;
+            this.tfa_enabled = tfa_enabled;
+            this.created_at = created_at;
+            this.permissions = permissions;
+        }
+    }
 
 }

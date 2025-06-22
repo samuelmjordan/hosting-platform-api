@@ -21,20 +21,20 @@ public class PterodactylServerStep extends AbstractStep {
     private final NodeRepository nodeRepository;
     private final GameServerRepository gameServerRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
-    private final PterodactylService pterodactylService;
+	private final PterodactylService pterodactylService;
 
     protected PterodactylServerStep(
-        ServerExecutionContextRepository contextRepository,
-        GameServerRepository gameServerRepository,
-        GameServerSpecRepository gameServerSpecRepository,
-        TransitionService transitionService,
-        NodeRepository nodeRepository,
-        PterodactylService pterodactylService
+		ServerExecutionContextRepository contextRepository,
+		GameServerRepository gameServerRepository,
+		GameServerSpecRepository gameServerSpecRepository,
+		TransitionService transitionService,
+		NodeRepository nodeRepository,
+		PterodactylService pterodactylService
     ) {
         super(contextRepository, transitionService);
         this.nodeRepository = nodeRepository;
         this.gameServerRepository = gameServerRepository;
-        this.pterodactylService = pterodactylService;
+		this.pterodactylService = pterodactylService;
         this.gameServerSpecRepository = gameServerSpecRepository;
     }
 
@@ -47,7 +47,7 @@ public class PterodactylServerStep extends AbstractStep {
     @Transactional
     public StepTransition create(Context context) {
         PterodactylAllocation allocationAttributes = nodeRepository.selectPterodactylAllocation(context.getNewAllocationId())
-            .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found: " + context));
+            .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found: " + context.getNewAllocationId()));
         ServerSpecification serverSpecification = gameServerSpecRepository.selectSpecification(context.getSpecificationId())
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found:" + context.getNewARecordId()));
         PterodactylServer pterodactylServer = pterodactylService.createServer(context.getSubscriptionId(), allocationAttributes, serverSpecification);
@@ -55,10 +55,7 @@ public class PterodactylServerStep extends AbstractStep {
         Context transitionedContext = context.withNewPterodactylServerId(pterodactylServer.pterodactylServerId());
         gameServerRepository.insertPterodactylServer(pterodactylServer);
 
-        if (context.getMode().isMigrate()) {
-            return transitionService.persistAndProgress(transitionedContext, StepType.TRANSFER_DATA);
-        }
-        return transitionService.persistAndProgress(transitionedContext, StepType.C_NAME_RECORD);
+        return transitionService.persistAndProgress(transitionedContext, StepType.INSTALL_SERVER);
     }
 
     @Override

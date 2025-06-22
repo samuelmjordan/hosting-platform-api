@@ -2,9 +2,11 @@ package com.mc_host.api.service.panel;
 
 import com.mc_host.api.controller.panel.SftpController;
 import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.user.ApplicationUser;
 import com.mc_host.api.repository.GameServerRepository;
+import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.service.EncryptionService;
@@ -22,19 +24,25 @@ public class SftpService implements SftpController {
 	private final UserRepository userRepository;
 	private final ServerExecutionContextRepository contextRepository;
 	private final GameServerRepository gameServerRepository;
+	private final NodeRepository nodeRepository;
 
 	@Override
-	public ResponseEntity<CredentialsResponse> getCredentials(String userId, String subscriptionId, String directory) {
+	public ResponseEntity<CredentialsResponse> getCredentials(String userId, String subscriptionId) {
 		ApplicationUser user = userRepository.selectUser(userId)
 			.orElseThrow(() -> new IllegalStateException("User %s does not exist".formatted(userId)));
-		Long serverId = contextRepository.selectSubscription(subscriptionId)
-			.map(Context::getPterodactylServerId)
+		Context context = contextRepository.selectSubscription(subscriptionId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Subscription %s not found".formatted(subscriptionId)));
-		PterodactylServer server = gameServerRepository.selectPterodactylServer(serverId)
+		String serverUid = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
+			.map(PterodactylServer::pterodactylServerUid)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "No server found for subscription %s".formatted(subscriptionId)));
+		String url = nodeRepository.selectDnsARecord(context.getARecordId())
+			.map(DnsARecord::recordName)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "No A record found for subscription %s".formatted(subscriptionId)));
 		return ResponseEntity.ok(new CredentialsResponse(
-			String.join(".", user.pterodactylUsername(), server.pterodactylServerUid().split("-")[0]),
-			encryptionService.encrypt(user.pterodactylPassword())
+			"sftp://" + url,
+			String.join(".", user.pterodactylUsername(), serverUid.split("-")[0]),
+			encryptionService.encrypt(user.pterodactylPassword()),
+			2022
 		));
 	}
 }
