@@ -218,11 +218,11 @@ public class PterodactylService {
         var serverId = server.pterodactylServerId();
         var serverUid = server.pterodactylServerUid();
 
-        waitForServerAccessible(serverUid, serverId, Duration.ofMinutes(3));
+        waitForServerAccessible(serverUid, Duration.ofMinutes(3));
         startAndWaitForServer(serverUid, serverId, Duration.ofMinutes(10));
     }
 
-    private void waitForServerAccessible(String serverUid, Long serverId, Duration timeout) {
+    public void waitForServerAccessible(String serverUid, Duration timeout) {
         var interval = Duration.ofSeconds(5);
         var timePassed = Duration.ZERO;
         
@@ -237,7 +237,7 @@ public class PterodactylService {
             } catch (Exception e) {
                 if (timePassed.compareTo(timeout) >= 0) {
                     throw new RuntimeException("couldn't obtain status of pterodactyl server %s after %s"
-                        .formatted(serverId, timeout));
+                        .formatted(serverUid, timeout));
                 }
             }
         }
