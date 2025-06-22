@@ -13,4 +13,5 @@ public class PterodactylConfiguration {
     private String clientApiToken;
     private String adminUser;
     private String adminPassword;
+    private String passwordKey;
 }

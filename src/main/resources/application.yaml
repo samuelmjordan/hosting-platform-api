@@ -53,6 +53,7 @@ pterodactyl:
   client-api-token: ${PANEL_ADMIN_CLIENT_SECRET_KEY}
   admin-user: ${PANEL_ADMIN_USER}
   admin-password: ${PANEL_ADMIN_PASSWORD}
+  password-key: ${PANEL_PASSWORD_KEY}
 
 hetzner:
   cloud:

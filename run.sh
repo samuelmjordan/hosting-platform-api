@@ -9,27 +9,27 @@ if [ -f ".env" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
         # Strip carriage returns
         line=$(echo "$line" | tr -d '\r')
-        
+
         # Skip comments and empty lines
         if [[ $line =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
             continue
         fi
-        
+
         # Only process lines that contain =
         if [[ $line == *"="* ]]; then
             name="${line%%=*}"
             value="${line#*=}"
-            
+
             # Trim whitespace from name
             name=$(echo "$name" | xargs)
-            
+
             # Remove surrounding quotes
             if [[ $value =~ ^\".*\"$ ]]; then
                 value="${value:1:-1}"
             elif [[ $value =~ ^\'.*\'$ ]]; then
                 value="${value:1:-1}"
             fi
-            
+
             # Only export if name is valid
             if [[ $name =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
                 export "$name"="$value"
