@@ -5,6 +5,7 @@ import com.mc_host.api.controller.panel.ServerSettingsResource;
 import com.mc_host.api.model.panel.request.startup.StartupResponse;
 import com.mc_host.api.model.panel.request.startup.UpdateStartupRequest;
 import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.queue.service.JobScheduler;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ServerSettingsService implements ServerSettingsResource {
 
+	private final JobScheduler jobScheduler;
 	private final ServerExecutionContextRepository contextRepository;
 	private final PterodactylApplicationClient client;
 
@@ -59,8 +61,9 @@ public class ServerSettingsService implements ServerSettingsResource {
 
 	@Override
 	public ResponseEntity<Void> recreateServer(String userId, String subscriptionId) {
-		//Fully recreate server infra
-		return null;
+		contextRepository.updateRecreate(subscriptionId, true);
+		jobScheduler.scheduleSubscriptionSync(subscriptionId);
+		return ResponseEntity.ok().build();
 	}
 
 	private Long getServerId(String subscriptionId) {

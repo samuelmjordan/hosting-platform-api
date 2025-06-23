@@ -1,6 +1,5 @@
 package com.mc_host.api.model.provisioning;
 
-import com.mc_host.api.model.subscription.MarketingRegion;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
@@ -36,9 +35,7 @@ public class Context {
     private final String newCNameRecordId;
 
     public static Context newIdle(
-        String subscriptionId, 
-        MarketingRegion region, 
-        String specificationId, 
+        String subscriptionId,
         String title, 
         String caption) {
         return new Context(
@@ -46,10 +43,9 @@ public class Context {
             StepType.NEW,
             Mode.DESTROY,
             Status.COMPLETED,
-            region,
-            specificationId,
             title,
             caption,
+            false,
             null, null, null, null, null, null, // current resources
             null, null, null, null, null, null  // new resources
         );

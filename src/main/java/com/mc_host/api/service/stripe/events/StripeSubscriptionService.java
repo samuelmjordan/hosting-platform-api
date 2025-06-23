@@ -4,6 +4,7 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.provisioning.StepType;
+import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
@@ -74,14 +75,12 @@ public class StripeSubscriptionService implements StripeEventService {
                 serverExecutionContextRepository.insertOrIgnoreSubscription(
                     Context.newIdle(
                         subscription.subscriptionId(),
-                        subscription.initialRegion(),
-                        specificationId, 
                         "My New Server", 
                         "A Minecraft Server"
                     )
                 );
 
-                // make sure context has up to date spec details
+                // make sure context has up-to-date spec details
                 Context context = serverExecutionContextRepository.selectSubscription(subscription.subscriptionId())
                     .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + subscription.subscriptionId()));
                 serverExecutionContextRepository.upsertSubscription(context);
@@ -139,9 +138,19 @@ public class StripeSubscriptionService implements StripeEventService {
         // active subscription states (to 'CREATE' or 'MIGRATE_CREATE')
         if (subscription.status().isActive() || subscription.status().equals(SubscriptionStatus.PAST_DUE)) {
             if (context.isCreated()) {
+                // what is the actual spec that is provisioned
+                Context finalContext = context;
+                HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())
+                    .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", finalContext.getNodeId())));
+                String groundSpec = hetznerNode.hetznerSpec().getSpecificationId();
+
+                // if they do not match the desired state, and the server is active, execute a migration
+                String specificationId = planRepository.selectSpecificationId(subscription.priceId())
+                    .orElseThrow(() -> new IllegalStateException(String.format("No specification could be found for price: %s", subscription.priceId())));
+                Boolean specUpdated = !specificationId.equals(groundSpec);
 
                 // has the server been marked for recreation
-                if (context.getRecreate()) {
+                if (specUpdated || context.getRecreate()) {
                     context = serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
                     serverExecutionContextRepository.upsertSubscription(context.withRecreate(false));
                 }

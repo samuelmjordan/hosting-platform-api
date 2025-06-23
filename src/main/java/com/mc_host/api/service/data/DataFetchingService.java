@@ -208,7 +208,6 @@ public class DataFetchingService implements DataFetchingResource  {
             gameSeverSpecification.ram_gb().toString(),
             gameSeverSpecification.vcpu().toString(),
             gameSeverSpecification.ssd_gb().toString(),
-            context.getRegion(),
             dnsCNameRecordName,
             subscription.status().toString(),
             subscription.currentPeriodEnd(),
