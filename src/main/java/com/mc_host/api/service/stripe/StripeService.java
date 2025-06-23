@@ -228,8 +228,6 @@ public class StripeService implements StripeResource {
         //}
 
         try {
-            serverExecutionContextRepository.updateSpecification(subscriptionId, specificationRequest.specificationId());
-
             Subscription subscription = Subscription.retrieve(subscriptionId);
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                 .addItem(

@@ -23,19 +23,19 @@ public class HetznerService {
         this.hetznerClient = hetznerClient;
     }
 
-    public HetznerNode createCloudNode(String subscriptionId, HetznerRegion hetznerRegion, HetznerSpec hetznerServerType) {
+    public HetznerNode createCloudNode(String subscriptionId, HetznerSpec hetznerServerType) {
         try {
             String uuid = UUID.randomUUID().toString();
             Server hetznerServer = hetznerClient.createServer(
                 uuid,
                 hetznerServerType.toString(),
-                hetznerRegion.toString(),
+                HetznerRegion.NBG1.toString(),
                 "ubuntu-24.04"
             ).server;
             HetznerNode hetznerNode = new HetznerNode(
                 subscriptionId,
-                hetznerServer.id, 
-                hetznerRegion, 
+                hetznerServer.id,
+                HetznerRegion.NBG1,
                 hetznerServerType,
                 hetznerServer.public_net.ipv4.ip
             );
