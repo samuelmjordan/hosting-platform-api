@@ -14,10 +14,10 @@ public class Context {
     private final Mode mode;
     private final Status status;
 
-    private final MarketingRegion region;
-    private final String specificationId;
     private final String title;
     private final String caption;
+
+    private final Boolean recreate;
 
     // Current resources
     private final Long nodeId;

@@ -4,7 +4,6 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.provisioning.StepType;
-import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
@@ -140,15 +139,11 @@ public class StripeSubscriptionService implements StripeEventService {
         // active subscription states (to 'CREATE' or 'MIGRATE_CREATE')
         if (subscription.status().isActive() || subscription.status().equals(SubscriptionStatus.PAST_DUE)) {
             if (context.isCreated()) {
-                // what is the actual spec that is provisioned
-                HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())    
-                    .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", context.getNodeId())));
-                String groundSpec = hetznerNode.hetznerSpec().getSpecificationId();
 
-                // if they do not match the desired state, and the server is active, execute a migration
-                Boolean specificationChanged = !context.getSpecificationId().equals(groundSpec);
-                if (specificationChanged) {
-                    serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
+                // has the server been marked for recreation
+                if (context.getRecreate()) {
+                    context = serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
+                    serverExecutionContextRepository.upsertSubscription(context.withRecreate(false));
                 }
             } else if (context.isDestroyed()) {
                 // if the server is not active, we can create a fresh one

@@ -35,7 +35,7 @@ public class ServerExecutor {
             .orElseThrow(() -> new IllegalStateException("Unhandled step: " + stepType));
     }
 
-    public void execute(Context context) {
+    public Context execute(Context context) {
         LOGGER.info(String.format("Starting execution for subscription: %s", context.getSubscriptionId()));
 
         StepTransition transition = new StepTransition(context, context.getStepType());
@@ -44,10 +44,7 @@ public class ServerExecutor {
         }
 
         LOGGER.info(String.format("Execution completed for subscription: %s", context.getSubscriptionId()));
-    }
-
-    public void migrate(Context context) {
-
+        return transition.context();
     }
     
 }
