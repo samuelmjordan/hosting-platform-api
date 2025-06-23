@@ -33,4 +33,10 @@ public interface ServerSettingsResource {
 		@PathVariable String userId,
 		@PathVariable String subscriptionId
 	);
+
+	@PostMapping("nuclear")
+	ResponseEntity<Void> recreateServer(
+		@PathVariable String userId,
+		@PathVariable String subscriptionId
+	);
 }

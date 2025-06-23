@@ -57,6 +57,12 @@ public class ServerSettingsService implements ServerSettingsResource {
 		return ResponseEntity.ok().build();
 	}
 
+	@Override
+	public ResponseEntity<Void> recreateServer(String userId, String subscriptionId) {
+		//Fully recreate server infra
+		return null;
+	}
+
 	private Long getServerId(String subscriptionId) {
 		return contextRepository.selectSubscription(subscriptionId)
 			.map(Context::getPterodactylServerId)

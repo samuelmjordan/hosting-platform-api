@@ -81,6 +81,11 @@ public class StripeSubscriptionService implements StripeEventService {
                         "A Minecraft Server"
                     )
                 );
+
+                // make sure context has up to date spec details
+                Context context = serverExecutionContextRepository.selectSubscription(subscription.subscriptionId())
+                    .orElseThrow(() -> new IllegalStateException("Context not found for subscription: " + subscription.subscriptionId()));
+                serverExecutionContextRepository.upsertSubscription(context);
             }));
 
             List<CompletableFuture<Void>> tasks = stripeSubscriptions.stream()
