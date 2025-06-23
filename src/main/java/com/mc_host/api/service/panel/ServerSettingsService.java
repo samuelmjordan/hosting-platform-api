@@ -5,8 +5,10 @@ import com.mc_host.api.controller.panel.ServerSettingsResource;
 import com.mc_host.api.model.panel.request.startup.StartupResponse;
 import com.mc_host.api.model.panel.request.startup.UpdateStartupRequest;
 import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.queue.service.JobScheduler;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
+import com.mc_host.api.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class ServerSettingsService implements ServerSettingsResource {
 
 	private final JobScheduler jobScheduler;
+	private final SubscriptionRepository subscriptionRepository;
 	private final ServerExecutionContextRepository contextRepository;
 	private final PterodactylApplicationClient client;
 
@@ -62,7 +65,10 @@ public class ServerSettingsService implements ServerSettingsResource {
 	@Override
 	public ResponseEntity<Void> recreateServer(String userId, String subscriptionId) {
 		contextRepository.updateRecreate(subscriptionId, true);
-		jobScheduler.scheduleSubscriptionSync(subscriptionId);
+		String customerId = subscriptionRepository.selectSubscription(subscriptionId)
+			.map(ContentSubscription::customerId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Subscription %s not found".formatted(subscriptionId)));
+		jobScheduler.scheduleSubscriptionSync(customerId);
 		return ResponseEntity.ok().build();
 	}
 

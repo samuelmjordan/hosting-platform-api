@@ -138,6 +138,10 @@ public class StripeSubscriptionService implements StripeEventService {
         // active subscription states (to 'CREATE' or 'MIGRATE_CREATE')
         if (subscription.status().isActive() || subscription.status().equals(SubscriptionStatus.PAST_DUE)) {
             if (context.isCreated()) {
+                // TODO: consider how we can differentiate destructive and non-destructive migrations
+                // In theory using the recreate flag as destructive is 'good enough' but then do we want another non-destructive flag?
+                // And having a separate MIGRATE_CREATE_DESTRUCTIVE mode sounds shit but maybe necessary
+
                 // what is the actual spec that is provisioned
                 Context finalContext = context;
                 HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())

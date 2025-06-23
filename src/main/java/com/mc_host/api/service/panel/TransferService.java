@@ -7,6 +7,7 @@ import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.NodeRepository;
 import lombok.RequiredArgsConstructor;
 import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import org.springframework.http.HttpStatusCode;
@@ -32,9 +33,6 @@ public class TransferService {
 
 		var sourceSftpDetails = getSftpDetails(sourceServerId);
 		var targetSftpDetails = getSftpDetails(targetServerId);
-
-		LOGGER.info(sourceSftpDetails.toString());
-		LOGGER.info(targetSftpDetails.toString());
 
 		try (var sourceClient = createSshClient(sourceSftpDetails);
 			 var targetClient = createSshClient(targetSftpDetails);
@@ -74,7 +72,7 @@ public class TransferService {
 
 	private void transferDirectoryRecursive(SFTPClient source, SFTPClient target,
 											String sourcePath, String targetPath) throws IOException {
-		LOGGER.info("transferring directory %s to %s".formatted(sourcePath, targetPath));
+		LOGGER.finer("transferring directory %s to %s".formatted(sourcePath, targetPath));
 
 		// ensure target directory exists
 		createDirectoryIfNotExists(target, targetPath);
@@ -88,13 +86,18 @@ public class TransferService {
 				continue;
 			}
 
+			if (entry.getAttributes().getMode().getType().equals(FileMode.Type.SYMLINK)) {
+				LOGGER.finer("skipping symlink %s".formatted(filename));
+				continue;
+			}
+
 			String sourceFilePath = buildPath(sourcePath, filename);
 			String targetFilePath = buildPath(targetPath, filename);
 
 			if (entry.isDirectory()) {
 				transferDirectoryRecursive(source, target, sourceFilePath, targetFilePath);
 			} else {
-				LOGGER.info("transferring file %s (%d bytes)".formatted(sourceFilePath, entry.getAttributes().getSize()));
+				LOGGER.finer("transferring file %s (%d bytes)".formatted(sourceFilePath, entry.getAttributes().getSize()));
 				try {
 					Path tempFile = Files.createTempFile("sftp-transfer-", ".tmp");
 					try {
@@ -125,7 +128,7 @@ public class TransferService {
 
 			try {
 				client.mkdir(path);
-				LOGGER.info("created directory %s".formatted(path));
+				LOGGER.finer("created directory %s".formatted(path));
 			} catch (Exception ex) {
 				// might have been created by another thread, check if it exists now
 				try {
@@ -138,7 +141,7 @@ public class TransferService {
 	}
 
 	private void clearServerViaSftp(SFTPClient client, String path) throws IOException {
-		LOGGER.info("clearing server directory %s".formatted(path));
+		LOGGER.fine("clearing server directory %s".formatted(path));
 
 		var entries = client.ls(path);
 
@@ -149,6 +152,11 @@ public class TransferService {
 				continue;
 			}
 
+			if (entry.getAttributes().getMode().getType().equals(FileMode.Type.SYMLINK)) {
+				LOGGER.finer("skipping symlink %s".formatted(filename));
+				continue;
+			}
+
 			String filePath = buildPath(path, filename);
 
 			try {
@@ -156,11 +164,11 @@ public class TransferService {
 					// recursively clear and remove directory
 					clearServerViaSftp(client, filePath);
 					client.rmdir(filePath);
-					LOGGER.info("removed directory %s".formatted(filePath));
+					LOGGER.finer("removed directory %s".formatted(filePath));
 				} else {
 					// remove file
 					client.rm(filePath);
-					LOGGER.info("removed file %s".formatted(filePath));
+					LOGGER.finer("removed file %s".formatted(filePath));
 				}
 			} catch (Exception e) {
 				LOGGER.warning("failed to remove %s: %s".formatted(filePath, e.getMessage()));
