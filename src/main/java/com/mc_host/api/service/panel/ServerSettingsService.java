@@ -5,7 +5,6 @@ import com.mc_host.api.controller.panel.ServerSettingsResource;
 import com.mc_host.api.model.panel.request.startup.StartupResponse;
 import com.mc_host.api.model.panel.request.startup.UpdateStartupRequest;
 import com.mc_host.api.model.provisioning.Context;
-import com.mc_host.api.model.resource.pterodactyl.games.Egg;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
@@ -46,7 +45,7 @@ public class ServerSettingsService implements ServerSettingsResource {
 				request.environment(),
 				request.egg_id(),
 				request.image(),
-				true
+				false
 			));
 		return ResponseEntity.ok(mapResponse(response));
 	}
@@ -68,11 +67,12 @@ public class ServerSettingsService implements ServerSettingsResource {
 		return new StartupResponse(
 			response.attributes().container().startup_command(),
 			response.attributes().container().image(),
-			Egg.getById(response.attributes().egg()),
+			response.attributes().egg(),
 			response.attributes().container().installed(),
 			response.attributes().container().environment()
 				.entrySet().stream()
 				.filter(entry -> !entry.getKey().startsWith("P_"))
+				.filter(entry -> !entry.getKey().equals("STARTUP"))
 				.collect(Collectors.toMap(
 					Map.Entry::getKey,
 					Map.Entry::getValue
