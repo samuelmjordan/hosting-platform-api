@@ -36,7 +36,7 @@ public class PterodactylApplicationClient extends BaseApiClient {
     }
 
     // SERVERS
-    public PterodactylServerResponse getServer(String serverId) {
+    public PterodactylServerResponse getServer(Long serverId) {
         var response = sendRequest("GET", "/api/application/servers/" + serverId);
         return deserialize(response, PterodactylServerResponse.class);
     }
@@ -156,6 +156,12 @@ public class PterodactylApplicationClient extends BaseApiClient {
             .toList();
     }
 
+    //STARTUP
+    public PterodactylServerResponse updateServerStartup(Long serverId, PterodactylUpdateStartupRequest startupDetails) {
+        var response = sendRequest("PATCH", "/api/application/servers/" + serverId + "/startup", startupDetails);
+        return deserialize(response, PterodactylServerResponse.class);
+    }
+
     private <T> T deserialize(String json, Class<T> clazz) {
         try {
             return objectMapper.readValue(json, clazz);
@@ -184,16 +190,57 @@ public class PterodactylApplicationClient extends BaseApiClient {
         Long node_id
     ) {}
 
+    public record PterodactylUpdateStartupRequest(
+        String startup,
+        Map<String, String> environment,
+        Long egg,
+        String image,
+        Boolean skip_scripts
+    ) {}
+
     public record PterodactylServerResponse(ServerAttributes attributes) {}
+
     public record ServerAttributes(
-        Long id, 
+        Long id,
+        String external_id,
+        String uuid,
+        String identifier,
         String name,
         String description,
-        String uuid,
-        boolean suspended,
-        LimitsObject limits
+        Boolean suspended,
+        LimitsObject limits,
+        FeatureLimitsObject feature_limits,
+        Long user,
+        Long node,
+        Long allocation,
+        Long nest,
+        Long egg,
+        ContainerObject container,
+        String updated_at,
+        String created_at
     ) {}
-    public record LimitsObject(int memory, int disk, int cpu) {}
+
+    public record LimitsObject(
+        Integer memory,
+        Integer swap,
+        Integer disk,
+        Integer io,
+        Integer cpu,
+        Integer threads
+    ) {}
+
+    public record FeatureLimitsObject(
+        Integer databases,
+        Integer allocations,
+        Integer backups
+    ) {}
+
+    public record ContainerObject(
+        String startup_command,
+        String image,
+        Boolean installed,
+        Map<String, String> environment
+    ) {}
 
     public record PterodactylUserResponse(UserAttributes attributes) {}
 

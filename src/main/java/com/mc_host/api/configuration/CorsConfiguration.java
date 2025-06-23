@@ -1,14 +1,13 @@
 package com.mc_host.api.configuration;
 
-import java.util.List;
-
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import lombok.Setter;
+import java.util.List;
 
 @Setter
 @Configuration
@@ -20,7 +19,7 @@ public class CorsConfiguration implements WebMvcConfigurer {
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         registry.addMapping("/api/**")
             .allowedOrigins(allowedOrigins.toArray(new String[0]))
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             .allowedHeaders("*");
     }
 }

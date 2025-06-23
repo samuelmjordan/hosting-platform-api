@@ -91,7 +91,6 @@ public class BackupService implements BackupResource {
 	}
 
 	private Backup mapToBackup(PterodactylUserClient.BackupAttributes backupResponse) {
-		System.out.println(backupResponse);
 		return new Backup(
 			backupResponse.uuid(),
 			backupResponse.name(),

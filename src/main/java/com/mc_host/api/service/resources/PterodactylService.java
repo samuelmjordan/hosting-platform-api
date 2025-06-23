@@ -111,9 +111,9 @@ public class PterodactylService {
         var serverDetails = Map.ofEntries(
             Map.entry("name", "Minecraft - " + subscriptionId),
             Map.entry("user", 1),
-            Map.entry("egg", Egg.VANILLA_MINECRAFT.getId()),
+            Map.entry("egg_id", Egg.VANILLA_MINECRAFT.getId()),
             Map.entry("docker_image", "ghcr.io/pterodactyl/yolks:java_21"),
-            Map.entry("startup", "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar"),
+            Map.entry("startupCommand", "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar"),
             Map.entry("environment", Map.of(
                 "SERVER_JARFILE", "server.jar",
                 "VANILLA_VERSION", "latest",
