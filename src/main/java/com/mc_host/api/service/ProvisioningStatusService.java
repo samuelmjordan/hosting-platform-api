@@ -4,6 +4,7 @@ import com.mc_host.api.controller.ProvisioningStatusResource;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.server.ProvisioningStatus;
+import com.mc_host.api.model.server.response.BatchError;
 import com.mc_host.api.model.server.response.BatchProvisioningStatusResponse;
 import com.mc_host.api.model.server.response.ProvisioningStatusResponse;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
@@ -13,9 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,25 +44,25 @@ public class ProvisioningStatusService implements ProvisioningStatusResource {
 
 	@Override
 	public ResponseEntity<BatchProvisioningStatusResponse> getBatchProvisioningStatus(String userId, List<String> subscriptionIds) {
-		Map<String, ProvisioningStatus> statuses = new HashMap<>();
-		Map<String, String> errors = new HashMap<>();
+		List<ProvisioningStatusResponse> statuses = new ArrayList<>();
+		List<BatchError> errors = new ArrayList<>();
 
 		for (String subscriptionId : subscriptionIds) {
 			try {
 				Optional<Context> contextOpt = serverExecutionContextRepository.selectSubscription(subscriptionId);
 				if (contextOpt.isEmpty()) {
-					errors.put(subscriptionId, "Subscription not found");
+					errors.add(new BatchError(subscriptionId, 404, "Subscription not found"));
 					continue;
 				}
 
 				getStatusFromContext(contextOpt.get(), subscriptionId)
 					.ifPresentOrElse(
-						status -> statuses.put(subscriptionId, status),
-						() -> errors.put(subscriptionId, "Failed to determine status")
+						status -> statuses.add(new ProvisioningStatusResponse(subscriptionId, status)),
+						() -> errors.add(new BatchError(subscriptionId, 500,"Failed to determine status"))
 					);
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, String.format("Error processing subscription %s: %s", subscriptionId, e.getMessage()));
-				errors.put(subscriptionId, "Internal error");
+				errors.add(new BatchError(subscriptionId, 500, "Internal error"));
 			}
 		}
 
