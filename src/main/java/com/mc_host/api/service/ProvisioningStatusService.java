@@ -2,6 +2,7 @@ package com.mc_host.api.service;
 
 import com.mc_host.api.controller.ProvisioningStatusResource;
 import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.server.ProvisioningStatus;
 import com.mc_host.api.model.server.response.BatchError;
@@ -86,7 +87,7 @@ public class ProvisioningStatusService implements ProvisioningStatusResource {
 		if (context.isCreated()) {
 			return Optional.of(ProvisioningStatus.READY);
 		}
-		if (context.getMode().isCreate()) {
+		if (context.getMode().equals(Mode.CREATE)) {
 			return Optional.of(ProvisioningStatus.PROVISIONING);
 		}
 		if (context.getMode().isMigrate()) {
@@ -95,7 +96,7 @@ public class ProvisioningStatusService implements ProvisioningStatusResource {
 		if (context.isDestroyed()) {
 			return Optional.of(ProvisioningStatus.INACTIVE);
 		}
-		if (context.getMode().isDestroy()) {
+		if (context.getMode().equals(Mode.DESTROY)) {
 			return Optional.of(ProvisioningStatus.DESTROYING);
 		}
 		if (context.getStatus().equals(Status.FAILED)) {
