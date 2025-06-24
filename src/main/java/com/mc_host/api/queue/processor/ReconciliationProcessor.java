@@ -1,24 +1,20 @@
 package com.mc_host.api.queue.processor;
 
-import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
+import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.service.reconciliation.ResourceReconcilerSupplier;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.logging.Logger;
 
 @Component
+@RequiredArgsConstructor
 public class ReconciliationProcessor implements JobProcessor {
 	private static final Logger LOGGER = Logger.getLogger(ReconciliationProcessor.class.getName());
 
 	private final ResourceReconcilerSupplier resourceReconcilerSupplier;
-
-	public ReconciliationProcessor(
-		ResourceReconcilerSupplier resourceReconcilerSupplier
-	) {
-		this.resourceReconcilerSupplier = resourceReconcilerSupplier;
-	}
 
 	@Override
 	public JobType getJobType() {

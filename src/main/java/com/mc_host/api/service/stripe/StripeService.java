@@ -12,11 +12,9 @@ import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.PriceRepository;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.clerk.ClerkEventProcessor;
 import com.mc_host.api.service.data.DataFetchingService;
-import com.mc_host.api.service.stripe.events.StripeEventProcessor;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
@@ -25,6 +23,7 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -36,6 +35,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Service
+@RequiredArgsConstructor
 public class StripeService implements StripeResource {
     private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
     
@@ -43,36 +43,11 @@ public class StripeService implements StripeResource {
     private final ClerkEventProcessor clerkEventProcessor;
     private final StripeEventProcessor stripeEventProcessor;
     private final SubscriptionRepository subscriptionRepository;
-    private final ServerExecutionContextRepository serverExecutionContextRepository;
     private final PriceRepository priceRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
     private final PlanRepository planRepository;
     private final DataFetchingService dataFetchingService;
     private final Executor virtualThreadExecutor;
-
-    public StripeService(
-        StripeConfiguration stripeConfiguration,
-        StripeEventProcessor eventProcessor,
-        ClerkEventProcessor clerkEventProcessor,
-        SubscriptionRepository subscriptionRepository,
-        ServerExecutionContextRepository serverExecutionContextRepository,
-        PriceRepository priceRepository,
-        GameServerSpecRepository gameServerSpecRepository,
-        PlanRepository planRepository,
-        DataFetchingService dataFetchingService,
-        Executor virtualThreadExecutor
-    ) {
-        this.stripeConfiguration = stripeConfiguration;
-        this.stripeEventProcessor = eventProcessor;
-        this.clerkEventProcessor = clerkEventProcessor;
-        this.subscriptionRepository = subscriptionRepository;
-        this.serverExecutionContextRepository = serverExecutionContextRepository;
-        this.priceRepository = priceRepository;
-        this.gameServerSpecRepository = gameServerSpecRepository;
-        this.planRepository = planRepository;
-        this.dataFetchingService  = dataFetchingService;
-        this.virtualThreadExecutor = virtualThreadExecutor;
-    }
 
     @Override
     public ResponseEntity<String> handleStripeWebhook(String payload, String sigHeader) {

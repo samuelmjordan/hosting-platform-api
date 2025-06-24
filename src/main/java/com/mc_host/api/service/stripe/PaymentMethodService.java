@@ -9,6 +9,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
 import com.stripe.param.CustomerUpdateParams;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -17,22 +18,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentMethodService implements PaymentMethodResource{
     private static final Logger LOGGER = Logger.getLogger(PaymentMethodService.class.getName());
 
     private final StripeService stripeService;
     private final DataFetchingService dataFetchingService;
     private final JobScheduler jobScheduler;
-
-    public PaymentMethodService(
-        StripeService stripeService,
-        DataFetchingService dataFetchingService,
-        JobScheduler jobScheduler
-    ) {
-        this.stripeService = stripeService;
-        this.dataFetchingService = dataFetchingService;
-        this.jobScheduler = jobScheduler;
-    }
 
     @Override
     public ResponseEntity<Void> removeDefaultPaymentMethod(String userId, String paymentMethodId) {

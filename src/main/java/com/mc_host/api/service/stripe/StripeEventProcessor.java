@@ -1,10 +1,10 @@
-package com.mc_host.api.service.stripe.events;
+package com.mc_host.api.service.stripe;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.StripeConfiguration;
-import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.queue.JobType;
+import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.queue.JobScheduler;
 import com.stripe.model.Event;
 import com.stripe.model.StripeObject;
