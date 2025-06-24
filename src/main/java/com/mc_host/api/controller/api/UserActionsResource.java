@@ -1,4 +1,4 @@
-package com.mc_host.api.controller;
+package com.mc_host.api.controller.api;
 
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
 import com.mc_host.api.model.subscription.request.UpdateTitleRequest;

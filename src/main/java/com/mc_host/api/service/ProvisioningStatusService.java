@@ -1,6 +1,6 @@
 package com.mc_host.api.service;
 
-import com.mc_host.api.controller.ProvisioningStatusResource;
+import com.mc_host.api.controller.api.ProvisioningStatusResource;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;

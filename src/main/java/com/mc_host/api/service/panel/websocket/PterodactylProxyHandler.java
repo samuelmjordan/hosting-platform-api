@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel.websocket;
 
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.controller.panel.ConsoleResource;
+import com.mc_host.api.controller.api.panel.ConsoleResource;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;

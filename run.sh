@@ -49,7 +49,7 @@ mvn clean package -DskipTests
 docker compose up -d
 
 # Start stripe webhook listener
-stripe listen --forward-to localhost:8080/api/stripe/webhook > webhook.log 2>&1 &
+stripe listen --forward-to localhost:8080/stripe/webhook > webhook.log 2>&1 &
 echo -e "\033[36mStripe Webhook listener started with pid $!...\033[0m"
 
 if [ $? -eq 0 ]; then

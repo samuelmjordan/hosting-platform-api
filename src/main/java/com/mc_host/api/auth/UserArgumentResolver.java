@@ -26,6 +26,8 @@ public class UserArgumentResolver implements HandlerMethodArgumentResolver {
 		WebDataBinderFactory binderFactory
 	) {
 
+		System.out.println("Hello");
+
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		if (!(auth.getPrincipal() instanceof Jwt jwt)) {
 			return null;

@@ -1,4 +1,4 @@
-package com.mc_host.api.controller.panel;
+package com.mc_host.api.controller.api.panel;
 
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;

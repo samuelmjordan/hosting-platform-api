@@ -1,7 +1,7 @@
 package com.mc_host.api.service;
 
 import com.mc_host.api.client.PterodactylApplicationClient;
-import com.mc_host.api.controller.ResourceLimitResource;
+import com.mc_host.api.controller.api.ResourceLimitResource;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.server.response.BatchError;
 import com.mc_host.api.model.server.response.BatchResourceLimitResponse;

@@ -3,7 +3,8 @@ package com.mc_host.api.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mc_host.api.configuration.PaymentMethodConfiguration;
 import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
-import com.mc_host.api.controller.DataFetchingResource;
+import com.mc_host.api.controller.api.DataFetchingResource;
+import com.mc_host.api.controller.data.PlanController;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.plan.Plan;
@@ -27,6 +28,7 @@ import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -39,7 +41,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Service
-public class DataFetchingService implements DataFetchingResource  {
+@RequiredArgsConstructor
+public class DataFetchingService implements DataFetchingResource, PlanController {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final PaymentMethodConfiguration paymentMethodConfiguration;
@@ -52,30 +55,6 @@ public class DataFetchingService implements DataFetchingResource  {
     private final InvoiceRepository invoiceRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
-
-    public DataFetchingService(
-        PaymentMethodConfiguration paymentMethodConfiguration,
-        PriceRepository priceRepository,
-        PlanRepository planRepository,
-        UserRepository userRepository,
-        SubscriptionRepository subscriptionRepository,
-        GameServerRepository gameServerRepository,
-        GameServerSpecRepository gameServerSpecRepository,
-        InvoiceRepository invoiceRepository,
-        PaymentMethodRepository paymentMethodRepository,
-        ServerExecutionContextRepository serverExecutionContextRepository
-    ) {
-        this.paymentMethodConfiguration = paymentMethodConfiguration;
-        this.priceRepository = priceRepository;
-        this.planRepository = planRepository;
-        this.userRepository = userRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.gameServerRepository = gameServerRepository;
-        this.gameServerSpecRepository = gameServerSpecRepository;
-        this.invoiceRepository = invoiceRepository;
-        this.paymentMethodRepository = paymentMethodRepository;
-        this.serverExecutionContextRepository = serverExecutionContextRepository;
-    }
 
     @Override
     public ResponseEntity<AcceptedCurrency> getUserCurrency(String userId) {

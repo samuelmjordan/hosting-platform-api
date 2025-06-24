@@ -1,4 +1,4 @@
-package com.mc_host.api.controller.panel;
+package com.mc_host.api.controller.api.panel;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

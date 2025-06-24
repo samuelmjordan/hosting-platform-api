@@ -1,7 +1,6 @@
 package com.mc_host.api.service.stripe;
 
-import com.mc_host.api.configuration.StripeConfiguration;
-import com.mc_host.api.controller.StripeResource;
+import com.mc_host.api.controller.api.StripeResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.stripe.request.CheckoutRequest;
@@ -14,12 +13,9 @@ import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.DataFetchingService;
 import com.mc_host.api.service.clerk.ClerkEventProcessor;
-import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Event;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
-import com.stripe.net.Webhook;
 import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
@@ -37,37 +33,14 @@ import java.util.logging.Logger;
 @RequiredArgsConstructor
 public class StripeService implements StripeResource {
     private static final Logger LOGGER = Logger.getLogger(StripeService.class.getName());
-    
-    private final StripeConfiguration stripeConfiguration;
+
     private final ClerkEventProcessor clerkEventProcessor;
-    private final StripeEventProcessor stripeEventProcessor;
     private final SubscriptionRepository subscriptionRepository;
     private final PriceRepository priceRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
     private final PlanRepository planRepository;
     private final DataFetchingService dataFetchingService;
     private final Executor virtualThreadExecutor;
-
-    @Override
-    public ResponseEntity<String> handleStripeWebhook(String payload, String sigHeader) {
-        try {
-            Event event = Webhook.constructEvent(payload, sigHeader, stripeConfiguration.getSigningKey());
-            LOGGER.log(Level.FINE, String.format(
-                "[Thread: %s] Stripe Event Received - Type: %s, ID: %s",
-                Thread.currentThread().getName(),
-                event.getType(),
-                event.getId()
-            ));
-            virtualThreadExecutor.execute(() -> stripeEventProcessor.processEvent(event));
-            return ResponseEntity.ok().body("Webhook Received");
-        } catch (SignatureVerificationException e) {
-            LOGGER.log(Level.SEVERE, "Invalid signature", e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE,"Unexpected error processing webhook", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
-        }
-    }
 
     @Override
     public ResponseEntity<String> startCheckout(CheckoutRequest request) {

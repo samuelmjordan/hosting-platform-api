@@ -5,7 +5,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.controller.panel.ConsoleResource;
+import com.mc_host.api.controller.api.panel.ConsoleResource;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketEvent;
 

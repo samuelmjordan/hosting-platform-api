@@ -1,4 +1,4 @@
-package com.mc_host.api.controller;
+package com.mc_host.api.controller.api;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;

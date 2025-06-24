@@ -1,4 +1,4 @@
-package com.mc_host.api.controller;
+package com.mc_host.api.controller.api;
 
 import com.mc_host.api.model.server.response.BatchResourceLimitResponse;
 import com.mc_host.api.model.server.response.ResourceLimitResponse;

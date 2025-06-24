@@ -1,6 +1,6 @@
 package com.mc_host.api.service;
 
-import com.mc_host.api.controller.UserActionsResource;
+import com.mc_host.api.controller.api.UserActionsResource;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
