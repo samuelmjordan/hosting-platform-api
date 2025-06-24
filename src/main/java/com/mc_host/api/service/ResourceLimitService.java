@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 public class ResourceLimitService implements ResourceLimitResource {
 	private static final Logger LOGGER = Logger.getLogger(ResourceLimitService.class.getName());
 
-	// probably want to make this configurable but whatev
 	private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
 
 	private final PterodactylApplicationClient client;
