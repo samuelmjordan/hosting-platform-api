@@ -15,42 +15,56 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import java.lang.annotation.Annotation;
 import java.util.Map;
+import java.util.Set;
 
-public abstract class AbstractAuthResolver<T extends Annotation> implements HandlerMethodArgumentResolver {
+public abstract class AbstractAuthResolver<T extends Annotation, E> implements HandlerMethodArgumentResolver {
 
 	private final Class<T> annotationType;
+	private final Set<Class<?>> supportedTypes;
 
-	protected AbstractAuthResolver(Class<T> annotationType) {
+	protected AbstractAuthResolver(
+		Class<T> annotationType,
+		Class<E> entityType
+	) {
 		this.annotationType = annotationType;
+		this.supportedTypes = Set.of(String.class, entityType);
 	}
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
 		return parameter.hasParameterAnnotation(annotationType)
-			&& parameter.getParameterType().equals(String.class);
+			&& supportedTypes.contains(parameter.getParameterType());
 	}
 
 	@Override
-	public String resolveArgument(
+	public Object resolveArgument(
 		MethodParameter parameter,
 		ModelAndViewContainer mavContainer,
 		NativeWebRequest webRequest,
 		WebDataBinderFactory binderFactory
 	) {
-		return doResolve(parameter, webRequest);
+		if (parameter.getParameterType().equals(String.class)) {
+			return doResolveId(parameter, webRequest);
+		} else {
+			return doResolveEntity(parameter, webRequest);
+		}
 	}
 
-	protected abstract String doResolve(MethodParameter parameter, NativeWebRequest webRequest);
+	protected abstract String doResolveId(MethodParameter parameter, NativeWebRequest webRequest);
+	protected abstract E doResolveEntity(MethodParameter parameter, NativeWebRequest webRequest);
 
 	protected String getCurrentUserId() {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		if (auth.getPrincipal() instanceof Jwt jwt) {
+		if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
 			return jwt.getSubject();
 		}
 		throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "no authenticated user");
 	}
 
-	protected String getPathVariable(NativeWebRequest request, String variableName) {
+	protected String getPathVariable(
+		NativeWebRequest request,
+		String variableName
+	) {
 		Map<String, String> pathVariables = (Map<String, String>)
 			request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
 

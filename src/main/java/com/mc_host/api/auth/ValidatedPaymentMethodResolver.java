@@ -10,7 +10,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 @Component
-public class ValidatedPaymentMethodResolver extends AbstractAuthResolver<ValidatedPaymentMethod> {
+public class ValidatedPaymentMethodResolver extends AbstractAuthResolver<ValidatedPaymentMethod, CustomerPaymentMethod> {
 
 	private final PaymentMethodRepository paymentMethodRepository;
 	private final UserRepository userRepository;
@@ -19,13 +19,16 @@ public class ValidatedPaymentMethodResolver extends AbstractAuthResolver<Validat
 		PaymentMethodRepository paymentMethodRepository,
 		UserRepository userRepository
 	) {
-		super(ValidatedPaymentMethod.class);
+		super(ValidatedPaymentMethod.class, CustomerPaymentMethod.class);
 		this.paymentMethodRepository = paymentMethodRepository;
 		this.userRepository = userRepository;
 	}
 
 	@Override
-	protected String doResolve(MethodParameter parameter, NativeWebRequest webRequest) {
+	protected String doResolveId(
+		MethodParameter parameter,
+		NativeWebRequest webRequest
+	) {
 		String userId = getCurrentUserId();
 		String paymentMethodId = getPathVariable(webRequest, "paymentMethodId");
 
@@ -40,5 +43,25 @@ public class ValidatedPaymentMethodResolver extends AbstractAuthResolver<Validat
 
 		validateOwnership(userCustomerId, subscriptionCustomerId, userId, paymentMethodId, "payment method");
 		return paymentMethodId;
+	}
+
+	@Override
+	protected CustomerPaymentMethod doResolveEntity(
+		MethodParameter parameter,
+		NativeWebRequest webRequest
+	) {
+		String userId = getCurrentUserId();
+		String paymentMethodId = getPathVariable(webRequest, "paymentMethodId");
+
+		CustomerPaymentMethod paymentMethod = paymentMethodRepository.selectPaymentMethod(paymentMethodId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+				"Payment method %s not found".formatted(paymentMethodId)));
+
+		String userCustomerId = userRepository.selectCustomerIdByClerkId(userId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+				"User %s not found".formatted(userId)));
+
+		validateOwnership(userCustomerId, paymentMethod.customerId(), userId, paymentMethodId, "payment method");
+		return paymentMethod;
 	}
 }
