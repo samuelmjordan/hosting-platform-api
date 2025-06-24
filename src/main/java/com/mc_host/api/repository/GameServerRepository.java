@@ -21,14 +21,16 @@ public class GameServerRepository extends BaseRepository {
                 subscription_id,
                 pterodactyl_server_uid,
                 pterodactyl_server_id,
-                allocation_id
+                allocation_id,
+                server_key
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             server.subscriptionId(),
             server.pterodactylServerUid(),
             server.pterodactylServerId(),
-            server.allocationId()
+            server.allocationId(),
+            server.serverKey()
         );
     }
 
@@ -38,17 +40,14 @@ public class GameServerRepository extends BaseRepository {
                 subscription_id,
                 pterodactyl_server_uid,
                 pterodactyl_server_id,
-                allocation_id
+                allocation_id,
+                server_key
             FROM pterodactyl_server_
             WHERE pterodactyl_server_id = ?
             """,
             this::mapPterodactylServer,
             id
         );
-    }
-
-    public int deletePterodactylServer(String subscriptionId) {
-        return execute("DELETE FROM pterodactyl_server_ WHERE subscription_id = ?", subscriptionId);
     }
 
     public int deletePterodactylServer(Long serverId) {
@@ -146,7 +145,8 @@ public class GameServerRepository extends BaseRepository {
                 rs.getString("subscription_id"),
                 rs.getString("pterodactyl_server_uid"),
                 rs.getLong("pterodactyl_server_id"),
-                rs.getLong("allocation_id"));
+                rs.getLong("allocation_id"),
+                rs.getString("server_key"));
     }
 
     private DnsCNameRecord mapDnsCNameRecord(ResultSet rs, int rowNum) throws SQLException {

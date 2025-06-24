@@ -5,11 +5,13 @@ import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
+import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.MarketingRegion;
 import com.mc_host.api.queue.service.JobScheduler;
+import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
@@ -19,6 +21,7 @@ import com.mc_host.api.util.PersistenceContext;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -29,6 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Service
+@RequiredArgsConstructor
 public class StripeSubscriptionService implements StripeEventService {
     private static final Logger LOGGER = Logger.getLogger(StripeSubscriptionService.class.getName());
 
@@ -38,25 +42,8 @@ public class StripeSubscriptionService implements StripeEventService {
     private final ServerExecutionContextRepository serverExecutionContextRepository;
     private final PlanRepository planRepository;
     private final NodeRepository nodeRepository;
+    private final GameServerRepository gameServerRepository;
     private final PersistenceContext persistenceContext;
-
-    public StripeSubscriptionService(
-        JobScheduler jobScheduler,
-        ServerExecutor serverExecutor,
-        SubscriptionRepository subscriptionRepository,
-        ServerExecutionContextRepository serverExecutionContextRepository,
-        PlanRepository planRepository,
-        NodeRepository nodeRepository,
-        PersistenceContext persistenceContext
-    ) {
-        this.jobScheduler = jobScheduler;
-        this.serverExecutor = serverExecutor;
-        this.subscriptionRepository = subscriptionRepository;
-        this.serverExecutionContextRepository = serverExecutionContextRepository;
-        this.planRepository = planRepository;
-        this.nodeRepository = nodeRepository;
-        this.persistenceContext = persistenceContext;
-    }
 
     public StripeEventType getType() {
         return StripeEventType.SUBSCRIPTION;
@@ -135,35 +122,33 @@ public class StripeSubscriptionService implements StripeEventService {
             return;
         }
 
-        // active subscription states (to 'CREATE' or 'MIGRATE_CREATE')
         if (subscription.status().isActive() || subscription.status().equals(SubscriptionStatus.PAST_DUE)) {
             if (context.isCreated()) {
-                // TODO: consider how we can differentiate destructive and non-destructive migrations
-                // In theory using the recreate flag as destructive is 'good enough' but then do we want another non-destructive flag?
-                // And having a separate MIGRATE_CREATE_DESTRUCTIVE mode sounds shit but maybe necessary
-
                 // what is the actual spec that is provisioned
-                Context finalContext = context;
-                HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())
-                    .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", finalContext.getNodeId())));
-                String groundSpec = hetznerNode.hetznerSpec().getSpecificationId();
-
-                // if they do not match the desired state, and the server is active, execute a migration
                 String specificationId = planRepository.selectSpecificationId(subscription.priceId())
                     .orElseThrow(() -> new IllegalStateException(String.format("No specification could be found for price: %s", subscription.priceId())));
-                Boolean specUpdated = !specificationId.equals(groundSpec);
+                HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())
+                    .orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", context.getNodeId())));
 
-                // has the server been marked for recreation
-                if (specUpdated || context.getRecreate()) {
-                    context = serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
-                    serverExecutionContextRepository.upsertSubscription(context.withRecreate(false));
+                // check if spec has changed
+                if (specificationId.equals(hetznerNode.hetznerSpec().getSpecificationId())) {
+                    // check serverKey, initiate a migration if changed
+                    String serverKey = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
+                        .map(PterodactylServer::serverKey)
+                        .orElseThrow(() -> new IllegalStateException(String.format("No pterodactyl server could be found for id: %s", context.getPterodactylServerId())));
+
+                    if (serverKey.equals(context.getServerKey())) {
+                        return; // nothing to do
+                    }
                 }
+
+                // something needs migration
+                serverExecutor.execute(context.inProgress().withMode(Mode.MIGRATE_CREATE).withStepType(StepType.NEW));
             } else if (context.isDestroyed()) {
-                // if the server is not active, we can create a fresh one
                 serverExecutor.execute(context.inProgress().withMode(Mode.CREATE));
             }
             return;
-        } 
+        }
 
         throw new IllegalStateException(String.format("Subscription %s failed all conditions", subscription.subscriptionId()));
     }

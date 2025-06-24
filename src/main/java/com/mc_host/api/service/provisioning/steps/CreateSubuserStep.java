@@ -15,6 +15,8 @@ import com.mc_host.api.service.resources.PterodactylService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 @Service
 public class CreateSubuserStep extends AbstractStep {
 
@@ -51,12 +53,17 @@ public class CreateSubuserStep extends AbstractStep {
 			.orElseThrow(() -> new IllegalStateException("Subscription not found: " + context.getSubscriptionId()));
 		ApplicationUser user = userRepository.selectUserByCustomerId(customerId)
 			.orElseThrow(() -> new IllegalStateException("Customer not found: " + customerId));
-		String pterodactylServerUid = gameServerRepository.selectPterodactylServer(context.getNewPterodactylServerId())
-			.map(PterodactylServer::pterodactylServerUid)
+		PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(context.getNewPterodactylServerId())
 			.orElseThrow(() -> new IllegalStateException("Server not found: " + context.getNewPterodactylServerId()));
-		pterodactylService.createSftpSubsuser(user.dummyEmail(), pterodactylServerUid);
+		pterodactylService.createSftpSubsuser(user.dummyEmail(), pterodactylServer.pterodactylServerUid());
 
 		if (context.getMode().isMigrate()) {
+			String oldServerKey = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
+				.map(PterodactylServer::serverKey)
+				.orElse(null);
+			if (!Objects.equals(pterodactylServer.serverKey(), oldServerKey)) {
+				return transitionService.persistAndProgress(context, StepType.START_SERVER);
+			}
 			return transitionService.persistAndProgress(context, StepType.TRANSFER_DATA);
 		}
         return transitionService.persistAndProgress(context, StepType.C_NAME_RECORD);

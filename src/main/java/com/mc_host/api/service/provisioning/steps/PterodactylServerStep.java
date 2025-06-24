@@ -64,7 +64,8 @@ public class PterodactylServerStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found: " + context.getNewAllocationId()));
         ServerSpecification serverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
             .orElseThrow(() -> new IllegalStateException("Specification not found:" + specificationId));
-        PterodactylServer pterodactylServer = pterodactylService.createServer(context.getSubscriptionId(), allocationAttributes, serverSpecification);
+        PterodactylServer pterodactylServer = pterodactylService.createServer(
+			context.getSubscriptionId(), allocationAttributes, serverSpecification, context.getServerKey());
 
         Context transitionedContext = context.withNewPterodactylServerId(pterodactylServer.pterodactylServerId());
         gameServerRepository.insertPterodactylServer(pterodactylServer);

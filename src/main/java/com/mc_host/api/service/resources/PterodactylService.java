@@ -107,7 +107,7 @@ public class PterodactylService {
         );
     }
 
-    public PterodactylServer createServer(String subscriptionId, PterodactylAllocation allocation, ServerSpecification serverSpecification) {
+    public PterodactylServer createServer(String subscriptionId, PterodactylAllocation allocation, ServerSpecification serverSpecification, String serverKey) {
         var serverDetails = Map.ofEntries(
             Map.entry("name", "Minecraft - " + subscriptionId),
             Map.entry("user", 1),
@@ -144,7 +144,8 @@ public class PterodactylService {
             subscriptionId, 
             response.attributes().uuid(),
             response.attributes().id(), 
-            allocation.allocationId()
+            allocation.allocationId(),
+            serverKey
         );
         
         LOGGER.info("[subscriptionId: %s] [serverId: %s] created pterodactyl server".formatted(

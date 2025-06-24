@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
 
+import java.util.UUID;
+
 @Getter
 @With
 @AllArgsConstructor
@@ -16,7 +18,7 @@ public class Context {
     private final String title;
     private final String caption;
 
-    private final Boolean recreate;
+    private final String serverKey;
 
     // Current resources
     private final Long nodeId;
@@ -45,7 +47,7 @@ public class Context {
             Status.COMPLETED,
             title,
             caption,
-            false,
+            UUID.randomUUID().toString(),
             null, null, null, null, null, null, // current resources
             null, null, null, null, null, null  // new resources
         );

@@ -2,6 +2,7 @@ CREATE TABLE invoice_ (
     -- Primary identifiers
     id BIGSERIAL PRIMARY KEY,
     invoice_id TEXT NOT NULL,
+    --TODO: Make invoice_number nullable
     invoice_number TEXT NOT NULL,
 
     -- Foreign keys

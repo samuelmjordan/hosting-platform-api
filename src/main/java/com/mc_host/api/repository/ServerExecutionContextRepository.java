@@ -11,6 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ServerExecutionContextRepository extends BaseRepository {
@@ -24,7 +25,7 @@ public class ServerExecutionContextRepository extends BaseRepository {
                step_type,
                mode,
                execution_status,
-               recreate,
+               server_key,
                title,
                caption,
                node_id,
@@ -44,7 +45,7 @@ public class ServerExecutionContextRepository extends BaseRepository {
                step_type = EXCLUDED.step_type,
                mode = EXCLUDED.mode,
                execution_status = EXCLUDED.execution_status,
-               recreate = EXCLUDED.recreate,
+               server_key = EXCLUDED.server_key,
                title = EXCLUDED.title,
                caption = EXCLUDED.caption,
                node_id = EXCLUDED.node_id,
@@ -68,7 +69,7 @@ public class ServerExecutionContextRepository extends BaseRepository {
                subscription_id,
                step_type, mode,
                execution_status,
-               recreate,
+               server_key,
                title,
                caption,
                node_id,
@@ -94,7 +95,7 @@ public class ServerExecutionContextRepository extends BaseRepository {
                step_type = ?,
                mode = ?,
                execution_status = ?,
-               recreate = ?,
+               server_key = ?,
                title = ?,
                caption = ?,
                node_id = ?,
@@ -122,7 +123,7 @@ public class ServerExecutionContextRepository extends BaseRepository {
            subscription_id,
            step_type, mode,
            execution_status,
-           recreate,
+           server_key,
            title,
            caption,
            node_id,
@@ -152,8 +153,8 @@ public class ServerExecutionContextRepository extends BaseRepository {
         execute("UPDATE server_execution_context_ SET caption = ? WHERE subscription_id = ?", caption, subId);
     }
 
-    public void updateRecreate(String subId, boolean recreate) {
-        execute("UPDATE server_execution_context_ SET recreate = ? WHERE subscription_id = ?", recreate, subId);
+    public void newServerKey(String subId) {
+        execute("UPDATE server_execution_context_ SET server_key = ? WHERE subscription_id = ?", UUID.randomUUID().toString(), subId);
     }
 
     private void setContextParams(PreparedStatement ps, Context context) throws SQLException {
@@ -161,7 +162,7 @@ public class ServerExecutionContextRepository extends BaseRepository {
         ps.setString(2, context.getStepType().name());
         ps.setString(3, context.getMode().name());
         ps.setString(4, context.getStatus().name());
-        ps.setBoolean(5, context.getRecreate());
+        ps.setString(5, context.getServerKey());
         ps.setString(6, context.getTitle());
         ps.setString(7, context.getCaption());
         ps.setObject(8, context.getNodeId());
@@ -186,7 +187,7 @@ public class ServerExecutionContextRepository extends BaseRepository {
             Status.valueOf(rs.getString("execution_status")),
             rs.getString("title"),
             rs.getString("caption"),
-            rs.getBoolean("recreate"),
+            rs.getString("server_key"),
             (Long) rs.getObject("node_id"),
             rs.getString("a_record_id"),
             (Long) rs.getObject("pterodactyl_node_id"),

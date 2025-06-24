@@ -24,9 +24,8 @@ CREATE TABLE server_execution_context_ (
     new_pterodactyl_server_id BIGINT,
     new_c_name_record_id TEXT,
 
-    -- Desired state
-    region TEXT NOT NULL,
-    specification_id TEXT NOT NULL,
+    -- Migration flag
+    server_key TEXT NOT NULL,
 
     -- User data
     title TEXT NOT NULL,
@@ -65,9 +64,6 @@ CREATE TABLE server_execution_context_ (
         REFERENCES pterodactyl_server_ (pterodactyl_server_id) ON DELETE SET NULL,
     CONSTRAINT fk_server_execution_context_new_c_name_record_id FOREIGN KEY (new_c_name_record_id) 
         REFERENCES dns_c_name_record_ (c_name_record_id) ON DELETE SET NULL,
-
-    CONSTRAINT fk_server_execution_context_specification_id FOREIGN KEY (specification_id) 
-        REFERENCES game_server_specification_ (specification_id),
         
     CONSTRAINT server_execution_context_subscription_id_unique UNIQUE (subscription_id)
 );
@@ -87,7 +83,6 @@ CREATE INDEX idx_server_execution_context_new_pterodactyl_node_id ON server_exec
 CREATE INDEX idx_server_execution_context_new_allocation_id ON server_execution_context_ (new_allocation_id);
 CREATE INDEX idx_server_execution_context_new_pterodactyl_server_id ON server_execution_context_ (new_pterodactyl_server_id);
 CREATE INDEX idx_server_execution_context_new_c_name_record_id ON server_execution_context_ (new_c_name_record_id);
-CREATE INDEX idx_server_execution_context_specification_id ON server_execution_context_ (specification_id);
 
 -- Update trigger
 CREATE TRIGGER server_execution_context_last_updated

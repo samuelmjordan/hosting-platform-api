@@ -64,7 +64,7 @@ public class ServerSettingsService implements ServerSettingsResource {
 
 	@Override
 	public ResponseEntity<Void> recreateServer(String userId, String subscriptionId) {
-		contextRepository.updateRecreate(subscriptionId, true);
+		contextRepository.newServerKey(subscriptionId);
 		String customerId = subscriptionRepository.selectSubscription(subscriptionId)
 			.map(ContentSubscription::customerId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Subscription %s not found".formatted(subscriptionId)));

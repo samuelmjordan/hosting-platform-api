@@ -5,8 +5,11 @@ CREATE TABLE pterodactyl_server_ (
     pterodactyl_server_uid TEXT NOT NULL,
     pterodactyl_server_id BIGINT NOT NULL,
     allocation_id BIGINT,
+    server_key TEXT NOT NULL,
+
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT pterodactyl_server_subscription_id_fk FOREIGN KEY (subscription_id) 
         REFERENCES subscription_(subscription_id),
     CONSTRAINT pterodactyl_server_allocation_id_fk FOREIGN KEY (allocation_id) 
