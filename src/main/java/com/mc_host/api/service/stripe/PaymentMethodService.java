@@ -4,7 +4,7 @@ import com.mc_host.api.controller.PaymentMethodResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 import com.mc_host.api.queue.JobScheduler;
-import com.mc_host.api.service.data.DataFetchingService;
+import com.mc_host.api.service.DataFetchingService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;

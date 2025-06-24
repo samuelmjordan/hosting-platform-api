@@ -6,7 +6,6 @@ import com.mc_host.api.model.plan.SpecificationType;
 import com.mc_host.api.model.stripe.CustomerInvoice;
 import com.mc_host.api.model.stripe.response.PaymentMethodResponse;
 import com.mc_host.api.model.stripe.response.ServerSubscriptionResponse;
-import com.mc_host.api.model.subscription.response.ServerProvisioningResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,11 +42,5 @@ public interface DataFetchingResource {
     @GetMapping("/plan/{specType}")
     public ResponseEntity<List<Plan>> getPlansForSpecType(
         @PathVariable SpecificationType specType
-    );
-
-    @GetMapping("/user/{userId}/subscription/{subscriptionId}/status")
-    public ResponseEntity<ServerProvisioningResponse> getSubscriptionServerStatus(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId
     );
 }

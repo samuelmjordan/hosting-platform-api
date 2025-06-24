@@ -89,6 +89,12 @@ public class Context {
             this.isDestroyed();
     }
 
+    public Boolean isIllegalState() {
+        return
+            this.status.equals(Status.COMPLETED) &&
+            !this.isTerminal();
+    }
+
     // Resource promotion methods
     public Context promoteNewNodeId() {
         return this.withNodeId(this.newNodeId).withNewNodeId(null);
