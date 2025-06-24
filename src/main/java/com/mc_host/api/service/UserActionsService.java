@@ -78,7 +78,7 @@ public class UserActionsService implements UserActionsResource {
         String customerId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::customerId)
             .orElseThrow(() -> new IllegalStateException("No subscription found " + subscriptionId));
-        jobScheduler.scheduleSubscriptionSync(customerId);
+        jobScheduler.scheduleCustomerSubscriptionSync(customerId);
         return ResponseEntity.ok().build();
     }
     

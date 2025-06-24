@@ -25,9 +25,7 @@ public class ReconciliationProcessor implements JobProcessor {
 	@Override
 	public void process(Job job) throws Exception {
 		LOGGER.info("Processing %s job: %s".formatted(getJobType(), job.jobId()));
-
 		resourceReconcilerSupplier.supply(ResourceType.valueOf(job.payload())).reconcile();
-
 		LOGGER.info("%s job completed for: %s".formatted(getJobType(), job.jobId()));
 	}
 }

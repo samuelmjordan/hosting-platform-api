@@ -30,12 +30,20 @@ public class JobScheduler {
 	}
 
 	// Convenience method
-	public void scheduleSubscriptionSync(String customerId, Integer delaySeconds) {
+	public void scheduleCustomerSubscriptionSync(String customerId, Integer delaySeconds) {
 		schedule(JobType.CUSTOMER_SUBSCRIPTION_SYNC, customerId, delaySeconds);
 	}
 
-	public void scheduleSubscriptionSync(String customerId) {
-		scheduleSubscriptionSync(customerId, 0);
+	public void scheduleCustomerSubscriptionSync(String customerId) {
+		scheduleCustomerSubscriptionSync(customerId, 0);
+	}
+
+	public void scheduleSubscriptionSync(String subscriptionId, Integer delaySeconds) {
+		schedule(JobType.PER_SUBSCRIPTION_SYNC, subscriptionId, delaySeconds);
+	}
+
+	public void scheduleSubscriptionSync(String subscriptionId) {
+		scheduleSubscriptionSync(subscriptionId, 0);
 	}
 
 	public void schedulePaymentMethodSync(String customerId, Integer delaySeconds) {

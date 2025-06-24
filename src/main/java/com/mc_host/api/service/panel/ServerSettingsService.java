@@ -68,7 +68,7 @@ public class ServerSettingsService implements ServerSettingsResource {
 		String customerId = subscriptionRepository.selectSubscription(subscriptionId)
 			.map(ContentSubscription::customerId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Subscription %s not found".formatted(subscriptionId)));
-		jobScheduler.scheduleSubscriptionSync(customerId);
+		jobScheduler.scheduleCustomerSubscriptionSync(customerId);
 		return ResponseEntity.ok().build();
 	}
 
