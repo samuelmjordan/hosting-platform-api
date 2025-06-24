@@ -3,20 +3,13 @@ package com.mc_host.api.service.provisioning.steps;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.provisioning.TransitionService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class FinaliseStep extends AbstractStep {
-
-    protected FinaliseStep(
-        ServerExecutionContextRepository contextRepository,
-        TransitionService transitionService
-    ) {
-        super(contextRepository, transitionService);
-    }
 
     @Override
     public StepType getType() {

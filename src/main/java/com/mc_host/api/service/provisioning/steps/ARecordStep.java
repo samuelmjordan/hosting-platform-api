@@ -6,28 +6,17 @@ import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerNode;
 import com.mc_host.api.repository.NodeRepository;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.provisioning.TransitionService;
 import com.mc_host.api.service.resources.DnsService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class ARecordStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
     private final DnsService dnsService;
-
-    protected ARecordStep(
-        ServerExecutionContextRepository contextRepository,
-        TransitionService transitionService,
-        NodeRepository nodeRepository,
-        DnsService dnsService
-    ) {
-        super(contextRepository, transitionService);
-        this.nodeRepository = nodeRepository;
-        this.dnsService = dnsService;
-    }
 
     @Override
     public StepType getType() {

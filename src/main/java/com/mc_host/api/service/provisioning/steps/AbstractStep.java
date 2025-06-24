@@ -4,22 +4,15 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.provisioning.TransitionService;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.logging.Logger;
 
 public abstract class AbstractStep implements Step {
     protected static final Logger LOGGER = Logger.getLogger(AbstractStep.class.getName());
 
-    protected final ServerExecutionContextRepository contextRepository;
-    protected final TransitionService transitionService;
-
-    protected AbstractStep(
-        ServerExecutionContextRepository contextRepository,
-        TransitionService transitionService
-    ) {
-        this.contextRepository = contextRepository;
-        this.transitionService = transitionService;
-    }
+    @Autowired protected ServerExecutionContextRepository contextRepository;
+    @Autowired protected TransitionService transitionService;
 
     @Override
     public StepTransition execute(Context context) {

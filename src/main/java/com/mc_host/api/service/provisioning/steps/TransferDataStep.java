@@ -3,25 +3,16 @@ package com.mc_host.api.service.provisioning.steps;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.service.panel.TransferService;
-import com.mc_host.api.service.provisioning.TransitionService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class TransferDataStep extends AbstractStep {
 
     private final TransferService transferService;
-
-    protected TransferDataStep(
-		ServerExecutionContextRepository contextRepository,
-		TransitionService transitionService,
-        TransferService transferService
-	) {
-        super(contextRepository, transitionService);
-		this.transferService = transferService;
-	}
 
     @Override
     public StepType getType() {

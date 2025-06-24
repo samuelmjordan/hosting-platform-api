@@ -8,35 +8,20 @@ import com.mc_host.api.model.resource.hetzner.HetznerSpec;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
-import com.mc_host.api.service.provisioning.TransitionService;
 import com.mc_host.api.service.resources.HetznerService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class CloudNodeStep extends AbstractStep {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PlanRepository planRepository;
     private final NodeRepository nodeRepository;
     private final HetznerService hetznerService;
-
-    protected CloudNodeStep(
-        ServerExecutionContextRepository contextRepository,
-        TransitionService transitionService,
-        SubscriptionRepository subscriptionRepository,
-        PlanRepository planRepository,
-        NodeRepository nodeRepository,
-        HetznerService hetznerService
-    ) {
-        super(contextRepository, transitionService);
-        this.subscriptionRepository = subscriptionRepository;
-        this.planRepository = planRepository;
-        this.nodeRepository = nodeRepository;
-        this.hetznerService = hetznerService;
-    }
 
     @Override
     public StepType getType() {

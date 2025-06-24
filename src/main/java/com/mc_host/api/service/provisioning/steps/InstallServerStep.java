@@ -5,30 +5,19 @@ import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.provisioning.TransitionService;
 import com.mc_host.api.service.resources.PterodactylService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
 @Service
+@RequiredArgsConstructor
 public class InstallServerStep extends AbstractStep {
 
 	private final PterodactylService pterodactylService;
 	private final GameServerRepository gameServerRepository;
-
-    protected InstallServerStep(
-		ServerExecutionContextRepository contextRepository,
-		TransitionService transitionService,
-		PterodactylService pterodactylService,
-		GameServerRepository gameServerRepository
-    ) {
-        super(contextRepository, transitionService);
-		this.pterodactylService = pterodactylService;
-		this.gameServerRepository = gameServerRepository;
-    }
 
     @Override
     public StepType getType() {

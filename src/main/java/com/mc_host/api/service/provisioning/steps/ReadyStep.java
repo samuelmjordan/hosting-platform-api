@@ -4,19 +4,12 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.provisioning.TransitionService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ReadyStep extends AbstractStep {
-
-    protected ReadyStep(
-        ServerExecutionContextRepository contextRepository,
-        TransitionService transitionService
-    ) {
-        super(contextRepository, transitionService);
-    }
 
     @Override
     public StepType getType() {

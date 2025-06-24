@@ -6,27 +6,16 @@ import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.repository.NodeRepository;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.provisioning.TransitionService;
 import com.mc_host.api.service.resources.PterodactylService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ConfigureNodeStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
     private final PterodactylService pterodactylService;
-
-    protected ConfigureNodeStep(
-        ServerExecutionContextRepository contextRepository,
-        TransitionService transitionService,
-        NodeRepository nodeRepository,
-        PterodactylService pterodactylService
-    ) {
-        super(contextRepository, transitionService);
-        this.nodeRepository = nodeRepository;
-        this.pterodactylService = pterodactylService;
-    }
 
     @Override
     public StepType getType() {

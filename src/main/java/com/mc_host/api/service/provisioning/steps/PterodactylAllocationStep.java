@@ -7,28 +7,17 @@ import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.repository.NodeRepository;
-import com.mc_host.api.repository.ServerExecutionContextRepository;
-import com.mc_host.api.service.provisioning.TransitionService;
 import com.mc_host.api.service.resources.PterodactylService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PterodactylAllocationStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
     private final PterodactylService pterodactylService;
-
-    protected PterodactylAllocationStep(
-        ServerExecutionContextRepository contextRepository,
-        TransitionService transitionService,
-        NodeRepository nodeRepository,
-        PterodactylService pterodactylService
-    ) {
-        super(contextRepository, transitionService);
-        this.nodeRepository = nodeRepository;
-        this.pterodactylService = pterodactylService;
-    }
 
     @Override
     public StepType getType() {
