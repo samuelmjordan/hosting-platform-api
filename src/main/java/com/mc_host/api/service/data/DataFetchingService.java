@@ -1,15 +1,12 @@
-package com.mc_host.api.service;
+package com.mc_host.api.service.data;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mc_host.api.configuration.PaymentMethodConfiguration;
 import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
 import com.mc_host.api.controller.api.DataFetchingResource;
-import com.mc_host.api.controller.data.PlanController;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
-import com.mc_host.api.model.plan.Plan;
 import com.mc_host.api.model.plan.ServerSpecification;
-import com.mc_host.api.model.plan.SpecificationType;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.stripe.CustomerInvoice;
@@ -42,7 +39,7 @@ import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
-public class DataFetchingService implements DataFetchingResource, PlanController {
+public class DataFetchingService implements DataFetchingResource {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final PaymentMethodConfiguration paymentMethodConfiguration;
@@ -191,31 +188,6 @@ public class DataFetchingService implements DataFetchingResource, PlanController
             price.currency(),
             price.minorAmount()
         );
-    }
-
-    @Override
-    public ResponseEntity<List<Plan>> getPlansForSpecType(SpecificationType specType) {
-        LOGGER.log(Level.INFO, String.format(String.format("Fetching plans for specType %s", specType)));
-    
-        try {
-            List<Plan> plans;
-            switch(specType)  {
-                case SpecificationType.GAME_SERVER:
-                    plans = planRepository.selectJavaServerPlans();
-                    break;
-                default:
-                    throw new IllegalStateException(String.format("specType %s is unhandled", specType));
-            }
-            
-            if (plans.isEmpty()) {
-                throw new RuntimeException(String.format("specType %s had no plans. Is this the correct Id?", specType));
-            }
-
-            return ResponseEntity.ok(plans);
-        } catch (RuntimeException e) {
-            LOGGER.log(Level.SEVERE, String.format("Failed to fetch plans for specType %s", specType), e);
-            return ResponseEntity.internalServerError().build();
-        }
     }
     
 }

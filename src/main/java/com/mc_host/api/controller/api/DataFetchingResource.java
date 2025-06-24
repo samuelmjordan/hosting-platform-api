@@ -14,25 +14,25 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("api")
 public interface DataFetchingResource {
 
-    @GetMapping("/user/currency")
+    @GetMapping("user/currency")
     public ResponseEntity<AcceptedCurrency> getUserCurrency(
         @CurrentUser String userId
     );
 
-    @GetMapping("/user/invoice")
+    @GetMapping("user/invoice")
     public ResponseEntity<List<CustomerInvoice>> getUserInvoices(
         @CurrentUser String userId
     );
 
-    @GetMapping("/user/payment-method")
+    @GetMapping("user/payment-method")
     public ResponseEntity<List<PaymentMethodResponse>> getUserPaymentMethods(
         @CurrentUser String userId
     );
 
-    @GetMapping("/user/subscription")
+    @GetMapping("user/subscription")
     public ResponseEntity<List<ServerSubscriptionResponse>> getUserServerSubscriptions(
         @CurrentUser String userId
     );
