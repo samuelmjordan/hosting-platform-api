@@ -1,20 +1,18 @@
 package com.mc_host.api.client;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.HetznerCloudConfiguration;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse;
-import com.mc_host.api.model.resource.hetzner.HetznerServersResponse;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse.Server;
+import com.mc_host.api.model.resource.hetzner.HetznerServersResponse;
+import org.springframework.stereotype.Service;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
 
 @Service
 public class HetznerCloudClient extends BaseApiClient{
@@ -92,11 +90,11 @@ public class HetznerCloudClient extends BaseApiClient{
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < MAX_WAIT_TIME.toMillis()) {
             try {
+                Thread.sleep(POLL_INTERVAL.toMillis());
                 HetznerServerResponse response = getServer(hetznerId);
                 if (response != null && expectedStatus.equals(response.server.status)) {
                     return true;
                 }
-                Thread.sleep(POLL_INTERVAL.toMillis());
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Failed to poll server status: " + hetznerId, e);
             }
