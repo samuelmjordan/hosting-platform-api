@@ -1,5 +1,7 @@
 package com.mc_host.api.controller;
 
+import com.mc_host.api.model.stripe.request.CheckoutRequest;
+import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -7,10 +9,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.mc_host.api.model.stripe.request.CheckoutRequest;
-import com.mc_host.api.model.stripe.request.PortalRequest;
-import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 
 @RestController
 @RequestMapping("/api/stripe")
@@ -20,11 +18,6 @@ public interface StripeResource {
     public ResponseEntity<String> handleStripeWebhook(
         @RequestBody String payload, 
         @RequestHeader("Stripe-Signature") String sigHeader
-    );
-
-    @PostMapping("/billing-portal")
-    public ResponseEntity<String> userPortal(
-        @RequestBody PortalRequest request
     );
 
     @PostMapping("/checkout")

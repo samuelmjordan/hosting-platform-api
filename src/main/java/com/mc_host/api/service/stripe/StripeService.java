@@ -5,7 +5,6 @@ import com.mc_host.api.controller.StripeResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.stripe.request.CheckoutRequest;
-import com.mc_host.api.model.stripe.request.PortalRequest;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.user.ClerkUserEvent;
@@ -110,25 +109,6 @@ public class StripeService implements StripeResource {
             LOGGER.log(Level.SEVERE, "Unexpected error during checkout creation", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("An unexpected error occurred");
-        }
-    }
-
-    @Override
-    public ResponseEntity<String> userPortal(PortalRequest request) {
-        try {
-            String customerId = getCustomerId(request.userId());
-            com.stripe.param.billingportal.SessionCreateParams params = com.stripe.param.billingportal.SessionCreateParams.builder()
-                .setCustomer(customerId)
-                .setReturnUrl(request.returnUrl())
-                .build();
-            com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
-            LOGGER.log(Level.INFO, "Complete portal creation for clerkId: " + request.userId());
-            return ResponseEntity.ok(portalSession.getUrl());
-        } catch (StripeException e) {
-            LOGGER.log(Level.SEVERE, "Stripe API error during portal creation", e);
-            return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .build();
         }
     }
 
