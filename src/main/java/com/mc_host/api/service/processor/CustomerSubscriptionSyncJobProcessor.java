@@ -1,4 +1,4 @@
-package com.mc_host.api.queue.processor;
+package com.mc_host.api.service.processor;
 
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Mode;
@@ -12,6 +12,7 @@ import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.MarketingRegion;
 import com.mc_host.api.queue.JobScheduler;
+import com.mc_host.api.queue.processor.JobProcessor;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;

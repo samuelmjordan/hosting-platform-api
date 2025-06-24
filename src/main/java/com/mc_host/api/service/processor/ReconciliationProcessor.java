@@ -1,8 +1,9 @@
-package com.mc_host.api.queue.processor;
+package com.mc_host.api.service.processor;
 
 import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.model.resource.ResourceType;
+import com.mc_host.api.queue.processor.JobProcessor;
 import com.mc_host.api.service.reconciliation.ResourceReconcilerSupplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

@@ -1,10 +1,11 @@
-package com.mc_host.api.queue.processor;
+package com.mc_host.api.service.processor;
 
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.plan.PricePair;
 import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
+import com.mc_host.api.queue.processor.JobProcessor;
 import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.util.Task;
 import com.stripe.exception.StripeException;

@@ -1,9 +1,10 @@
-package com.mc_host.api.queue.processor;
+package com.mc_host.api.service.processor;
 
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.model.stripe.CustomerInvoice;
+import com.mc_host.api.queue.processor.JobProcessor;
 import com.mc_host.api.repository.InvoiceRepository;
 import com.stripe.model.Invoice;
 import com.stripe.param.InvoiceListParams;

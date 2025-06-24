@@ -1,4 +1,4 @@
-package com.mc_host.api.queue.processor;
+package com.mc_host.api.service.processor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,6 +6,7 @@ import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.model.stripe.CustomerPaymentMethod;
 import com.mc_host.api.model.stripe.PaymentMethodType;
+import com.mc_host.api.queue.processor.JobProcessor;
 import com.mc_host.api.repository.PaymentMethodRepository;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
