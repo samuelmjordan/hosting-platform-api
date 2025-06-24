@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 public class HetznerCloudClient extends BaseApiClient{
     private static final Logger LOGGER = Logger.getLogger(HetznerCloudClient.class.getName());
 
-    private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
+    private static final Duration POLL_INTERVAL = Duration.ofSeconds(10);
     private static final Duration MAX_WAIT_TIME = Duration.ofMinutes(2);
 
     private final HetznerCloudConfiguration hetznerCloudConfiguration;
