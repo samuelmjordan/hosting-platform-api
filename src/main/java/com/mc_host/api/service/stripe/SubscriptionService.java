@@ -13,11 +13,9 @@ import com.stripe.model.Subscription;
 import com.stripe.param.SubscriptionUpdateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,19 +32,18 @@ public class SubscriptionService implements SubscriptionController {
 
 
     @Override
-    public ResponseEntity<Void> cancelSubscription(String clerkId, String subscriptionId) {
-        return updateCancelAtPeriodEnd(clerkId, subscriptionId, true);
+    public ResponseEntity<Void> cancelSubscription(String subscriptionId) {
+        return updateCancelAtPeriodEnd(subscriptionId, true);
     }
 
     @Override
-    public ResponseEntity<Void> uncancelSubscription(String clerkId, String subscriptionId) {
-        return updateCancelAtPeriodEnd(clerkId, subscriptionId, false);
+    public ResponseEntity<Void> uncancelSubscription(String subscriptionId) {
+        return updateCancelAtPeriodEnd(subscriptionId, false);
     }
 
     @Override
     @Transactional
     public ResponseEntity<Void> updateSubscriptionSpecification(
-        String clerkId,
         String subscriptionId,
         UpdateSpecificationRequest specificationRequest
     ) {
@@ -85,19 +82,11 @@ public class SubscriptionService implements SubscriptionController {
     }
 
     private ResponseEntity<Void> updateCancelAtPeriodEnd(
-        String userId,
         String subscriptionId,
         Boolean cancel
     ) {
         try {
-            String customerId = userRepository.selectCustomerIdByClerkId(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
-
             Subscription subscription = Subscription.retrieve(subscriptionId);
-            if (!subscription.getCustomer().equals(customerId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
-
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                 .setCancelAtPeriodEnd(cancel)
                 .build();
