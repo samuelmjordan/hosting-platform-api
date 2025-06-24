@@ -2,8 +2,10 @@ package com.mc_host.api.service.stripe;
 
 import com.mc_host.api.controller.api.PaymentMethodResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
+import com.mc_host.api.model.stripe.CustomerPaymentMethod;
 import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 import com.mc_host.api.queue.JobScheduler;
+import com.mc_host.api.repository.PaymentMethodRepository;
 import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.service.data.DataFetchingService;
 import com.stripe.exception.StripeException;
@@ -26,14 +28,16 @@ public class PaymentMethodService implements PaymentMethodResource{
     private static final Logger LOGGER = Logger.getLogger(PaymentMethodService.class.getName());
 
     private final UserRepository userRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
     private final DataFetchingService dataFetchingService;
     private final JobScheduler jobScheduler;
 
     @Override
-    public ResponseEntity<Void> removeDefaultPaymentMethod(String userId, String paymentMethodId) {
+    public ResponseEntity<Void> removeDefaultPaymentMethod(String paymentMethodId) {
         try {
-            String customerId = userRepository.selectCustomerIdByClerkId(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
+            String customerId = paymentMethodRepository.selectPaymentMethod(paymentMethodId)
+                .map(CustomerPaymentMethod::customerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Payment method %s not found".formatted(paymentMethodId)));
             CustomerUpdateParams params = CustomerUpdateParams.builder()
                 .setInvoiceSettings(
                     CustomerUpdateParams.InvoiceSettings.builder()
@@ -52,10 +56,11 @@ public class PaymentMethodService implements PaymentMethodResource{
     }
 
     @Override
-    public ResponseEntity<Void> setDefaultPaymentMethod(String userId, String paymentMethodId) {
+    public ResponseEntity<Void> setDefaultPaymentMethod(String paymentMethodId) {
         try {
-            String customerId = userRepository.selectCustomerIdByClerkId(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
+            String customerId = paymentMethodRepository.selectPaymentMethod(paymentMethodId)
+                .map(CustomerPaymentMethod::customerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Payment method %s not found".formatted(paymentMethodId)));
             CustomerUpdateParams params = CustomerUpdateParams.builder()
                 .setInvoiceSettings(
                     CustomerUpdateParams.InvoiceSettings.builder()
@@ -74,11 +79,12 @@ public class PaymentMethodService implements PaymentMethodResource{
     }
 
     @Override
-    public ResponseEntity<Void> removePaymentMethod(String userId, String paymentMethodId) {
+    public ResponseEntity<Void> removePaymentMethod(String paymentMethodId) {
         String customerId = null;
         try {
-            customerId = userRepository.selectCustomerIdByClerkId(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
+            customerId = paymentMethodRepository.selectPaymentMethod(paymentMethodId)
+                .map(CustomerPaymentMethod::customerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Payment method %s not found".formatted(paymentMethodId)));
             PaymentMethod paymentMethod = PaymentMethod.retrieve(paymentMethodId);
     
             paymentMethod.detach();
@@ -94,7 +100,10 @@ public class PaymentMethodService implements PaymentMethodResource{
     }
 
     @Override
-    public ResponseEntity<String> createPaymentMethod(String userId, CreatePaymentMethodRequest request) {
+    public ResponseEntity<String> createPaymentMethod(
+        String userId,
+        CreatePaymentMethodRequest request
+    ) {
         try {
             String customerId = userRepository.selectCustomerIdByClerkId(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));

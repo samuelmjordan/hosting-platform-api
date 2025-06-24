@@ -1,40 +1,36 @@
 package com.mc_host.api.controller.api;
 
+import com.mc_host.api.ValidatedPaymentMethod;
+import com.mc_host.api.auth.CurrentUser;
+import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
-
 @RestController
-@RequestMapping("/api/stripe/user/{userId}/payment-method")
+@RequestMapping("/api/stripe/user/payment-method")
 public interface PaymentMethodResource {
 
     @PostMapping("/{paymentMethodId}/default")
     public ResponseEntity<Void> setDefaultPaymentMethod(
-        @PathVariable String userId,
-        @PathVariable String paymentMethodId
+        @ValidatedPaymentMethod String paymentMethodId
     );
 
     @PostMapping("/{paymentMethodId}/default/remove")
     public ResponseEntity<Void> removeDefaultPaymentMethod(
-        @PathVariable String userId,
-        @PathVariable String paymentMethodId
+        @ValidatedPaymentMethod String paymentMethodId
     );
 
     @PostMapping("/{paymentMethodId}/remove")
     public ResponseEntity<Void> removePaymentMethod(
-        @PathVariable String userId,
-        @PathVariable String paymentMethodId
+        @ValidatedPaymentMethod String paymentMethodId
     );
 
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<String> createPaymentMethod(
-        @PathVariable String userId,
+        @CurrentUser String userId,
         @RequestBody CreatePaymentMethodRequest request
     );
-    
 }
