@@ -1,6 +1,7 @@
 package com.mc_host.api.configuration.security;
 
 import com.mc_host.api.auth.UserArgumentResolver;
+import com.mc_host.api.auth.ValidatedPaymentMethodResolver;
 import com.mc_host.api.auth.ValidatedSubscriptionResolver;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ public class CorsConfiguration implements WebMvcConfigurer {
 
     @Autowired private UserArgumentResolver userArgumentResolver;
     @Autowired private ValidatedSubscriptionResolver validatedSubscriptionResolver;
+    @Autowired private ValidatedPaymentMethodResolver validatedPaymentMethodResolver;
 
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
@@ -35,5 +37,6 @@ public class CorsConfiguration implements WebMvcConfigurer {
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(userArgumentResolver);
         resolvers.add(validatedSubscriptionResolver);
+        resolvers.add(validatedPaymentMethodResolver);
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PaymentMethodRepository extends BaseRepository {
@@ -51,6 +52,25 @@ public class PaymentMethodRepository extends BaseRepository {
 
     public void deletePaymentMethodsForCustomer(String customerId) {
         execute("DELETE FROM payment_method_ WHERE customer_id = ?", customerId);
+    }
+
+    public Optional<CustomerPaymentMethod> selectPaymentMethod(String paymentMethodId) {
+        return selectOne("""
+            SELECT
+                payment_method_id,
+                customer_id,
+                payment_method_type,
+                display_name,
+                payment_data,
+                is_active, is_default
+            FROM payment_method_
+            WHERE payment_method_id = ?
+            AND is_active = true
+            ORDER BY is_default DESC, created_at DESC
+            """,
+            this::mapPaymentMethod,
+            paymentMethodId
+        );
     }
 
     public List<CustomerPaymentMethod> selectPaymentMethodsByCustomerId(String customerId) {
