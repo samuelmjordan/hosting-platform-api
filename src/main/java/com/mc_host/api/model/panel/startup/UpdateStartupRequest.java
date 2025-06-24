@@ -1,4 +1,4 @@
-package com.mc_host.api.model.panel.request.startup;
+package com.mc_host.api.model.panel.startup;
 
 import java.util.Map;
 

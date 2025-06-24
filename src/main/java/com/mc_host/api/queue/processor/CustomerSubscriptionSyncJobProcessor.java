@@ -1,19 +1,19 @@
-package com.mc_host.api.queue.service.processor;
+package com.mc_host.api.queue.processor;
 
-import com.mc_host.api.queue.model.Job;
-import com.mc_host.api.queue.model.JobType;
+import com.mc_host.api.model.queue.Job;
+import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.service.stripe.events.StripeSubscriptionService;
 import org.springframework.stereotype.Component;
 
 import java.util.logging.Logger;
 
 @Component
-public class SubscriptionSyncJobProcessor implements JobProcessor {
-	private static final Logger LOGGER = Logger.getLogger(SubscriptionSyncJobProcessor.class.getName());
+public class CustomerSubscriptionSyncJobProcessor implements JobProcessor {
+	private static final Logger LOGGER = Logger.getLogger(CustomerSubscriptionSyncJobProcessor.class.getName());
 
 	private final StripeSubscriptionService stripeSubscriptionService;
 
-	public SubscriptionSyncJobProcessor(
+	public CustomerSubscriptionSyncJobProcessor(
 		StripeSubscriptionService stripeSubscriptionService
 	) {
 		this.stripeSubscriptionService = stripeSubscriptionService;
@@ -21,7 +21,7 @@ public class SubscriptionSyncJobProcessor implements JobProcessor {
 
 	@Override
 	public JobType getJobType() {
-		return JobType.CUSTOMER_SUBSCRIPTION_SYNC;
+		return JobType.PER_SUBSCRIPTION_SYNC;
 	}
 
 	@Override

@@ -1,8 +1,8 @@
 package com.mc_host.api.service.reconciliation;
 
 import com.mc_host.api.model.resource.ResourceType;
-import com.mc_host.api.queue.model.JobType;
-import com.mc_host.api.queue.service.JobScheduler;
+import com.mc_host.api.model.queue.JobType;
+import com.mc_host.api.queue.JobScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;

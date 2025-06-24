@@ -1,7 +1,7 @@
 package com.mc_host.api.controller.panel;
 
-import com.mc_host.api.model.panel.request.startup.StartupResponse;
-import com.mc_host.api.model.panel.request.startup.UpdateStartupRequest;
+import com.mc_host.api.model.panel.startup.StartupResponse;
+import com.mc_host.api.model.panel.startup.UpdateStartupRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;

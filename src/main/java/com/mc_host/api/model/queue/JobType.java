@@ -1,7 +1,8 @@
-package com.mc_host.api.queue.model;
+package com.mc_host.api.model.queue;
 
 public enum JobType {
 	CUSTOMER_SUBSCRIPTION_SYNC,
+	PER_SUBSCRIPTION_SYNC,
 	PRODUCT_PRICE_SYNC,
 	CUSTOMER_PAYMENT_METHOD_SYNC,
 	CUSTOMER_INVOICE_SYNC,

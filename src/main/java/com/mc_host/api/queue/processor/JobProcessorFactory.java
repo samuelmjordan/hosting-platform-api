@@ -1,6 +1,6 @@
-package com.mc_host.api.queue.service.processor;
+package com.mc_host.api.queue.processor;
 
-import com.mc_host.api.queue.model.JobType;
+import com.mc_host.api.model.queue.JobType;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 

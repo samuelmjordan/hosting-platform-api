@@ -1,8 +1,8 @@
-package com.mc_host.api.queue.service;
+package com.mc_host.api.queue;
 
-import com.mc_host.api.queue.model.Job;
-import com.mc_host.api.queue.model.JobStatus;
-import com.mc_host.api.queue.model.JobType;
+import com.mc_host.api.model.queue.Job;
+import com.mc_host.api.model.queue.JobStatus;
+import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.repository.BaseRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;

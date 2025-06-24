@@ -1,4 +1,4 @@
-package com.mc_host.api.model.panel.request.transfer;
+package com.mc_host.api.model.panel.transfer;
 
 import org.springframework.web.multipart.MultipartFile;
 

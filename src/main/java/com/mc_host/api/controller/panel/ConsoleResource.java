@@ -3,8 +3,6 @@ package com.mc_host.api.controller.panel;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mc_host.api.model.panel.request.ServerCommandRequest;
-import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.panel.PterodactylServerResources;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 

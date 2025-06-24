@@ -10,7 +10,7 @@ import com.mc_host.api.model.stripe.StripeEventType;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.MarketingRegion;
-import com.mc_host.api.queue.service.JobScheduler;
+import com.mc_host.api.queue.JobScheduler;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;

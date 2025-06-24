@@ -1,8 +1,8 @@
-package com.mc_host.api.queue.service.processor;
+package com.mc_host.api.queue.processor;
 
 import com.mc_host.api.model.resource.ResourceType;
-import com.mc_host.api.queue.model.Job;
-import com.mc_host.api.queue.model.JobType;
+import com.mc_host.api.model.queue.Job;
+import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.service.reconciliation.ResourceReconcilerSupplier;
 import org.springframework.stereotype.Component;
 

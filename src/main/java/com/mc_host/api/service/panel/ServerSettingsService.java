@@ -2,11 +2,11 @@ package com.mc_host.api.service.panel;
 
 import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.controller.panel.ServerSettingsResource;
-import com.mc_host.api.model.panel.request.startup.StartupResponse;
-import com.mc_host.api.model.panel.request.startup.UpdateStartupRequest;
+import com.mc_host.api.model.panel.startup.StartupResponse;
+import com.mc_host.api.model.panel.startup.UpdateStartupRequest;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.subscription.ContentSubscription;
-import com.mc_host.api.queue.service.JobScheduler;
+import com.mc_host.api.queue.JobScheduler;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
