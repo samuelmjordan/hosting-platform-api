@@ -30,9 +30,10 @@ management:
 
 logging:
   level:
-    com:
-      mc_host:
-        api: INFO
+    root: INFO
+    org:
+      springframework:
+        web: INFO
 
 application:
   scheme: https

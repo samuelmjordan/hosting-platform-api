@@ -1,4 +1,4 @@
-package com.mc_host.api;
+package com.mc_host.api.auth;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

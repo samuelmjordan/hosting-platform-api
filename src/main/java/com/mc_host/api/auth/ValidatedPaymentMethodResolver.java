@@ -29,7 +29,7 @@ public class ValidatedPaymentMethodResolver implements HandlerMethodArgumentReso
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return parameter.hasParameterAnnotation(ValidatedSubscription.class)
+		return parameter.hasParameterAnnotation(ValidatedPaymentMethod.class)
 			&& parameter.getParameterType().equals(String.class);
 	}
 
