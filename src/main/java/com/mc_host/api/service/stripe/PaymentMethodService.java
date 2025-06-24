@@ -4,6 +4,7 @@ import com.mc_host.api.controller.api.PaymentMethodResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 import com.mc_host.api.queue.JobScheduler;
+import com.mc_host.api.repository.UserRepository;
 import com.mc_host.api.service.data.DataFetchingService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -11,8 +12,10 @@ import com.stripe.model.PaymentMethod;
 import com.stripe.param.CustomerUpdateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,14 +25,15 @@ import java.util.logging.Logger;
 public class PaymentMethodService implements PaymentMethodResource{
     private static final Logger LOGGER = Logger.getLogger(PaymentMethodService.class.getName());
 
-    private final StripeService stripeService;
+    private final UserRepository userRepository;
     private final DataFetchingService dataFetchingService;
     private final JobScheduler jobScheduler;
 
     @Override
     public ResponseEntity<Void> removeDefaultPaymentMethod(String userId, String paymentMethodId) {
         try {
-            String customerId = stripeService.getCustomerId(userId);
+            String customerId = userRepository.selectCustomerIdByClerkId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
             CustomerUpdateParams params = CustomerUpdateParams.builder()
                 .setInvoiceSettings(
                     CustomerUpdateParams.InvoiceSettings.builder()
@@ -50,7 +54,8 @@ public class PaymentMethodService implements PaymentMethodResource{
     @Override
     public ResponseEntity<Void> setDefaultPaymentMethod(String userId, String paymentMethodId) {
         try {
-            String customerId = stripeService.getCustomerId(userId);
+            String customerId = userRepository.selectCustomerIdByClerkId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
             CustomerUpdateParams params = CustomerUpdateParams.builder()
                 .setInvoiceSettings(
                     CustomerUpdateParams.InvoiceSettings.builder()
@@ -72,7 +77,8 @@ public class PaymentMethodService implements PaymentMethodResource{
     public ResponseEntity<Void> removePaymentMethod(String userId, String paymentMethodId) {
         String customerId = null;
         try {
-            customerId = stripeService.getCustomerId(userId);
+            customerId = userRepository.selectCustomerIdByClerkId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
             PaymentMethod paymentMethod = PaymentMethod.retrieve(paymentMethodId);
     
             paymentMethod.detach();
@@ -90,7 +96,8 @@ public class PaymentMethodService implements PaymentMethodResource{
     @Override
     public ResponseEntity<String> createPaymentMethod(String userId, CreatePaymentMethodRequest request) {
         try {
-            String customerId = stripeService.getCustomerId(userId);
+            String customerId = userRepository.selectCustomerIdByClerkId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "User %s not found".formatted(userId)));
             AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);
             if (currency.equals(AcceptedCurrency.XXX)) {
                 currency = AcceptedCurrency.EUR;

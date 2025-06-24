@@ -1,6 +1,6 @@
 package com.mc_host.api.controller.api;
 
-import com.mc_host.api.model.stripe.request.CheckoutRequest;
+import com.mc_host.api.auth.CurrentUser;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,29 +10,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/stripe")
-public interface StripeResource {
+@RequestMapping("api/user/subscription/{subscriptionId}")
+public interface SubscriptionController {
 
-    @PostMapping("/checkout")
-    public ResponseEntity<String> startCheckout(
-        @RequestBody CheckoutRequest request
-    );
-
-    @PostMapping("/user/{userId}/subscription/{subscriptionId}/cancel")
+    @PostMapping("/cancel")
     public ResponseEntity<Void> cancelSubscription(
-        @PathVariable String userId,
+        @CurrentUser String clerkId,
         @PathVariable String subscriptionId
     );
 
-    @PostMapping("/user/{userId}/subscription/{subscriptionId}/uncancel")
+    @PostMapping("uncancel")
     public ResponseEntity<Void> uncancelSubscription(
-        @PathVariable String userId,
+        @CurrentUser String clerkId,
         @PathVariable String subscriptionId
     );
 
-    @PostMapping("/user/{userId}/subscription/{subscriptionId}/specification")
+    @PostMapping("specification")
     public ResponseEntity<Void> updateSubscriptionSpecification(
-        @PathVariable String userId,
+        @CurrentUser String clerkId,
         @PathVariable String subscriptionId,
         @RequestBody UpdateSpecificationRequest specificationRequest
     );
