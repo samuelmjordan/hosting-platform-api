@@ -28,7 +28,10 @@ public class ProvisioningStatusService implements ProvisioningStatusResource {
 	private final ServerExecutionContextRepository serverExecutionContextRepository;
 
 	@Override
-	public ResponseEntity<ProvisioningStatusResponse> getProvisioningStatus(String userId, String subscriptionId) {
+	public ResponseEntity<ProvisioningStatusResponse> getProvisioningStatus(
+		String userId,
+		String subscriptionId
+	) {
 		Context context = serverExecutionContextRepository.selectSubscription(subscriptionId)
 			.orElseThrow(() -> new ResponseStatusException(
 				HttpStatusCode.valueOf(404), "Couldn't fetch subscription context: " + subscriptionId));
@@ -43,7 +46,10 @@ public class ProvisioningStatusService implements ProvisioningStatusResource {
 	}
 
 	@Override
-	public ResponseEntity<BatchProvisioningStatusResponse> getBatchProvisioningStatus(String userId, List<String> subscriptionIds) {
+	public ResponseEntity<BatchProvisioningStatusResponse> getBatchProvisioningStatus(
+		String userId,
+		List<String> subscriptionIds
+	) {
 		List<ProvisioningStatusResponse> statuses = new ArrayList<>();
 		List<BatchError> errors = new ArrayList<>();
 
@@ -69,7 +75,10 @@ public class ProvisioningStatusService implements ProvisioningStatusResource {
 		return ResponseEntity.ok(new BatchProvisioningStatusResponse(statuses, errors));
 	}
 
-	private Optional<ProvisioningStatus> getStatusFromContext(Context context, String subscriptionId) {
+	private Optional<ProvisioningStatus> getStatusFromContext(
+		Context context,
+		String subscriptionId
+	) {
 		if (context.isIllegalState()) {
 			LOGGER.log(Level.SEVERE, String.format("Server is in an illegal state: %s", subscriptionId));
 			return Optional.of(ProvisioningStatus.FAILED);

@@ -1,7 +1,7 @@
 package com.mc_host.api.controller;
 
-import com.mc_host.api.model.server.response.BatchProvisioningStatusResponse;
-import com.mc_host.api.model.server.response.ProvisioningStatusResponse;
+import com.mc_host.api.model.server.response.BatchResourceLimitResponse;
+import com.mc_host.api.model.server.response.ResourceLimitResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,16 +14,16 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api/dashboard")
-public interface ProvisioningStatusResource {
+public interface ResourceLimitResource {
 
-	@GetMapping("/user/{userId}/subscription/{subscriptionId}/status")
-	ResponseEntity<ProvisioningStatusResponse> getProvisioningStatus(
+	@GetMapping("/user/{userId}/subscription/{subscriptionId}/limits")
+	ResponseEntity<ResourceLimitResponse> getProvisioningStatus(
 		@PathVariable String userId,
 		@PathVariable String subscriptionId
 	);
 
-	@PostMapping("/user/{userId}/subscriptions/status")
-	ResponseEntity<BatchProvisioningStatusResponse> getBatchProvisioningStatus(
+	@PostMapping("/user/{userId}/subscriptions/limits")
+	ResponseEntity<BatchResourceLimitResponse> getBatchProvisioningStatus(
 		@PathVariable String userId,
 		@RequestBody List<String> subscriptionIds
 	);
