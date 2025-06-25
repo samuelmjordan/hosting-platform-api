@@ -117,17 +117,8 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
     private String extractSubscriptionId(WebSocketSession session) {
         String path = session.getUri().getPath();
         String[] parts = path.split("/");
-        if (parts.length >= 6) {
-            return parts[5];
-        }
-        throw new IllegalArgumentException("invalid websocket path: " + path);
-    }
-
-    private String extractUserId(WebSocketSession session) {
-        String path = session.getUri().getPath();
-        String[] parts = path.split("/");
-        if (parts.length >= 4) {
-            return parts[3];
+        if (parts.length >= 5) {
+            return parts[4];
         }
         throw new IllegalArgumentException("invalid websocket path: " + path);
     }
