@@ -44,13 +44,13 @@ public class UserActionsService implements UserActionsResource {
     }
 
     @Override
-    public ResponseEntity<Void> updateSubscriptionTitle(String userId, String subscriptionId, UpdateTitleRequest title) {
+    public ResponseEntity<Void> updateSubscriptionTitle(String subscriptionId, UpdateTitleRequest title) {
         serverExecutionContextRepository.updateTitle(subscriptionId, title.title());
         return ResponseEntity.ok().build();
     }
 
     @Override
-    public ResponseEntity<Void> updateSubscriptionAddress(String userId, String subscriptionId, UpdateAddressRequest address) {
+    public ResponseEntity<Void> updateSubscriptionAddress(String subscriptionId, UpdateAddressRequest address) {
         // TODO: this is shite
         // Should probably be queable. Should also add the adress to the context, currently its tied to the cname which can dissapear!
         // Or maybe the cname should be tied directly to the subscription? i guess it doesnt need to be taken down.
