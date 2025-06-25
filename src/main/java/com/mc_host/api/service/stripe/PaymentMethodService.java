@@ -6,7 +6,7 @@ import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 import com.mc_host.api.queue.JobScheduler;
 import com.mc_host.api.repository.PaymentMethodRepository;
 import com.mc_host.api.repository.UserRepository;
-import com.mc_host.api.service.data.DataFetchingService;
+import com.mc_host.api.service.data.UserService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
@@ -28,7 +28,7 @@ public class PaymentMethodService implements PaymentMethodController {
 
     private final UserRepository userRepository;
     private final PaymentMethodRepository paymentMethodRepository;
-    private final DataFetchingService dataFetchingService;
+    private final UserService dataFetchingService;
     private final JobScheduler jobScheduler;
 
     @Override

@@ -1,4 +1,4 @@
-package com.mc_host.api.controller.api.panel;
+package com.mc_host.api.controller.api.subscriptions.panel;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

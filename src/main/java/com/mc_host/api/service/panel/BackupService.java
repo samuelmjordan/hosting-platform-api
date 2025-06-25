@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel;
 
 import com.mc_host.api.client.PterodactylUserClient;
-import com.mc_host.api.controller.api.panel.BackupController;
+import com.mc_host.api.controller.api.subscriptions.panel.BackupController;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;

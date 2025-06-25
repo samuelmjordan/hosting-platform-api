@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("api")
-public interface DataFetchingController {
+public interface UserController {
 
     @GetMapping("user/currency")
     public ResponseEntity<AcceptedCurrency> getUserCurrency(

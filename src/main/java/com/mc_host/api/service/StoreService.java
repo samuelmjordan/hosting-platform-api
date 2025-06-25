@@ -6,7 +6,7 @@ import com.mc_host.api.model.stripe.request.CheckoutRequest;
 import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.service.clerk.ClerkEventProcessor;
-import com.mc_host.api.service.data.DataFetchingService;
+import com.mc_host.api.service.data.UserService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -27,7 +27,7 @@ public class StoreService implements StoreController {
 
 	private final GameServerSpecRepository gameServerSpecRepository;
 	private final ClerkEventProcessor clerkEventProcessor;
-	private final DataFetchingService dataFetchingService;
+	private final UserService dataFetchingService;
 	private final Executor virtualThreadExecutor;
 
 

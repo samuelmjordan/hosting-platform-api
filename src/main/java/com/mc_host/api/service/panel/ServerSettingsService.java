@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel;
 
 import com.mc_host.api.client.PterodactylApplicationClient;
-import com.mc_host.api.controller.api.panel.ServerSettingsResource;
+import com.mc_host.api.controller.api.subscriptions.panel.ServerSettingsResource;
 import com.mc_host.api.model.panel.startup.StartupResponse;
 import com.mc_host.api.model.panel.startup.UpdateStartupRequest;
 import com.mc_host.api.model.provisioning.Context;

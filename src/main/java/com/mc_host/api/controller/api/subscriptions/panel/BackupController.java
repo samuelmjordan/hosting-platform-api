@@ -1,4 +1,4 @@
-package com.mc_host.api.controller.api.panel;
+package com.mc_host.api.controller.api.subscriptions.panel;
 
 import com.mc_host.api.auth.ValidatedSubscription;
 import org.springframework.http.ResponseEntity;

@@ -1,0 +1,153 @@
+package com.mc_host.api.service;
+
+import com.mc_host.api.controller.api.subscriptions.SubscriptionActionsController;
+import com.mc_host.api.model.plan.ContentPrice;
+import com.mc_host.api.model.provisioning.Context;
+import com.mc_host.api.model.provisioning.Status;
+import com.mc_host.api.model.resource.dns.DnsCNameRecord;
+import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
+import com.mc_host.api.model.subscription.ContentSubscription;
+import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
+import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
+import com.mc_host.api.queue.JobScheduler;
+import com.mc_host.api.repository.GameServerRepository;
+import com.mc_host.api.repository.PlanRepository;
+import com.mc_host.api.repository.PriceRepository;
+import com.mc_host.api.repository.ServerExecutionContextRepository;
+import com.mc_host.api.repository.SubscriptionRepository;
+import com.mc_host.api.service.resources.DnsService;
+import com.stripe.exception.StripeException;
+import com.stripe.model.Subscription;
+import com.stripe.param.SubscriptionUpdateParams;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class SubscriptionActionsService implements SubscriptionActionsController {
+    private final static Logger LOGGER = Logger.getLogger(SubscriptionActionsService.class.getName());
+
+    private final PriceRepository priceRepository;
+    private final PlanRepository planRepository;
+    private final GameServerRepository gameServerRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final ServerExecutionContextRepository serverExecutionContextRepository;
+    private final JobScheduler jobScheduler;
+    private final DnsService dnsService;
+
+    @Override
+    public ResponseEntity<Void> cancelSubscription(String subscriptionId) {
+        return updateCancelAtPeriodEnd(subscriptionId, true);
+    }
+
+    @Override
+    public ResponseEntity<Void> uncancelSubscription(String subscriptionId) {
+        return updateCancelAtPeriodEnd(subscriptionId, false);
+    }
+
+    @Override
+    public ResponseEntity<Void> updateSubscriptionSpecification(
+        String subscriptionId,
+        UpdateSpecificationRequest specificationRequest
+    ) {
+        String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
+            .map(ContentSubscription::priceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
+        ContentPrice oldPrice =  priceRepository.selectPrice(oldPriceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
+        String newPriceId = planRepository.selectPriceId(specificationRequest.specificationId(), oldPrice.currency())
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency %s", specificationRequest.specificationId(), oldPrice.currency())));
+        ContentPrice newPrice =  priceRepository.selectPrice(newPriceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
+
+        if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            Subscription subscription = Subscription.retrieve(subscriptionId);
+            SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+                .addItem(
+                    SubscriptionUpdateParams.Item.builder()
+                        .setId(subscription.getItems().getData().get(0).getId())
+                        .setPrice(newPriceId)
+                        .build()
+                )
+                .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
+                .build();
+
+            subscription.update(params);
+
+            return ResponseEntity.ok().build();
+        } catch (StripeException e) {
+            throw new RuntimeException("rip subscription update: " + subscriptionId, e);
+        }
+    }
+
+    @Override
+    public ResponseEntity<Void> updateSubscriptionTitle(String subscriptionId, UpdateTitleRequest title) {
+        serverExecutionContextRepository.updateTitle(subscriptionId, title.title());
+        return ResponseEntity.ok().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> updateSubscriptionAddress(String subscriptionId, UpdateAddressRequest address) {
+        // TODO: this is shite
+        // Should probably be queue-able. Should also add the address to the context, currently its tied to the cname which can disappear!
+        // Or maybe the cname should be tied directly to the subscription? i guess it doesn't need to be taken down.
+        Context context = serverExecutionContextRepository.selectSubscription(subscriptionId)
+            .orElseThrow(() -> new IllegalStateException("No context found for subscription " + subscriptionId));
+        if (context.getStatus().equals(Status.IN_PROGRESS)) {
+            return ResponseEntity.status(409)
+                .header("X-Reason", "Server currently provisioning")
+                .build();
+        }
+
+        DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(context.getCNameRecordId())
+            .orElseThrow(() -> new IllegalStateException("DNS CNAME record not found: " + context.getCNameRecordId()));   
+        String newURL = String.join(".", address.address(), dnsCNameRecord.zoneName());
+        Boolean nameTaken = gameServerRepository.isDnsCNameRecordNameTaken(newURL, dnsCNameRecord.zoneId());
+        if (nameTaken) {
+            return ResponseEntity.status(409)
+                .header("X-Reason", "URL taken")
+                .build();
+        }
+   
+        DnsCNameRecord newDnsCNameRecord = dnsService.updateCNameRecordName(dnsCNameRecord, address.address());
+        gameServerRepository.updateDnsCNameRecord(newDnsCNameRecord);
+
+        String customerId = subscriptionRepository.selectSubscription(subscriptionId)
+            .map(ContentSubscription::customerId)
+            .orElseThrow(() -> new IllegalStateException("No subscription found " + subscriptionId));
+        jobScheduler.scheduleCustomerSubscriptionSync(customerId);
+        return ResponseEntity.ok().build();
+    }
+
+    private ResponseEntity<Void> updateCancelAtPeriodEnd(
+        String subscriptionId,
+        Boolean cancel
+    ) {
+        try {
+            Subscription subscription = Subscription.retrieve(subscriptionId);
+            SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+                .setCancelAtPeriodEnd(cancel)
+                .build();
+            subscription.update(params);
+
+            return ResponseEntity.ok().build();
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "Stripe API error during subscription update", e);
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .build();
+        }
+    }
+    
+}

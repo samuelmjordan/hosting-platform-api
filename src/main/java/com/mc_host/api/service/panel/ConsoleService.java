@@ -1,6 +1,6 @@
 package com.mc_host.api.service.panel;
 
-import com.mc_host.api.controller.api.panel.ConsoleResource;
+import com.mc_host.api.controller.api.subscriptions.panel.ConsoleResource;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.resource.pterodactyl.panel.PterodactylServerResources;

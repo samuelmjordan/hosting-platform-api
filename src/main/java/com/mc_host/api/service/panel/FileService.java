@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel;
 
 import com.mc_host.api.client.PterodactylUserClient;
-import com.mc_host.api.controller.api.panel.FileResource;
+import com.mc_host.api.controller.api.subscriptions.panel.FileResource;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
