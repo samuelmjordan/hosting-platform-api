@@ -1,10 +1,10 @@
 package com.mc_host.api.controller.api.subscriptions.panel;
 
+import com.mc_host.api.auth.ValidatedSubscription;
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,83 +18,72 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/file")
-public interface FileResource {
+public interface FileController {
 
     @GetMapping("/list")
     ResponseEntity<List<FileObject>> listFiles(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestParam String directory
     );
 
     @GetMapping("/contents")
     ResponseEntity<String> getFileContents(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestParam String file
     );
 
     @GetMapping("/download")
     ResponseEntity<SignedUrl> getFileDownloadLink(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestParam String file
     );
 
     @PostMapping("/upload")
     ResponseEntity<Void> uploadFile(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestParam("files") MultipartFile file
     ) throws IOException, InterruptedException;
 
     @PutMapping("/rename")
     ResponseEntity<Void> renameFiles(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestBody RenameRequest request
     );
 
     @PostMapping("/copy")
     ResponseEntity<Void> copyFile(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestBody CopyFileRequest request
     );
 
     @PostMapping("/write")
     ResponseEntity<Void> writeFile(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestParam String file,
         @RequestBody String content
     );
 
     @PostMapping("/compress")
     ResponseEntity<FileObject> compressFiles(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestBody CompressRequest request
     );
 
     @PostMapping("/decompress")
     ResponseEntity<Void> decompressFile(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestBody DecompressRequest request
     );
 
     @PostMapping("/delete")
     ResponseEntity<Void> deleteFiles(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestBody DeleteRequest request
     );
 
     @PostMapping("/create-folder")
     ResponseEntity<Void> createFolder(
-        @PathVariable String userId,
-        @PathVariable String subscriptionId,
+        @ValidatedSubscription String subscriptionId,
         @RequestBody CreateFolderRequest request
     );
 

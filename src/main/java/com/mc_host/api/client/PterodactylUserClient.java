@@ -2,7 +2,7 @@ package com.mc_host.api.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.controller.api.subscriptions.panel.FileResource.RenameItem;
+import com.mc_host.api.controller.api.subscriptions.panel.FileController.RenameItem;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
