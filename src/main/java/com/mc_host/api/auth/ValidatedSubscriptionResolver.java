@@ -21,6 +21,7 @@ public class ValidatedSubscriptionResolver extends AbstractAuthResolver<Validate
 
 	@Override
 	protected String doResolve(MethodParameter parameter, NativeWebRequest webRequest) {
+		System.out.print("Resolving subscription!!!");
 		String userId = getCurrentUserId();
 		String subscriptionId = getPathVariable(webRequest, "subscriptionId");
 
