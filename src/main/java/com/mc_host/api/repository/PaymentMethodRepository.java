@@ -54,21 +54,31 @@ public class PaymentMethodRepository extends BaseRepository {
         execute("DELETE FROM payment_method_ WHERE customer_id = ?", customerId);
     }
 
-    public Optional<CustomerPaymentMethod> selectPaymentMethod(String paymentMethodId) {
+    public Optional<String> selectPaymentMethodClerkId(String paymentMethodId) {
         return selectOne("""
             SELECT
-                payment_method_id,
-                customer_id,
-                payment_method_type,
-                display_name,
-                payment_data,
-                is_active, is_default
+                clerk_id
+            FROM payment_method_
+            JOIN user_ on user_.customer_id = payment_method_.customer_id
+            WHERE payment_method_id = ?
+            AND is_active = true
+            ORDER BY is_default DESC, created_at DESC
+            """,
+            (rs, rowNum) -> rs.getString("clerk_id"),
+            paymentMethodId
+        );
+    }
+
+    public Optional<String> selectPaymentMethodCustomerId(String paymentMethodId) {
+        return selectOne("""
+            SELECT
+                customer_id
             FROM payment_method_
             WHERE payment_method_id = ?
             AND is_active = true
             ORDER BY is_default DESC, created_at DESC
             """,
-            this::mapPaymentMethod,
+            (rs, rowNum) -> rs.getString("customer_id"),
             paymentMethodId
         );
     }

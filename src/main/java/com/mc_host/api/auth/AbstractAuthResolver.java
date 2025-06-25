@@ -58,15 +58,14 @@ public abstract class AbstractAuthResolver<T extends Annotation> implements Hand
 	}
 
 	protected void validateOwnership(
-		String userCustomerId,
-		String resourceCustomerId,
-		String userId,
+		String ownerUserId,
+		String authedUserId,
 		String resourceId,
 		String resourceType
 	) {
-		if (!userCustomerId.equals(resourceCustomerId)) {
+		if (!authedUserId.equals(ownerUserId)) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-				"User %s not authorised for %s %s".formatted(userId, resourceType, resourceId));
+				"User %s not authorised for %s %s".formatted(authedUserId, resourceType, resourceId));
 		}
 	}
 }

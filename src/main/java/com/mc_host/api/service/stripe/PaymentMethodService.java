@@ -2,7 +2,6 @@ package com.mc_host.api.service.stripe;
 
 import com.mc_host.api.controller.api.PaymentMethodResource;
 import com.mc_host.api.model.plan.AcceptedCurrency;
-import com.mc_host.api.model.stripe.CustomerPaymentMethod;
 import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 import com.mc_host.api.queue.JobScheduler;
 import com.mc_host.api.repository.PaymentMethodRepository;
@@ -35,8 +34,7 @@ public class PaymentMethodService implements PaymentMethodResource{
     @Override
     public ResponseEntity<Void> removeDefaultPaymentMethod(String paymentMethodId) {
         try {
-            String customerId = paymentMethodRepository.selectPaymentMethod(paymentMethodId)
-                .map(CustomerPaymentMethod::customerId)
+            String customerId = paymentMethodRepository.selectPaymentMethodCustomerId(paymentMethodId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Payment method %s not found".formatted(paymentMethodId)));
             CustomerUpdateParams params = CustomerUpdateParams.builder()
                 .setInvoiceSettings(
@@ -58,8 +56,7 @@ public class PaymentMethodService implements PaymentMethodResource{
     @Override
     public ResponseEntity<Void> setDefaultPaymentMethod(String paymentMethodId) {
         try {
-            String customerId = paymentMethodRepository.selectPaymentMethod(paymentMethodId)
-                .map(CustomerPaymentMethod::customerId)
+            String customerId = paymentMethodRepository.selectPaymentMethodCustomerId(paymentMethodId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Payment method %s not found".formatted(paymentMethodId)));
             CustomerUpdateParams params = CustomerUpdateParams.builder()
                 .setInvoiceSettings(
@@ -82,8 +79,7 @@ public class PaymentMethodService implements PaymentMethodResource{
     public ResponseEntity<Void> removePaymentMethod(String paymentMethodId) {
         String customerId = null;
         try {
-            customerId = paymentMethodRepository.selectPaymentMethod(paymentMethodId)
-                .map(CustomerPaymentMethod::customerId)
+            customerId = paymentMethodRepository.selectPaymentMethodCustomerId(paymentMethodId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Payment method %s not found".formatted(paymentMethodId)));
             PaymentMethod paymentMethod = PaymentMethod.retrieve(paymentMethodId);
     
