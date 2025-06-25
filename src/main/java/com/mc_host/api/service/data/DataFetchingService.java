@@ -3,7 +3,7 @@ package com.mc_host.api.service.data;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mc_host.api.configuration.PaymentMethodConfiguration;
 import com.mc_host.api.configuration.PaymentMethodConfiguration.FieldConfig;
-import com.mc_host.api.controller.api.DataFetchingResource;
+import com.mc_host.api.controller.api.DataFetchingController;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.plan.ServerSpecification;
@@ -39,7 +39,7 @@ import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
-public class DataFetchingService implements DataFetchingResource {
+public class DataFetchingService implements DataFetchingController {
     private static final Logger LOGGER = Logger.getLogger(DataFetchingService.class.getName());
 
     private final PaymentMethodConfiguration paymentMethodConfiguration;

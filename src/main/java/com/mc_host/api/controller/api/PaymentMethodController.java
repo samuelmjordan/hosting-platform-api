@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("api/user/payment-method")
-public interface PaymentMethodResource {
+public interface PaymentMethodController {
 
     @PostMapping("{paymentMethodId}/default")
     public ResponseEntity<Void> setDefaultPaymentMethod(

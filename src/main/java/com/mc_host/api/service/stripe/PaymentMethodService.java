@@ -1,6 +1,6 @@
 package com.mc_host.api.service.stripe;
 
-import com.mc_host.api.controller.api.PaymentMethodResource;
+import com.mc_host.api.controller.api.PaymentMethodController;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.request.CreatePaymentMethodRequest;
 import com.mc_host.api.queue.JobScheduler;
@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
-public class PaymentMethodService implements PaymentMethodResource{
+public class PaymentMethodService implements PaymentMethodController {
     private static final Logger LOGGER = Logger.getLogger(PaymentMethodService.class.getName());
 
     private final UserRepository userRepository;

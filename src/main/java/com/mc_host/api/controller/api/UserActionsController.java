@@ -11,16 +11,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/api/")
-public interface UserActionsResource {
+@RequestMapping("api/user/subscription/{subscriptionId}")
+public interface UserActionsController {
     
-    @PostMapping("/user/subscription/{subscriptionId}/title")
+    @PostMapping("title")
     public ResponseEntity<Void> updateSubscriptionTitle(
         @ValidatedSubscription String subscriptionId,
         @RequestBody UpdateTitleRequest title
     );
 
-    @PostMapping("/user/subscription/{subscriptionId}/address")
+    @PostMapping("address")
     public ResponseEntity<Void> updateSubscriptionAddress(
         @ValidatedSubscription String subscriptionId,
         @RequestBody UpdateAddressRequest address

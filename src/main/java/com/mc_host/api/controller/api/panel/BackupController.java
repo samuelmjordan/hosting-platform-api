@@ -14,8 +14,8 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/panel/user/subscription/{subscriptionId}/backup")
-public interface BackupResource {
+@RequestMapping("api/panel/user/subscription/{subscriptionId}/backup")
+public interface BackupController {
 
 	@GetMapping
 	ResponseEntity<List<Backup>> listBackups(
@@ -28,25 +28,25 @@ public interface BackupResource {
 		@RequestParam(required = false) String name
 	);
 
-	@GetMapping("/{backupId}")
+	@GetMapping("{backupId}")
 	ResponseEntity<Backup> getBackupDetails(
 		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId
 	);
 
-	@GetMapping("/{backupId}/download")
+	@GetMapping("{backupId}/download")
 	ResponseEntity<String> getBackupDownloadLink(
 		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId
 	);
 
-	@PostMapping("/{backupId}/restore")
+	@PostMapping("{backupId}/restore")
 	ResponseEntity<Void> restoreBackup(
 		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId
 	);
 
-	@DeleteMapping("/{backupId}")
+	@DeleteMapping("{backupId}")
 	ResponseEntity<Void> deleteBackup(
 		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId

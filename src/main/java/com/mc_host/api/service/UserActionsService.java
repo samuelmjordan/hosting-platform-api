@@ -1,6 +1,6 @@
 package com.mc_host.api.service;
 
-import com.mc_host.api.controller.api.UserActionsResource;
+import com.mc_host.api.controller.api.UserActionsController;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
@@ -20,7 +20,7 @@ import java.util.logging.Logger;
 
 @Service
 @Transactional
-public class UserActionsService implements UserActionsResource {
+public class UserActionsService implements UserActionsController {
     private final static Logger LOGGER = Logger.getLogger(UserActionsService.class.getName());
 
     private final GameServerRepository gameServerRepository;

@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel;
 
 import com.mc_host.api.client.PterodactylUserClient;
-import com.mc_host.api.controller.api.panel.BackupResource;
+import com.mc_host.api.controller.api.panel.BackupController;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;
@@ -18,7 +18,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class BackupService implements BackupResource {
+public class BackupService implements BackupController {
 
 	private final PterodactylUserClient pterodactylClient;
 	private final ServerExecutionContextRepository serverExecutionContextRepository;

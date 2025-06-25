@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("api/user/subscription/{subscriptionId}")
 public interface SubscriptionController {
 
-    @PostMapping("/cancel")
+    @PostMapping("cancel")
     ResponseEntity<Void> cancelSubscription(
         @ValidatedSubscription String subscriptionId
     );
