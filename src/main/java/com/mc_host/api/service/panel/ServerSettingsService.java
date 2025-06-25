@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel;
 
 import com.mc_host.api.client.PterodactylApplicationClient;
-import com.mc_host.api.controller.api.subscriptions.panel.ServerSettingsResource;
+import com.mc_host.api.controller.api.subscriptions.panel.ServerSettingsController;
 import com.mc_host.api.model.panel.startup.StartupResponse;
 import com.mc_host.api.model.panel.startup.UpdateStartupRequest;
 import com.mc_host.api.model.provisioning.Context;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ServerSettingsService implements ServerSettingsResource {
+public class ServerSettingsService implements ServerSettingsController {
 
 	private final JobScheduler jobScheduler;
 	private final SubscriptionRepository subscriptionRepository;
@@ -29,7 +29,6 @@ public class ServerSettingsService implements ServerSettingsResource {
 
 	@Override
 	public ResponseEntity<StartupResponse> getSettings(
-		String userId,
 		String subscriptionId
 	) {
 		Long serverId = getServerId(subscriptionId);
@@ -39,7 +38,6 @@ public class ServerSettingsService implements ServerSettingsResource {
 
 	@Override
 	public ResponseEntity<StartupResponse> setSettings(
-		String userId,
 		String subscriptionId,
 		UpdateStartupRequest request
 	) {
@@ -56,14 +54,14 @@ public class ServerSettingsService implements ServerSettingsResource {
 	}
 
 	@Override
-	public ResponseEntity<Void> reinstallServer(String userId, String subscriptionId) {
+	public ResponseEntity<Void> reinstallServer(String subscriptionId) {
 		Long serverId = getServerId(subscriptionId);
 		client.reinstallServer(serverId);
 		return ResponseEntity.ok().build();
 	}
 
 	@Override
-	public ResponseEntity<Void> recreateServer(String userId, String subscriptionId) {
+	public ResponseEntity<Void> recreateServer(String subscriptionId) {
 		contextRepository.newServerKey(subscriptionId);
 		String customerId = subscriptionRepository.selectSubscription(subscriptionId)
 			.map(ContentSubscription::customerId)
