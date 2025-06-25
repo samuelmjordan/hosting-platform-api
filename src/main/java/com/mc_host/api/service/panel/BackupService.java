@@ -6,6 +6,7 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -16,25 +17,16 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class BackupService implements BackupResource {
 
 	private final PterodactylUserClient pterodactylClient;
 	private final ServerExecutionContextRepository serverExecutionContextRepository;
 	private final GameServerRepository gameServerRepository;
 
-	public BackupService(
-		PterodactylUserClient pterodactylClient,
-		ServerExecutionContextRepository serverExecutionContextRepository,
-		GameServerRepository gameServerRepository
-	) {
-		this.pterodactylClient = pterodactylClient;
-		this.serverExecutionContextRepository = serverExecutionContextRepository;
-		this.gameServerRepository = gameServerRepository;
-	}
-
 	@Override
-	public ResponseEntity<List<Backup>> listBackups(String userId, String subscriptionId) {
-		String serverUuid = resolveServerUid(userId, subscriptionId);
+	public ResponseEntity<List<Backup>> listBackups(String subscriptionId) {
+		String serverUuid = resolveServerUid(subscriptionId);
 		List<Backup> backups = pterodactylClient.listBackups(serverUuid)
 			.data().stream()
 			.map(backupObject -> mapToBackup(backupObject.attributes()))
@@ -43,8 +35,8 @@ public class BackupService implements BackupResource {
 	}
 
 	@Override
-	public ResponseEntity<Backup> createBackup(String userId, String subscriptionId, String name) {
-		String serverUuid = resolveServerUid(userId, subscriptionId);
+	public ResponseEntity<Backup> createBackup(String subscriptionId, String name) {
+		String serverUuid = resolveServerUid(subscriptionId);
 		Backup backup = mapToBackup((
 			name != null
 			? pterodactylClient.createBackup(serverUuid, name)
@@ -54,34 +46,34 @@ public class BackupService implements BackupResource {
 	}
 
 	@Override
-	public ResponseEntity<Backup> getBackupDetails(String userId, String subscriptionId, String backupId) {
-		String serverUuid = resolveServerUid(userId, subscriptionId);
+	public ResponseEntity<Backup> getBackupDetails(String subscriptionId, String backupId) {
+		String serverUuid = resolveServerUid(subscriptionId);
 		Backup backup = mapToBackup(pterodactylClient.getBackupDetails(serverUuid, backupId).attributes());
 		return ResponseEntity.ok(backup);
 	}
 
 	@Override
-	public ResponseEntity<String> getBackupDownloadLink(String userId, String subscriptionId, String backupId) {
-		String serverUuid = resolveServerUid(userId, subscriptionId);
+	public ResponseEntity<String> getBackupDownloadLink(String subscriptionId, String backupId) {
+		String serverUuid = resolveServerUid(subscriptionId);
 		String downloadLink = pterodactylClient.getBackupDownloadLink(serverUuid, backupId).attributes().url();
 		return ResponseEntity.ok(downloadLink);
 	}
 
 	@Override
-	public ResponseEntity<Void> restoreBackup(String userId, String subscriptionId, String backupId) {
-		String serverUuid = resolveServerUid(userId, subscriptionId);
+	public ResponseEntity<Void> restoreBackup(String subscriptionId, String backupId) {
+		String serverUuid = resolveServerUid(subscriptionId);
 		pterodactylClient.restoreBackup(serverUuid, backupId);
 		return ResponseEntity.noContent().build();
 	}
 
 	@Override
-	public ResponseEntity<Void> deleteBackup(String userId, String subscriptionId, String backupId) {
-		String serverUuid = resolveServerUid(userId, subscriptionId);
+	public ResponseEntity<Void> deleteBackup(String subscriptionId, String backupId) {
+		String serverUuid = resolveServerUid(subscriptionId);
 		pterodactylClient.deleteBackup(serverUuid, backupId);
 		return ResponseEntity.noContent().build();
 	}
 
-	private String resolveServerUid(String userId, String subscriptionId) {
+	private String resolveServerUid(String subscriptionId) {
 		Long serverId = serverExecutionContextRepository.selectSubscription(subscriptionId)
 			.map(Context::getPterodactylServerId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404)));

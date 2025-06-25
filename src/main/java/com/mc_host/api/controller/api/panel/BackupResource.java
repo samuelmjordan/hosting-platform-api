@@ -1,5 +1,6 @@
 package com.mc_host.api.controller.api.panel;
 
+import com.mc_host.api.auth.ValidatedSubscription;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,47 +14,41 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/backup")
+@RequestMapping("/api/panel/user/subscription/{subscriptionId}/backup")
 public interface BackupResource {
 
 	@GetMapping
 	ResponseEntity<List<Backup>> listBackups(
-		@PathVariable String userId,
-		@PathVariable String subscriptionId
+		@ValidatedSubscription String subscriptionId
 	);
 
 	@PostMapping
 	ResponseEntity<Backup> createBackup(
-		@PathVariable String userId,
-		@PathVariable String subscriptionId,
+		@ValidatedSubscription String subscriptionId,
 		@RequestParam(required = false) String name
 	);
 
 	@GetMapping("/{backupId}")
 	ResponseEntity<Backup> getBackupDetails(
-		@PathVariable String userId,
-		@PathVariable String subscriptionId,
+		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId
 	);
 
 	@GetMapping("/{backupId}/download")
 	ResponseEntity<String> getBackupDownloadLink(
-		@PathVariable String userId,
-		@PathVariable String subscriptionId,
+		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId
 	);
 
 	@PostMapping("/{backupId}/restore")
 	ResponseEntity<Void> restoreBackup(
-		@PathVariable String userId,
-		@PathVariable String subscriptionId,
+		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId
 	);
 
 	@DeleteMapping("/{backupId}")
 	ResponseEntity<Void> deleteBackup(
-		@PathVariable String userId,
-		@PathVariable String subscriptionId,
+		@ValidatedSubscription String subscriptionId,
 		@PathVariable String backupId
 	);
 
