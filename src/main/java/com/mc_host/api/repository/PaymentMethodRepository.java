@@ -61,8 +61,6 @@ public class PaymentMethodRepository extends BaseRepository {
             FROM payment_method_
             JOIN user_ on user_.customer_id = payment_method_.customer_id
             WHERE payment_method_id = ?
-            AND is_active = true
-            ORDER BY is_default DESC, created_at DESC
             """,
             (rs, rowNum) -> rs.getString("clerk_id"),
             paymentMethodId

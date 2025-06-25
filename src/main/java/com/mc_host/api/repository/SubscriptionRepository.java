@@ -124,7 +124,6 @@ public class SubscriptionRepository extends BaseRepository {
             FROM subscription_
             JOIN user_ on user_.customer_id = subscription_.customer_id
             WHERE subscription_id = ?
-            ORDER BY is_default DESC, created_at DESC
             """,
             (rs, rowNum) -> rs.getString("clerk_id"),
             subscriptionId
