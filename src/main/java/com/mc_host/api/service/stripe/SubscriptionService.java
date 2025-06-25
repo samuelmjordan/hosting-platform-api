@@ -1,5 +1,6 @@
 package com.mc_host.api.service.stripe;
 
+import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.controller.api.SubscriptionController;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.provisioning.Context;
@@ -7,6 +8,7 @@ import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.server.ProvisioningStatus;
 import com.mc_host.api.model.server.response.ProvisioningStatusResponse;
+import com.mc_host.api.model.server.response.ResourceLimitResponse;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.repository.PlanRepository;
@@ -32,6 +34,8 @@ import java.util.logging.Logger;
 public class SubscriptionService implements SubscriptionController {
     private static final Logger LOGGER = Logger.getLogger(SubscriptionService.class.getName());
 
+    private final PterodactylApplicationClient pterodactylApplicationClient;
+    private final ServerExecutionContextRepository contextRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final PriceRepository priceRepository;
@@ -102,6 +106,34 @@ public class SubscriptionService implements SubscriptionController {
         }
 
         return ResponseEntity.ok(new ProvisioningStatusResponse(subscriptionId, status.get()));
+    }
+
+    @Override
+    public ResponseEntity<ResourceLimitResponse> getResourceLimits(
+        String subscriptionId
+    ) {
+        Long pterodactylServerId = contextRepository.selectSubscription(subscriptionId)
+            .map(Context::getPterodactylServerId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatusCode.valueOf(404), "Couldn't fetch subscription context: " + subscriptionId));
+
+        return ResponseEntity.ok(getResourceLimits(subscriptionId, pterodactylServerId));
+    }
+
+    private ResourceLimitResponse getResourceLimits(
+        String subscriptionId,
+        Long pterodactylServerId
+    ) {
+        PterodactylApplicationClient.PterodactylServerResponse pterodactylResponse = pterodactylApplicationClient.getServer(pterodactylServerId);
+        return new ResourceLimitResponse(
+            subscriptionId,
+            pterodactylResponse.attributes().limits().memory(),
+            pterodactylResponse.attributes().limits().swap(),
+            pterodactylResponse.attributes().limits().disk(),
+            pterodactylResponse.attributes().limits().io(),
+            pterodactylResponse.attributes().limits().cpu(),
+            pterodactylResponse.attributes().limits().threads()
+        );
     }
 
     private Optional<ProvisioningStatus> getStatusFromContext(

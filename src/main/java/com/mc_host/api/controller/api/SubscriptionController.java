@@ -2,6 +2,7 @@ package com.mc_host.api.controller.api;
 
 import com.mc_host.api.auth.ValidatedSubscription;
 import com.mc_host.api.model.server.response.ProvisioningStatusResponse;
+import com.mc_host.api.model.server.response.ResourceLimitResponse;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,11 @@ public interface SubscriptionController {
 
     @GetMapping("status")
     ResponseEntity<ProvisioningStatusResponse> getProvisioningStatus(
+        @ValidatedSubscription String subscriptionId
+    );
+
+    @GetMapping("limits")
+    ResponseEntity<ResourceLimitResponse> getResourceLimits(
         @ValidatedSubscription String subscriptionId
     );
 }
