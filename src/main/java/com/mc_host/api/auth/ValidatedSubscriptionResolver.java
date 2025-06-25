@@ -10,7 +10,7 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 @Component
-public class ValidatedSubscriptionResolver extends AbstractAuthResolver<ValidatedSubscription, ContentSubscription> {
+public class ValidatedSubscriptionResolver extends AbstractAuthResolver<ValidatedSubscription> {
 
 	private final SubscriptionRepository subscriptionRepository;
 	private final UserRepository userRepository;
@@ -19,16 +19,13 @@ public class ValidatedSubscriptionResolver extends AbstractAuthResolver<Validate
 		SubscriptionRepository subscriptionRepository,
 		UserRepository userRepository
 	) {
-		super(ValidatedSubscription.class, ContentSubscription.class);
+		super(ValidatedSubscription.class);
 		this.subscriptionRepository = subscriptionRepository;
 		this.userRepository = userRepository;
 	}
 
 	@Override
-	protected String doResolveId(
-		MethodParameter parameter,
-		NativeWebRequest webRequest
-	) {
+	protected String doResolve(MethodParameter parameter, NativeWebRequest webRequest) {
 		String userId = getCurrentUserId();
 		String subscriptionId = getPathVariable(webRequest, "subscriptionId");
 
@@ -43,25 +40,5 @@ public class ValidatedSubscriptionResolver extends AbstractAuthResolver<Validate
 
 		validateOwnership(userCustomerId, subscriptionCustomerId, userId, subscriptionId, "subscription");
 		return subscriptionId;
-	}
-
-	@Override
-	protected ContentSubscription doResolveEntity(
-		MethodParameter parameter,
-		NativeWebRequest webRequest
-	) {
-		String userId = getCurrentUserId();
-		String subscriptionId = getPathVariable(webRequest, "subscriptionId");
-
-		ContentSubscription subscription = subscriptionRepository.selectSubscription(subscriptionId)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-				"Subscription %s not found".formatted(subscriptionId)));
-
-		String userCustomerId = userRepository.selectCustomerIdByClerkId(userId)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-				"User %s not found".formatted(userId)));
-
-		validateOwnership(userCustomerId, subscription.customerId(), userId, subscriptionId, "subscription");
-		return subscription;
 	}
 }
