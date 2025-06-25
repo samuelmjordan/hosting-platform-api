@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,12 +42,14 @@ public class SubscriptionService implements SubscriptionController {
     }
 
     @Override
+    @Transactional
     public ResponseEntity<Void> updateSubscriptionSpecification(
-        ContentSubscription subscription,
+        String subscriptionId,
         UpdateSpecificationRequest specificationRequest
     ) {
-        String subscriptionId = subscription.subscriptionId();
-        String oldPriceId = subscription.priceId();
+        String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
+            .map(ContentSubscription::priceId)
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
         ContentPrice oldPrice =  priceRepository.selectPrice(oldPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
         String newPriceId = planRepository.selectPriceId(specificationRequest.specificationId(), oldPrice.currency())
@@ -59,18 +62,18 @@ public class SubscriptionService implements SubscriptionController {
         }
 
         try {
-            Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
+            Subscription subscription = Subscription.retrieve(subscriptionId);
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                 .addItem(
                     SubscriptionUpdateParams.Item.builder()
-                        .setId(stripeSubscription.getItems().getData().get(0).getId())
+                        .setId(subscription.getItems().getData().get(0).getId())
                         .setPrice(newPriceId)
                         .build()
                 )
                 .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
                 .build();
                 
-            stripeSubscription.update(params);
+            subscription.update(params);
 
             return ResponseEntity.ok().build();
         } catch (StripeException e) {
