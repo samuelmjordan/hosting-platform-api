@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.controller.api.subscriptions.panel.ConsoleResource;
+import com.mc_host.api.controller.api.subscriptions.panel.ConsoleController;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketEvent;
 import org.springframework.lang.NonNull;
@@ -19,20 +19,17 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
     private static final String TOKEN_EXPIRED = "token expired";
     
     private final WebSocketSession browserSession;
-    private final ConsoleResource consoleResource;
-    private final String userId;
+    private final ConsoleController consoleController;
     private final String subscriptionId;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     public ConsoleWebSocketHandler(
         WebSocketSession browserSession, 
-        ConsoleResource consoleResource,
-        String userId,
+        ConsoleController consoleController,
         String subscriptionId
     ) {
         this.browserSession = browserSession;
-        this.consoleResource = consoleResource;
-        this.userId = userId;
+        this.consoleController = consoleController;
         this.subscriptionId = subscriptionId;
     }
     
@@ -69,7 +66,7 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
     
     private void refreshPterodactylToken(WebSocketSession pteroSession) {
         try {
-            WebsocketCredentials newCreds = consoleResource.getWebsocketCredentials(userId, subscriptionId).getBody();
+            WebsocketCredentials newCreds = consoleController.getWebsocketCredentials(subscriptionId).getBody();
             
             if (newCreds != null) {
                 sendAuthMessage(pteroSession, newCreds.token());

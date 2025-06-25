@@ -1,7 +1,7 @@
 package com.mc_host.api.service.panel.websocket;
 
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.controller.api.subscriptions.panel.ConsoleResource;
+import com.mc_host.api.controller.api.subscriptions.panel.ConsoleController;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -23,14 +23,14 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
     private static final String USER_ID = "USER_ID";
     private static final String SUBSCRIPTION_ID = "SUBSCRIPTION_ID";
     
-    private final ConsoleResource consoleResource;
+    private final ConsoleController consoleController;
     private final PterodactylConfiguration pterodactylConfiguration;
 
     public PterodactylProxyHandler(
-        ConsoleResource consoleResource,
+        ConsoleController consoleController,
         PterodactylConfiguration pterodactylConfiguration
     ) {
-        this.consoleResource = consoleResource;
+        this.consoleController = consoleController;
         this.pterodactylConfiguration = pterodactylConfiguration;
     }
     
@@ -46,7 +46,7 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
         session.getAttributes().put(SUBSCRIPTION_ID, subscriptionId);
         
         try {
-            WebsocketCredentials creds = consoleResource.getWebsocketCredentials(userId, subscriptionId).getBody();
+            WebsocketCredentials creds = consoleController.getWebsocketCredentials(subscriptionId).getBody();
             
             if (creds == null) {
                 LOGGER.log(Level.SEVERE, "received null credentials for user %s subscription %s".formatted(userId, subscriptionId));
@@ -61,7 +61,7 @@ public class PterodactylProxyHandler extends TextWebSocketHandler {
             session.getAttributes().put("token", creds.token());
             
             WebSocketSession pteroSession = client.doHandshake(
-                new ConsoleWebSocketHandler(session, consoleResource, userId, subscriptionId), 
+                new ConsoleWebSocketHandler(session, consoleController, subscriptionId),
                 headers, 
                 URI.create(creds.socket())
             ).get();
