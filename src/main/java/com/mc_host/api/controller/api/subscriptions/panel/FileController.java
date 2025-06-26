@@ -17,71 +17,71 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/panel/user/{userId}/subscription/{subscriptionId}/file")
+@RequestMapping("api/panel/user/subscription/{subscriptionId}/file")
 public interface FileController {
 
-    @GetMapping("/list")
+    @GetMapping("list")
     ResponseEntity<List<FileObject>> listFiles(
         @ValidatedSubscription String subscriptionId,
         @RequestParam String directory
     );
 
-    @GetMapping("/contents")
+    @GetMapping("contents")
     ResponseEntity<String> getFileContents(
         @ValidatedSubscription String subscriptionId,
         @RequestParam String file
     );
 
-    @GetMapping("/download")
+    @GetMapping("download")
     ResponseEntity<SignedUrl> getFileDownloadLink(
         @ValidatedSubscription String subscriptionId,
         @RequestParam String file
     );
 
-    @PostMapping("/upload")
+    @PostMapping("upload")
     ResponseEntity<Void> uploadFile(
         @ValidatedSubscription String subscriptionId,
         @RequestParam("files") MultipartFile file
     ) throws IOException, InterruptedException;
 
-    @PutMapping("/rename")
+    @PutMapping("rename")
     ResponseEntity<Void> renameFiles(
         @ValidatedSubscription String subscriptionId,
         @RequestBody RenameRequest request
     );
 
-    @PostMapping("/copy")
+    @PostMapping("copy")
     ResponseEntity<Void> copyFile(
         @ValidatedSubscription String subscriptionId,
         @RequestBody CopyFileRequest request
     );
 
-    @PostMapping("/write")
+    @PostMapping("write")
     ResponseEntity<Void> writeFile(
         @ValidatedSubscription String subscriptionId,
         @RequestParam String file,
         @RequestBody String content
     );
 
-    @PostMapping("/compress")
+    @PostMapping("compress")
     ResponseEntity<FileObject> compressFiles(
         @ValidatedSubscription String subscriptionId,
         @RequestBody CompressRequest request
     );
 
-    @PostMapping("/decompress")
+    @PostMapping("decompress")
     ResponseEntity<Void> decompressFile(
         @ValidatedSubscription String subscriptionId,
         @RequestBody DecompressRequest request
     );
 
-    @PostMapping("/delete")
+    @PostMapping("delete")
     ResponseEntity<Void> deleteFiles(
         @ValidatedSubscription String subscriptionId,
         @RequestBody DeleteRequest request
     );
 
-    @PostMapping("/create-folder")
+    @PostMapping("create-folder")
     ResponseEntity<Void> createFolder(
         @ValidatedSubscription String subscriptionId,
         @RequestBody CreateFolderRequest request
