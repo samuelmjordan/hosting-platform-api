@@ -49,7 +49,7 @@ public class HetznerCloudClient extends BaseApiClient{
             "server_type", serverType,
             "location", location,
             "image", image,
-            "ssh_keys", List.of("dev")
+            "ssh_keys", List.of("develop")
         );
 
         String response = sendRequest("POST", "/servers", requestBody);
