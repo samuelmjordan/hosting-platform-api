@@ -115,27 +115,25 @@ public class JobRepository extends BaseRepository {
 		);
 	}
 
-	public void updateJobForNonFailureRetry(String jobId, Instant delayedUntil) {
-		execute(
-			"""
-			UPDATE job_queue_
-			SET
-				status = 'PENDING',
-				delayed_until = ?
-				WHERE job_id = ?
-			""",
-			java.sql.Timestamp.from(delayedUntil),
-			jobId
-		);
-	}
-
 	public void updateJobForRetry(String jobId, int newRetryCount, Instant delayedUntil, String errorMessage) {
 		execute(
 			"""
+			WITH deleted AS (
+				DELETE FROM job_queue_
+				WHERE job_key = (SELECT job_key FROM job_queue_ WHERE job_id = ?)
+				AND status IN ('RETRYING', 'PENDING')
+				AND job_id != ?
+				RETURNING 1
+			)
 			UPDATE job_queue_
-			SET status = 'RETRYING', retry_count = ?, delayed_until = ?, error_message = ?
+			SET status = 'RETRYING',
+				retry_count = CASE WHEN EXISTS(SELECT 1 FROM deleted) THEN 1 ELSE ? END,
+				delayed_until = ?,
+				error_message = ?
 			WHERE job_id = ?
 			""",
+			jobId,
+			jobId,
 			newRetryCount,
 			java.sql.Timestamp.from(delayedUntil),
 			errorMessage,

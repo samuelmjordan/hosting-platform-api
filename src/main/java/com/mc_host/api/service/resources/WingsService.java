@@ -64,6 +64,7 @@ public class WingsService {
                     delay *= 1.2;
                     retries++;
                     if (retries >= 15) {
+                        LOGGER.severe("Failed to authenticate server %s".formatted(dnsARecord.aRecordId()));
                         throw e;
                     }
                 }

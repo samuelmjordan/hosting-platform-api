@@ -31,7 +31,7 @@ public class PterodactylAllocationStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Pterodactyl node not found: " + context.getNewPterodactylNodeId()));
         DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getNewARecordId())
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found: " + context.getNewARecordId()));
-        pterodactylService.createAllocation(pterodactylNode.pterodactylNodeId(), dnsARecord.content(), 25565);
+        pterodactylService.createDefaultAllocationRange(pterodactylNode.pterodactylNodeId(), dnsARecord.content());
         PterodactylAllocation pterodactylAllocation = pterodactylService.getAllocation(context.getSubscriptionId(), pterodactylNode.pterodactylNodeId());
 
         Context transitionedContext = context.withNewAllocationId(pterodactylAllocation.allocationId());

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 @Service
 public class PterodactylService {
@@ -90,6 +91,11 @@ public class PterodactylService {
 
     public void createAllocation(Long nodeId, String ipv4, Integer port) {
         appClient.createMultipleAllocations(nodeId, ipv4, List.of(port), "Minecraft");
+        LOGGER.info("[nodeId: %s] created allocation".formatted(nodeId));
+    }
+
+    public void createDefaultAllocationRange(Long nodeId, String ipv4) {
+        appClient.createMultipleAllocations(nodeId, ipv4, IntStream.range(30000, 31001).boxed().toList(), "Minecraft");
         LOGGER.info("[nodeId: %s] created allocation".formatted(nodeId));
     }
 
