@@ -3,6 +3,8 @@ package com.mc_host.api.service.provisioning.steps;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
+import com.mc_host.api.repository.NodeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AllocateDedicatedNodeStep extends AbstractStep {
+
+    private final NodeRepository nodeRepository;
 
     @Override
     public StepType getType() {
@@ -37,7 +41,10 @@ public class AllocateDedicatedNodeStep extends AbstractStep {
     @Transactional
     public StepTransition destroy(Context context) {
         //Skip for cloud resources
-        if (true) {
+        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNodeId())
+            .map(HetznerNode::dedicated)
+            .orElseThrow(() -> new IllegalStateException(String.format("Node %s not found", context.getNodeId())));
+        if (!dedicated) {
             LOGGER.warning("%s step is illegal for cloud resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.NEW);
         }

@@ -27,7 +27,6 @@ public class StartServerStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found: " + context.getNewPterodactylServerId()));
         pterodactylService.startNewPterodactylServer(pterodactylServer);
 
-        //Early return for non-migrations
         if (context.getMode().isMigrate()) {
             return transitionService.persistAndProgress(context, StepType.SYNC_NODE_ROUTE);
         }

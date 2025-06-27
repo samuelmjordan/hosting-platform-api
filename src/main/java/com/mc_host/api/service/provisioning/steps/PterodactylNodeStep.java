@@ -5,10 +5,12 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.NodeAccessoryRepository;
+import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.PterodactylService;
@@ -22,6 +24,7 @@ public class PterodactylNodeStep extends AbstractStep {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PlanRepository planRepository;
+    private final NodeRepository nodeRepository;
     private final NodeAccessoryRepository nodeAccessoryRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
     private final PterodactylService pterodactylService;
@@ -35,7 +38,10 @@ public class PterodactylNodeStep extends AbstractStep {
     @Transactional
     public StepTransition create(Context context) {
         //Skip for dedicated resources
-        if (false) {
+        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNewNodeId())
+            .map(HetznerNode::dedicated)
+            .orElseThrow(() -> new IllegalStateException(String.format("Node %s not found", context.getNewNodeId())));
+        if (dedicated) {
             LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.ASSIGN_PTERODACTYL_ALLOCATION);
         }
@@ -61,7 +67,10 @@ public class PterodactylNodeStep extends AbstractStep {
     @Transactional
     public StepTransition destroy(Context context) {
         //Skip for dedicated resources
-        if (false) {
+        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNodeId())
+            .map(HetznerNode::dedicated)
+            .orElseThrow(() -> new IllegalStateException(String.format("Node %s not found", context.getNodeId())));
+        if (dedicated) {
             LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.TRY_ALLOCATE_DEDICATED_NODE);
         }

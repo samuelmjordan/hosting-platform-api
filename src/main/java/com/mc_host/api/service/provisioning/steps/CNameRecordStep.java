@@ -5,8 +5,10 @@ import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.NodeAccessoryRepository;
+import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.service.resources.DnsService;
 import lombok.RequiredArgsConstructor;
 import net.datafaker.Faker;
@@ -21,6 +23,7 @@ import java.util.stream.Stream;
 public class CNameRecordStep extends AbstractStep {
     private static final Faker FAKER = new Faker();
 
+    private final NodeRepository nodeRepository;
     private final NodeAccessoryRepository nodeAccessoryRepository;
     private final GameServerRepository gameServerRepository;
     private final DnsService dnsService;
@@ -46,8 +49,10 @@ public class CNameRecordStep extends AbstractStep {
         Context transitionedContext = context.withNewCNameRecordId(dnsCNameRecord.cNameRecordId());
         gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
 
-        //TODO if dedicated
-        if (false) {
+        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNewNodeId())
+            .map(HetznerNode::dedicated)
+            .orElseThrow(() -> new IllegalStateException(String.format("Node %s not found", context.getNewNodeId())));
+        if (dedicated) {
             return transitionService.persistAndProgress(transitionedContext, StepType.SYNC_NODE_ROUTE);
         }
 
@@ -83,15 +88,16 @@ public class CNameRecordStep extends AbstractStep {
         String subdomain;
         do {
             subdomain = Stream.of(
-                    FAKER.word().adjective(),
                     FAKER.color().name(),
                     FAKER.animal().name(),
                     FAKER.word().verb(),
-                    String.valueOf(FAKER.number().numberBetween(1000, 9999)))
+                    String.valueOf(FAKER.number().numberBetween(10000, 99999)))
                 .map(s -> s.replaceAll("\\s+", ""))
                 .collect(Collectors.joining("-"))
                 .toLowerCase();
-        } while (gameServerRepository.domainExists(subdomain));
+        } while (
+            subdomain.length() > 32 ||
+            gameServerRepository.domainExists(subdomain));
         return subdomain;
     }
 

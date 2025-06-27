@@ -4,8 +4,10 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
 import com.mc_host.api.repository.NodeAccessoryRepository;
+import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.service.resources.PterodactylService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CreatePterodactylAllocationStep extends AbstractStep {
 
+    private final NodeRepository nodeRepository;
     private final NodeAccessoryRepository nodeAccessoryRepository;
     private final PterodactylService pterodactylService;
 
@@ -27,7 +30,10 @@ public class CreatePterodactylAllocationStep extends AbstractStep {
     @Transactional
     public StepTransition create(Context context) {
         //Skip for dedicated resources
-        if (false) {
+        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNewNodeId())
+            .map(HetznerNode::dedicated)
+            .orElseThrow(() -> new IllegalStateException(String.format("Node %s not found", context.getNewNodeId())));
+        if (dedicated) {
             LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.ASSIGN_PTERODACTYL_ALLOCATION);
         }

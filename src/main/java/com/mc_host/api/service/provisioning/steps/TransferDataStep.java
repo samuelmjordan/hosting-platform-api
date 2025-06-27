@@ -22,8 +22,8 @@ public class TransferDataStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        //Skip for dedicated resources
-        if (false) {
+        //Skip for non migrations
+        if (!context.getMode().isMigrate()) {
             LOGGER.warning("%s step is illegal for non-migrations. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.START_SERVER);
         }

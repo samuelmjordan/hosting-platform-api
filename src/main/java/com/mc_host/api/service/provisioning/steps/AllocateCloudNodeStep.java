@@ -7,6 +7,7 @@ import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.hetzner.HetznerCloudProduct;
 import com.mc_host.api.model.resource.hetzner.node.HetznerClaim;
 import com.mc_host.api.model.resource.hetzner.node.HetznerCloudNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.NodeRepository;
@@ -36,7 +37,11 @@ public class AllocateCloudNodeStep extends AbstractStep {
     @Transactional
     public StepTransition create(Context context) {
         //Skip for dedicated resources
-        if (false) {
+        //Cloud nodes havent been created yet
+        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNewNodeId())
+            .map(HetznerNode::dedicated)
+            .orElse(false);
+        if (dedicated) {
             LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.ASSIGN_PTERODACTYL_ALLOCATION);
         }
@@ -69,7 +74,10 @@ public class AllocateCloudNodeStep extends AbstractStep {
     @Transactional
     public StepTransition destroy(Context context) {
         //Skip for dedicated resources
-        if (false) {
+        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNodeId())
+            .map(HetznerNode::dedicated)
+            .orElseThrow(() -> new IllegalStateException(String.format("Node %s not found", context.getNodeId())));
+        if (dedicated) {
             LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.TRY_ALLOCATE_DEDICATED_NODE);
         }
