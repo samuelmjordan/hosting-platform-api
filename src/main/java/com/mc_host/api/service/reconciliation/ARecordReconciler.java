@@ -3,7 +3,7 @@ package com.mc_host.api.service.reconciliation;
 import com.mc_host.api.client.CloudflareClient;
 import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
 import com.mc_host.api.model.resource.ResourceType;
-import com.mc_host.api.repository.NodeRepository;
+import com.mc_host.api.repository.NodeAccessoryRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,14 +17,14 @@ public class ARecordReconciler implements ResourceReconciler {
     private static final Logger LOGGER = Logger.getLogger(ARecordReconciler.class.getName());
 
     private final CloudflareClient cloudflareClient;
-    private final NodeRepository nodeRepository;
+    private final NodeAccessoryRepository nodeAccessoryRepository;
 
     ARecordReconciler(
         CloudflareClient cloudflareClient,
-        NodeRepository nodeRepository
+        NodeAccessoryRepository nodeAccessoryRepository
     ) {
         this.cloudflareClient = cloudflareClient;
-        this.nodeRepository = nodeRepository;
+        this.nodeAccessoryRepository = nodeAccessoryRepository;
     }
 
     @Override
@@ -74,7 +74,7 @@ public class ARecordReconciler implements ResourceReconciler {
     }
 
     private List<DnsARecordZone> fetchExpectedResources() {
-        return nodeRepository.selectAllARecordIds().stream()
+        return nodeAccessoryRepository.selectAllARecordIds().stream()
             .map(record -> new DnsARecordZone(
                 record.aRecordId(),
                 record.zoneId()

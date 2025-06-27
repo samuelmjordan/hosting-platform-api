@@ -125,6 +125,8 @@ public class JobPoolService {
 		e.printStackTrace(pw);
 		String fullTrace = sw.toString();
 
+		LOGGER.severe("job %s failed: %s".formatted(job.jobId(), fullTrace));
+
 		if (newRetryCount >= job.maximumRetries()) {
 			jobRepository.moveToDeadLetter(job.jobId(), fullTrace);
 			LOGGER.log(Level.SEVERE, "job moved to dead letter: %s after %s attempts".formatted(job.jobId(), newRetryCount));

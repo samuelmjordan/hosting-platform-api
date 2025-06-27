@@ -67,14 +67,14 @@ public class PterodactylService {
             nodeResponse.attributes().id()
         );
         
-        LOGGER.info("[aRecordId: %s] [nodeId: %s] created pterodactyl node".formatted(
+        LOGGER.info("[aRecordId: %s] [hetznerNodeId: %s] created pterodactyl node".formatted(
             dnsARecord.aRecordId(), nodeResponse.attributes().id()));
         return node;
     }
 
     public void destroyNode(Long nodeId) {
         appClient.deleteNode(nodeId);
-        LOGGER.info("[nodeId: %s] deleted pterodactyl node".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] deleted pterodactyl node".formatted(nodeId));
     }
 
     public void configureNode(Long nodeId, DnsARecord dnsARecord) {
@@ -85,23 +85,23 @@ public class PterodactylService {
 
     private String getNodeConfig(Long nodeId) {
         var config = appClient.getNodeConfiguration(nodeId);
-        LOGGER.info("[nodeId: %s] fetched wings config".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] fetched wings config".formatted(nodeId));
         return config;
     }
 
     public void createAllocation(Long nodeId, String ipv4, Integer port) {
         appClient.createMultipleAllocations(nodeId, ipv4, List.of(port), "Minecraft");
-        LOGGER.info("[nodeId: %s] created allocation".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] created allocation".formatted(nodeId));
     }
 
     public void createDefaultAllocationRange(Long nodeId, String ipv4) {
         appClient.createMultipleAllocations(nodeId, ipv4, IntStream.range(30000, 31001).boxed().toList(), "Minecraft");
-        LOGGER.info("[nodeId: %s] created allocation".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] created allocation".formatted(nodeId));
     }
 
     public PterodactylAllocation getAllocation(String subscriptionId, Long nodeId) {
         var unassigned = appClient.getUnassignedAllocations(nodeId);
-        LOGGER.info("[nodeId: %s] fetched allocation".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] fetched allocation".formatted(nodeId));
         
         var attrs = unassigned.get(0).attributes();
         return new PterodactylAllocation(

@@ -4,7 +4,8 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
-import com.mc_host.api.model.resource.hetzner.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerCloudNode;
+import com.mc_host.api.repository.NodeAccessoryRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.service.resources.DnsService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ARecordStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
+    private final NodeAccessoryRepository nodeAccessoryRepository;
     private final DnsService dnsService;
 
     @Override
@@ -26,12 +28,18 @@ public class ARecordStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNewNodeId())
+        //Skip for dedicated resources
+        if (false) {
+            LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
+            return transitionService.persistAndProgress(context, StepType.ASSIGN_PTERODACTYL_ALLOCATION);
+        }
+
+        HetznerCloudNode hetznerCloudNode = nodeRepository.selectHetznerCloudNode(context.getNewNodeId())
             .orElseThrow(() -> new IllegalStateException("Hetzner node not found: " + context.getNewNodeId()));
-        DnsARecord dnsARecord = dnsService.createARecord(hetznerNode);
+        DnsARecord dnsARecord = dnsService.createARecord(hetznerCloudNode, context.getSubscriptionId());
 
         Context transitionedContext = context.withNewARecordId(dnsARecord.aRecordId());
-        nodeRepository.insertDnsARecord(dnsARecord);
+        nodeAccessoryRepository.insertDnsARecord(dnsARecord);
         
         return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_NODE);
     }
@@ -39,15 +47,21 @@ public class ARecordStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition destroy(Context context) {
-        DnsARecord dnsARecord = nodeRepository.selectDnsARecord(context.getARecordId())
+        //Skip for dedicated resources
+        if (false) {
+            LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
+            return transitionService.persistAndProgress(context, StepType.TRY_ALLOCATE_DEDICATED_NODE);
+        }
+
+        DnsARecord dnsARecord = nodeAccessoryRepository.selectDnsARecord(context.getARecordId())
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found: " + context.getARecordId()));
         Context transitionedContext = context.promoteNewARecordId();
-        nodeRepository.deleteDnsARecord(dnsARecord.aRecordId());
+        nodeAccessoryRepository.deleteDnsARecord(dnsARecord.aRecordId());
 
 
         dnsService.deleteARecord(dnsARecord);
 
-        return transitionService.persistAndProgress(transitionedContext, StepType.CLOUD_NODE);
+        return transitionService.persistAndProgress(transitionedContext, StepType.ALLOCATE_CLOUD_NODE);
     }
 
 }

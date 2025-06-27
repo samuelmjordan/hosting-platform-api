@@ -3,6 +3,7 @@ package com.mc_host.api.service.reconciliation;
 import com.mc_host.api.client.HetznerCloudClient;
 import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.repository.NodeRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,20 +12,12 @@ import java.util.logging.Logger;
 
 
 @Service
+@RequiredArgsConstructor
 public class HetznerCloudNodeReconciler implements ResourceReconciler {
     private static final Logger LOGGER = Logger.getLogger(HetznerCloudNodeReconciler.class.getName());
 
-    private final HetznerCloudClient hetznerClient;
+    private final HetznerCloudClient hetznerCloudClient;
     private final NodeRepository nodeRepository;
-
-    HetznerCloudNodeReconciler(
-        HetznerCloudClient hetznerClient,
-        NodeRepository nodeRepository
-    ) {
-        this.hetznerClient = hetznerClient;
-        this.nodeRepository = nodeRepository;
-    }
-
     @Override
     public ResourceType getType() {
         return ResourceType.HETZNER_NODE;
@@ -46,7 +39,7 @@ public class HetznerCloudNodeReconciler implements ResourceReconciler {
 
             nodesToDestroy.forEach(nodeId -> {
 				try {
-					hetznerClient.deleteServer(nodeId);
+					hetznerCloudClient.deleteServer(nodeId);
 				} catch (Exception e) {
                     LOGGER.warning("Exception caught destroying cloud node %s: %s".formatted(nodeId, e));
                 }
@@ -57,12 +50,12 @@ public class HetznerCloudNodeReconciler implements ResourceReconciler {
     }
     
     private List<Long> fetchActualResources() throws Exception {
-        return hetznerClient.getAllServers().stream()
+        return hetznerCloudClient.getAllServers().stream()
             .map(response -> response.id).toList();
     }
 
     private List<Long> fetchExpectedResources() {
-        return nodeRepository.selectAllHetznerNodeIds();
+        return nodeRepository.selectAllCloudHetznerNodeIds();
     }
     
 }

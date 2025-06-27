@@ -38,7 +38,8 @@ public class InstallServerStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition destroy(Context context) {
-        throw new UnsupportedOperationException("Server Installation step cannot be destroyed directly. Try destroying the Pterodactyl Node step instead.");
+		LOGGER.warning("%s step is illegal for destroys. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
+		return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }
 
 }

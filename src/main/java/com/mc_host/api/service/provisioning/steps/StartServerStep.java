@@ -26,12 +26,17 @@ public class StartServerStep extends AbstractStep {
         PterodactylServer pterodactylServer = gameServerRepository.selectPterodactylServer(context.getNewPterodactylServerId())
             .orElseThrow(() -> new IllegalStateException("Pterodactyl server not found: " + context.getNewPterodactylServerId()));
         pterodactylService.startNewPterodactylServer(pterodactylServer);
-        
-        return transitionService.persistAndProgress(context, StepType.FINALISE);
+
+        //Early return for non-migrations
+        if (context.getMode().isMigrate()) {
+            return transitionService.persistAndProgress(context, StepType.SYNC_NODE_ROUTE);
+        }
+        return transitionService.persistAndProgress(context, StepType.C_NAME_RECORD);
     }
 
     @Override
     public StepTransition destroy(Context context) {
+        LOGGER.warning("%s step is illegal for destroys. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }
     

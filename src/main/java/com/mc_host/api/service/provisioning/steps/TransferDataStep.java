@@ -22,8 +22,10 @@ public class TransferDataStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        if (!context.getMode().isMigrate()) {
-            throw new UnsupportedOperationException("Data Transfer step is migration only.");
+        //Skip for dedicated resources
+        if (false) {
+            LOGGER.warning("%s step is illegal for non-migrations. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
+            return transitionService.persistAndProgress(context, StepType.START_SERVER);
         }
 
         try {
@@ -38,7 +40,8 @@ public class TransferDataStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition destroy(Context context) {
-        throw new UnsupportedOperationException("Data Transfer step cannot be destroyed directly.");
+        LOGGER.warning("%s step is illegal for destroys. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
+        return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }
 
 }

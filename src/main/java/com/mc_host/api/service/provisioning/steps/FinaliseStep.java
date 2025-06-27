@@ -19,17 +19,20 @@ public class FinaliseStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        Context transitionedContext = context;
-        if (!context.getMode().isMigrate()) {
-            transitionedContext = context.promoteAllNewResources();
+        //Skip for migrations
+        if (context.getMode().isMigrate()) {
+            LOGGER.warning("%s step is illegal for migrations. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
+            return transitionService.persistAndProgress(context, StepType.READY);
         }
 
+        Context transitionedContext = context.promoteAllNewResources();
         return transitionService.persistAndProgress(transitionedContext, StepType.READY);
     }
 
     @Override
     @Transactional
     public StepTransition destroy(Context context) {
+        LOGGER.warning("%s step is illegal for destroys. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
         return transitionService.persistAndProgress(context, StepType.C_NAME_RECORD);
     }
 }

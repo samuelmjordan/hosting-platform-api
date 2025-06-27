@@ -20,7 +20,7 @@ public class NewStep extends AbstractStep {
     @Override
     @Transactional
     public StepTransition create(Context context) {
-        return transitionService.persistAndProgress(context, StepType.ALLOCATE_NODE);
+        return transitionService.persistAndProgress(context, StepType.TRY_ALLOCATE_DEDICATED_NODE);
     }
 
     @Override

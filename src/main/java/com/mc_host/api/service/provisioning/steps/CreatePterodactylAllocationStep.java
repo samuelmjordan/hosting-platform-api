@@ -9,20 +9,22 @@ import com.mc_host.api.repository.NodeAccessoryRepository;
 import com.mc_host.api.service.resources.PterodactylService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class ConfigureNodeStep extends AbstractStep {
+public class CreatePterodactylAllocationStep extends AbstractStep {
 
     private final NodeAccessoryRepository nodeAccessoryRepository;
     private final PterodactylService pterodactylService;
 
     @Override
     public StepType getType() {
-        return StepType.CONFIGURE_NODE;
+        return StepType.CREATE_PTERODACTYL_ALLOCATION;
     }
 
     @Override
+    @Transactional
     public StepTransition create(Context context) {
         //Skip for dedicated resources
         if (false) {
@@ -34,12 +36,13 @@ public class ConfigureNodeStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("Pterodactyl node not found: " + context.getNewPterodactylNodeId()));
         DnsARecord dnsARecord = nodeAccessoryRepository.selectDnsARecord(context.getNewARecordId())
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found: " + context.getNewARecordId()));
-        pterodactylService.configureNode(pterodactylNode.pterodactylNodeId(), dnsARecord);
+        pterodactylService.createAllocation(pterodactylNode.pterodactylNodeId(), dnsARecord.content(), 25565);
 
-        return transitionService.persistAndProgress(context, StepType.CREATE_PTERODACTYL_ALLOCATION);
+        return transitionService.persistAndProgress(context, StepType.ASSIGN_PTERODACTYL_ALLOCATION);
     }
 
     @Override
+    @Transactional
     public StepTransition destroy(Context context) {
         LOGGER.warning("%s step is illegal for destroys. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
         return transitionService.persistAndProgress(context, StepType.PTERODACTYL_NODE);

@@ -1,18 +1,20 @@
 package com.mc_host.api.service.processor;
 
+import com.mc_host.api.model.plan.ServerSpecification;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.Mode;
 import com.mc_host.api.model.provisioning.Status;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
-import com.mc_host.api.model.resource.hetzner.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerClaim;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.queue.JobScheduler;
 import com.mc_host.api.queue.processor.JobProcessor;
 import com.mc_host.api.repository.GameServerRepository;
+import com.mc_host.api.repository.GameServerSpecRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
@@ -31,6 +33,7 @@ public class PerSubscriptionSyncJobProcessor implements JobProcessor {
 	private final JobScheduler jobScheduler;
 	private final ServerExecutor serverExecutor;
 	private final SubscriptionRepository subscriptionRepository;
+	private final GameServerSpecRepository gameServerSpecRepository;
 	private final ServerExecutionContextRepository serverExecutionContextRepository;
 	private final PlanRepository planRepository;
 	private final NodeRepository nodeRepository;
@@ -87,11 +90,16 @@ public class PerSubscriptionSyncJobProcessor implements JobProcessor {
 				// what is the actual spec that is provisioned
 				String specificationId = planRepository.selectSpecificationId(subscription.priceId())
 					.orElseThrow(() -> new IllegalStateException(String.format("No specification could be found for price: %s", subscription.priceId())));
-				HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNodeId())
+				Long claimedRam = nodeRepository.selectClaim(context.getSubscriptionId())
+					.map(HetznerClaim::ramGb)
 					.orElseThrow(() -> new IllegalStateException(String.format("No node could be found for id: %s", context.getNodeId())));
+				Long specRam = gameServerSpecRepository.selectSpecification(specificationId)
+					.map(ServerSpecification::ram_gb)
+					.map(Long::valueOf)
+					.orElseThrow(() -> new IllegalStateException(String.format("No specification could be found for id: %s", specificationId)));
 
 				// check if spec has changed
-				if (specificationId.equals(hetznerNode.hetznerSpec().getSpecificationId())) {
+				if (claimedRam.equals(specRam)) {
 					// check serverKey, initiate a migration if changed
 					String serverKey = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
 						.map(PterodactylServer::serverKey)

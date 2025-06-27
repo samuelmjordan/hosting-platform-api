@@ -42,22 +42,27 @@ public class CreateSubuserStep extends AbstractStep {
 			.orElseThrow(() -> new IllegalStateException("Server not found: " + context.getNewPterodactylServerId()));
 		pterodactylService.createSftpSubsuser(user.dummyEmail(), pterodactylServer.pterodactylServerUid());
 
-		if (context.getMode().isMigrate()) {
-			String oldServerKey = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
-				.map(PterodactylServer::serverKey)
-				.orElse(null);
-			if (!Objects.equals(pterodactylServer.serverKey(), oldServerKey)) {
-				return transitionService.persistAndProgress(context, StepType.START_SERVER);
-			}
-			return transitionService.persistAndProgress(context, StepType.TRANSFER_DATA);
+		//Early return for non-migrations
+		if (!context.getMode().isMigrate()) {
+			return transitionService.persistAndProgress(context, StepType.START_SERVER);
 		}
-        return transitionService.persistAndProgress(context, StepType.C_NAME_RECORD);
+
+		//Check for destructive or non-destructive migration
+		String oldServerKey = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
+			.map(PterodactylServer::serverKey)
+			.orElse(null);
+		if (!Objects.equals(pterodactylServer.serverKey(), oldServerKey)) {
+			return transitionService.persistAndProgress(context, StepType.START_SERVER);
+		}
+		return transitionService.persistAndProgress(context, StepType.TRANSFER_DATA);
+
     }
 
     @Override
     @Transactional
     public StepTransition destroy(Context context) {
-		throw new UnsupportedOperationException("Subuser step cannot be destroyed directly. Try destroying the Pterodactyl Server step instead.");
+		LOGGER.warning("%s step is illegal for destroys. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
+		return transitionService.persistAndProgress(context, StepType.PTERODACTYL_SERVER);
     }
 
 }

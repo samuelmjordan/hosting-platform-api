@@ -4,7 +4,7 @@ import com.mc_host.api.configuration.PterodactylConfiguration;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.repository.GameServerRepository;
-import com.mc_host.api.repository.NodeRepository;
+import com.mc_host.api.repository.NodeAccessoryRepository;
 import lombok.RequiredArgsConstructor;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.FileMode;
@@ -26,7 +26,7 @@ public class TransferService {
 
 	private final PterodactylConfiguration pterodactylConfiguration;
 	private final GameServerRepository gameServerRepository;
-	private final NodeRepository nodeRepository;
+	private final NodeAccessoryRepository nodeAccessoryRepository;
 
 	public void transferServerData(Long sourceServerId, Long targetServerId) throws Exception {
 		LOGGER.info("starting sshj sftp transfer from %s to %s".formatted(sourceServerId, targetServerId));
@@ -187,7 +187,7 @@ public class TransferService {
 	private SftpDetails getSftpDetails(Long serverId) {
 		PterodactylServer server = gameServerRepository.selectPterodactylServer(serverId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Server %s not found".formatted(serverId)));
-		PterodactylAllocation allocation = nodeRepository.selectPterodactylAllocation(server.allocationId())
+		PterodactylAllocation allocation = nodeAccessoryRepository.selectPterodactylAllocation(server.allocationId())
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "Allocation %s not found".formatted(serverId)));
 		return new SftpDetails(
 			allocation.ip(),

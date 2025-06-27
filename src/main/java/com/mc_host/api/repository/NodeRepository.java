@@ -1,13 +1,15 @@
 package com.mc_host.api.repository;
 
-import com.mc_host.api.model.resource.dns.DnsARecord;
-import com.mc_host.api.model.resource.hetzner.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.HetznerCloudProduct;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
-import com.mc_host.api.model.resource.hetzner.HetznerSpec;
-import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
-import com.mc_host.api.model.resource.pterodactyl.PterodactylNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerClaim;
+import com.mc_host.api.model.resource.hetzner.node.HetznerCloudNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerDedicatedNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNodeInterface;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,221 +21,147 @@ public class NodeRepository extends BaseRepository {
 
     public NodeRepository(JdbcTemplate jdbc) { super(jdbc); }
 
-    // hetzner node ops
-    public int insertHetznerCloudNode(HetznerNode node) {
+    @Transactional
+    public int insertCloudNode(HetznerCloudNode cloudNode) {
+        insertNode(cloudNode);
         return execute("""
             INSERT INTO cloud_node_ (
-                subscription_id,
-                node_id,
-                hetzner_region,
-                hetzner_spec,
-                ipv4)
-            VALUES (?, ?, ?, ?, ?)
+                hetzner_node_id,
+                cloud_product)
+            VALUES (?, ?)
             """,
-            node.subscriptionId(),
-            node.nodeId(),
-            node.hetznerRegion().toString(),
-            node.hetznerSpec().toString(),
-            node.ipv4()
+            cloudNode.hetznerNodeId(),
+            cloudNode.cloudProduct().toString()
         );
+    }
+
+    private int insertNode(HetznerNodeInterface node) {
+        return execute("""
+            INSERT INTO node_ (
+                hetzner_node_id,
+                hetzner_region,
+                ipv4,
+                dedicated)
+            VALUES (?, ?, ?, ?)
+            """,
+            node.hetznerNodeId(),
+            node.hetznerRegion().toString(),
+            node.ipv4(),
+            node.dedicated()
+        );
+    }
+
+    public int insertClaim(HetznerClaim claim) {
+        return execute("""
+            INSERT INTO resource_claim_ (
+                subscription_id,
+                hetzner_node_id,
+                ram_gb)
+            VALUES (?, ?, ?)
+            """,
+            claim.subscriptionId(),
+            claim.hetznerNodeId(),
+            claim.ramGb());
     }
 
     public Optional<HetznerNode> selectHetznerNode(Long nodeId) {
         return selectOne("""
             SELECT
-                subscription_id,
-                node_id,
-                hetzner_region,
-                hetzner_spec,
-                ipv4
-            FROM cloud_node_
-            WHERE node_id = ?
+               hetzner_node_id,
+               hetzner_region,
+               ipv4,
+               dedicated
+            FROM node_
+            WHERE hetzner_node_id = ?;
             """,
             this::mapHetznerNode,
             nodeId
         );
     }
 
-    public Optional<HetznerNode> selectHetznerNodeFromSubscriptionId(String subId) {
+    public Optional<HetznerCloudNode> selectHetznerCloudNode(Long nodeId) {
         return selectOne("""
             SELECT
-                subscription_id,
-                node_id,
-                hetzner_region,
-                hetzner_spec,
-                ipv4
-            FROM cloud_node_ WHERE subscription_id = ?
-            ORDER BY created_at ASC LIMIT 1
+               n.hetzner_node_id,
+               n.hetzner_region,
+               n.ipv4,
+               c.cloud_product
+            FROM node_ n
+            JOIN cloud_node_ c ON n.hetzner_node_id = c.hetzner_node_id
+            WHERE n.hetzner_node_id = ?;
             """,
-            this::mapHetznerNode,
-            subId
-        );
-    }
-
-    public List<Long> selectAllHetznerNodeIds() {
-        return selectMany("SELECT node_id FROM cloud_node_",
-                (rs, rowNum) -> rs.getLong("node_id"));
-    }
-
-    public int deleteHetznerNode(Long nodeId) {
-        return execute("DELETE FROM cloud_node_ WHERE node_id = ?", nodeId);
-    }
-
-    // pterodactyl node ops
-    public int insertPterodactylNode(PterodactylNode node) {
-        return execute("INSERT INTO pterodactyl_node_ (subscription_id, pterodactyl_node_id) VALUES (?, ?)",
-                node.subscriptionId(), node.pterodactylNodeId());
-    }
-
-    public Optional<PterodactylNode> selectPterodactylNode(Long nodeId) {
-        return selectOne("""
-            SELECT
-                subscription_id,
-                pterodactyl_node_id
-            FROM pterodactyl_node_
-            WHERE pterodactyl_node_id = ?
-            """,
-            this::mapPterodactylNode,
+            this::mapHetznerCloudNode,
             nodeId
         );
     }
 
-    public int deletePterodactylNode(String subId) {
-        return execute("DELETE FROM pterodactyl_node_ WHERE subscription_id = ?", subId);
-    }
-
-    public int deletePterodactylNode(Long nodeId) {
-        return execute("DELETE FROM pterodactyl_node_ WHERE pterodactyl_node_id = ?", nodeId);
-    }
-
-    // pterodactyl allocation ops
-    public int insertPterodactylAllocation(PterodactylAllocation allocation) {
-        return execute("""
-            INSERT INTO pterodactyl_allocation_ (
-                subscription_id,
-                allocation_id,
-                ip,
-                port,
-                alias)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            allocation.subscriptionId(),
-            allocation.allocationId(),
-            allocation.ip(),
-            allocation.port(),
-            allocation.alias()
-        );
-    }
-
-    public Optional<PterodactylAllocation> selectPterodactylAllocation(Long allocId) {
+    public Optional<HetznerClaim> selectClaim(String subscriptionId) {
         return selectOne("""
             SELECT
                 subscription_id,
-                allocation_id,
-                ip,
-                port,
-                alias
-            FROM pterodactyl_allocation_
-            WHERE allocation_id = ?
+                hetzner_node_id,
+                ram_gb
+            FROM resource_claim_
+            WHERE subscription_id = ?;
             """,
-            this::mapPterodactylAllocation,
-            allocId
+            this::mapHetznerClaim,
+            subscriptionId
         );
     }
 
-    public int deletePterodactylAllocation(Long allocId) {
-        return execute("DELETE FROM pterodactyl_allocation_ WHERE allocation_id = ?", allocId);
+    public List<Long> selectAllCloudHetznerNodeIds() {
+        return selectMany("SELECT hetzner_node_id FROM cloud_node_",
+                (rs, rowNum) -> rs.getLong("hetzner_node_id"));
     }
 
-    // dns a record ops
-    public int insertDnsARecord(DnsARecord record) {
-        return execute("""
-            INSERT INTO dns_a_record_ (
-                subscription_id,
-                a_record_id,
-                zone_id,
-                zone_name,
-                record_name,
-                content)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            record.subscriptionId(),
-            record.aRecordId(),
-            record.zoneId(),
-            record.zoneName(),
-            record.recordName(),
-            record.content()
-        );
+    public int deleteClaim(String subscriptionId, Long hetznerNodeId) {
+        return execute("DELETE FROM resource_claim_ WHERE subscription_id = ? AND hetzner_node_id = ?",
+            subscriptionId, hetznerNodeId);
     }
 
-    public Optional<DnsARecord> selectDnsARecord(String recordId) {
-        return selectOne("""
-            SELECT
-                subscription_id,
-                a_record_id,
-                zone_id,
-                zone_name,
-                record_name,
-                content
-            FROM dns_a_record_
-            WHERE a_record_id = ?
-            """,
-            this::mapDnsARecord,
-            recordId
-        );
+    public int deleteHetznerNode(Long hetznerNodeId) {
+        return execute("DELETE FROM node_ WHERE hetzner_node_id = ?", hetznerNodeId);
     }
 
-    public List<DnsARecord> selectAllARecordIds() {
-        return selectMany("""
-            SELECT
-                subscription_id,
-                a_record_id,
-                zone_id,
-                zone_name,
-                record_name,
-                content
-            FROM dns_a_record_
-            """,
-            this::mapDnsARecord
-        );
-    }
-
-    public int deleteDnsARecord(String recordId) {
-        return execute("DELETE FROM dns_a_record_ WHERE a_record_id = ?", recordId);
+    public int deleteHetznerCloudNode(Long hetznerNodeId) {
+        return execute("DELETE FROM node_ WHERE hetzner_node_id = ? AND dedicated = false", hetznerNodeId);
     }
 
     // mappers
     private HetznerNode mapHetznerNode(ResultSet rs, int rowNum) throws SQLException {
         return new HetznerNode(
-            rs.getString("subscription_id"),
-            rs.getLong("node_id"),
+            rs.getLong("hetzner_node_id"),
             HetznerRegion.lookup(rs.getString("hetzner_region")),
-            HetznerSpec.lookup(rs.getString("hetzner_spec")),
-            rs.getString("ipv4"));
+            rs.getString("ipv4"),
+            rs.getBoolean("dedicated")
+        );
     }
 
-    private PterodactylNode mapPterodactylNode(ResultSet rs, int rowNum) throws SQLException {
-        return new PterodactylNode(
-            rs.getString("subscription_id"),
-            rs.getLong("pterodactyl_node_id"));
+    private HetznerCloudNode mapHetznerCloudNode(ResultSet rs, int rowNum) throws SQLException {
+        return new HetznerCloudNode(
+            rs.getLong("hetzner_node_id"),
+            HetznerRegion.lookup(rs.getString("hetzner_region")),
+            rs.getString("ipv4"),
+            HetznerCloudProduct.lookup(rs.getString("cloud_product"))
+        );
     }
 
-    private PterodactylAllocation mapPterodactylAllocation(ResultSet rs, int rowNum) throws SQLException {
-        return new PterodactylAllocation(
-            rs.getString("subscription_id"),
-            rs.getLong("allocation_id"),
-            rs.getString("ip"),
-            rs.getInt("port"),
-            rs.getString("alias"));
+    private HetznerDedicatedNode mapHetznerDedicatedNode(ResultSet rs, int rowNum) throws SQLException {
+        return new HetznerDedicatedNode(
+            rs.getLong("hetzner_node_id"),
+            HetznerRegion.lookup(rs.getString("hetzner_region")),
+            rs.getString("ipv4"),
+            rs.getString("dedicated_product"),
+            rs.getLong("total_ram_gb"),
+            rs.getBoolean("active")
+        );
     }
 
-    private DnsARecord mapDnsARecord(ResultSet rs, int rowNum) throws SQLException {
-        return new DnsARecord(
+    private HetznerClaim mapHetznerClaim(ResultSet rs, int rowNum) throws SQLException {
+        return new HetznerClaim(
             rs.getString("subscription_id"),
-            rs.getString("a_record_id"),
-            rs.getString("zone_id"),
-            rs.getString("zone_name"),
-            rs.getString("record_name"),
-            rs.getString("content"));
+            rs.getLong("hetzner_node_id"),
+            rs.getLong("ram_gb")
+        );
     }
 }

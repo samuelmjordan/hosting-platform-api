@@ -82,14 +82,14 @@ public class JobRepository extends BaseRepository {
 				maximum_retries,
 				delayed_until
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT (type, dedup_key) 
-			WHERE status IN ('PENDING', 'RETRYING')
+			ON CONFLICT (type, dedup_key)
+			WHERE status = 'PENDING'
 			DO UPDATE SET
 				payload = EXCLUDED.payload,
 				duplicate_count = job_queue_.duplicate_count + 1,
 				last_seen = NOW(),
 				delayed_until = LEAST(
-					COALESCE(job_queue_.delayed_until, EXCLUDED.delayed_until), 
+					COALESCE(job_queue_.delayed_until, EXCLUDED.delayed_until),
 					COALESCE(EXCLUDED.delayed_until, job_queue_.delayed_until)
 				)
 			RETURNING *
@@ -118,22 +118,13 @@ public class JobRepository extends BaseRepository {
 	public void updateJobForRetry(String jobId, int newRetryCount, Instant delayedUntil, String errorMessage) {
 		execute(
 			"""
-			WITH deleted AS (
-				DELETE FROM job_queue_
-				WHERE job_key = (SELECT job_key FROM job_queue_ WHERE job_id = ?)
-				AND status IN ('RETRYING', 'PENDING')
-				AND job_id != ?
-				RETURNING 1
-			)
 			UPDATE job_queue_
 			SET status = 'RETRYING',
-				retry_count = CASE WHEN EXISTS(SELECT 1 FROM deleted) THEN 1 ELSE ? END,
+				retry_count = ?,
 				delayed_until = ?,
 				error_message = ?
 			WHERE job_id = ?
 			""",
-			jobId,
-			jobId,
 			newRetryCount,
 			java.sql.Timestamp.from(delayedUntil),
 			errorMessage,

@@ -157,7 +157,7 @@ public class ClerkEventProcessor {
                     FAKER.word().adjective(),
                     FAKER.color().name(),
                     FAKER.animal().name(),
-                    FAKER.word().verb() + 's',
+                    FAKER.word().verb(),
                     String.valueOf(FAKER.number().numberBetween(10, 99)))
                 .reduce(String::concat).get()
                 .replace(" ", "")

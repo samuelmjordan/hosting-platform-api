@@ -9,7 +9,7 @@ CREATE TABLE server_execution_context_ (
     execution_status TEXT NOT NULL, -- 'in_progress', 'completed', 'failed'
 
     -- Existing resources
-    node_id BIGINT,
+    hetzner_node_id BIGINT,
     a_record_id TEXT,
     pterodactyl_node_id BIGINT,
     allocation_id BIGINT,
@@ -17,7 +17,7 @@ CREATE TABLE server_execution_context_ (
     c_name_record_id TEXT,
 
     -- Migration resources
-    new_node_id BIGINT,
+    new_hetzner_node_id BIGINT,
     new_a_record_id TEXT,
     new_pterodactyl_node_id BIGINT,
     new_allocation_id BIGINT,
@@ -39,8 +39,8 @@ CREATE TABLE server_execution_context_ (
     CONSTRAINT fk_server_execution_context_subscription_id FOREIGN KEY (subscription_id) 
         REFERENCES subscription_ (subscription_id) ON DELETE CASCADE,
 
-    CONSTRAINT fk_server_execution_context_node_id FOREIGN KEY (node_id) 
-        REFERENCES cloud_node_ (node_id) ON DELETE SET NULL,
+    CONSTRAINT fk_server_execution_context_node_id FOREIGN KEY (hetzner_node_id)
+        REFERENCES cloud_node_ (hetzner_node_id) ON DELETE SET NULL,
     CONSTRAINT fk_server_execution_context_a_record_id FOREIGN KEY (a_record_id)    
         REFERENCES dns_a_record_ (a_record_id) ON DELETE SET NULL,
     CONSTRAINT fk_server_execution_context_pterodactyl_node_id FOREIGN KEY (pterodactyl_node_id) 
@@ -52,8 +52,8 @@ CREATE TABLE server_execution_context_ (
     CONSTRAINT fk_server_execution_context_c_name_record_id FOREIGN KEY (c_name_record_id) 
         REFERENCES dns_c_name_record_ (c_name_record_id) ON DELETE SET NULL,
 
-    CONSTRAINT fk_server_execution_context_new_node_id FOREIGN KEY (new_node_id) 
-        REFERENCES cloud_node_ (node_id) ON DELETE SET NULL,
+    CONSTRAINT fk_server_execution_context_new_node_id FOREIGN KEY (new_hetzner_node_id)
+        REFERENCES cloud_node_ (hetzner_node_id) ON DELETE SET NULL,
     CONSTRAINT fk_server_execution_context_new_a_record_id FOREIGN KEY (new_a_record_id)    
         REFERENCES dns_a_record_ (a_record_id) ON DELETE SET NULL,
     CONSTRAINT fk_server_execution_context_new_pterodactyl_node_id FOREIGN KEY (new_pterodactyl_node_id) 
@@ -71,13 +71,13 @@ CREATE TABLE server_execution_context_ (
 -- Indexes for foreign keys
 CREATE INDEX idx_server_execution_context_subscription_id ON server_execution_context_ (subscription_id);
 CREATE INDEX idx_server_execution_context_execution_status ON server_execution_context_ (execution_status);
-CREATE INDEX idx_server_execution_context_node_id ON server_execution_context_ (node_id);
+CREATE INDEX idx_server_execution_context_hetzner_node_id ON server_execution_context_ (hetzner_node_id);
 CREATE INDEX idx_server_execution_context_a_record_id ON server_execution_context_ (a_record_id);
 CREATE INDEX idx_server_execution_context_pterodactyl_node_id ON server_execution_context_ (pterodactyl_node_id);
 CREATE INDEX idx_server_execution_context_allocation_id ON server_execution_context_ (allocation_id);
 CREATE INDEX idx_server_execution_context_pterodactyl_server_id ON server_execution_context_ (pterodactyl_server_id);
 CREATE INDEX idx_server_execution_context_c_name_record_id ON server_execution_context_ (c_name_record_id);
-CREATE INDEX idx_server_execution_context_new_node_id ON server_execution_context_ (new_node_id);
+CREATE INDEX idx_server_execution_context_new_hetzner_node_id ON server_execution_context_ (new_hetzner_node_id);
 CREATE INDEX idx_server_execution_context_new_a_record_id ON server_execution_context_ (new_a_record_id);
 CREATE INDEX idx_server_execution_context_new_pterodactyl_node_id ON server_execution_context_ (new_pterodactyl_node_id);
 CREATE INDEX idx_server_execution_context_new_allocation_id ON server_execution_context_ (new_allocation_id);

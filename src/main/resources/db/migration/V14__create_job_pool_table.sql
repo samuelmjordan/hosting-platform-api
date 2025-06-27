@@ -29,7 +29,7 @@ CREATE TABLE job_queue_ (
 -- then add your partial unique indexes
 CREATE UNIQUE INDEX idx_unique_dedup_pending_retrying
 ON job_queue_ (type, dedup_key)
-WHERE status IN ('PENDING', 'RETRYING');
+WHERE status = 'PENDING';
 
 CREATE UNIQUE INDEX idx_unique_dedup_processing
 ON job_queue_ (type, dedup_key)

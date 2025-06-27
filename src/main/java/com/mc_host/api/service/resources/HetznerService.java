@@ -1,11 +1,11 @@
 package com.mc_host.api.service.resources;
 
 import com.mc_host.api.client.HetznerCloudClient;
-import com.mc_host.api.model.resource.hetzner.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.HetznerCloudProduct;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse.Server;
-import com.mc_host.api.model.resource.hetzner.HetznerSpec;
+import com.mc_host.api.model.resource.hetzner.node.HetznerCloudNode;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -23,28 +23,27 @@ public class HetznerService {
         this.hetznerClient = hetznerClient;
     }
 
-    public HetznerNode createCloudNode(String subscriptionId, HetznerSpec hetznerServerType) {
+    public HetznerCloudNode createCloudNode(String subscriptionId, HetznerCloudProduct hetznerCloudProduct) {
         try {
             String uuid = UUID.randomUUID().toString();
             Server hetznerServer = hetznerClient.createServer(
                 uuid,
-                hetznerServerType.toString(),
+                hetznerCloudProduct.toString(),
                 HetznerRegion.NBG1.toString(),
                 "ubuntu-24.04"
             ).server;
-            HetznerNode hetznerNode = new HetznerNode(
-                subscriptionId,
+            HetznerCloudNode hetznerCloudNode = new HetznerCloudNode(
                 hetznerServer.id,
                 HetznerRegion.NBG1,
-                hetznerServerType,
-                hetznerServer.public_net.ipv4.ip
+                hetznerServer.public_net.ipv4.ip,
+                hetznerCloudProduct
             );
             
             if (!hetznerClient.waitForServerStatus(hetznerServer.id, "running")) {
-                throw new RuntimeException(String.format("[subscriptionId: %s] [nodeId: %s] Timed-out creating hetzner cloud node", subscriptionId, hetznerServer.id));
+                throw new RuntimeException(String.format("[subscriptionId: %s] [hetznerNodeId: %s] Timed-out creating hetzner cloud node", subscriptionId, hetznerServer.id));
             }
-            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] [nodeId: %s] Created hetzner cloud node", subscriptionId, hetznerServer.id));
-            return hetznerNode; 
+            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] [hetznerNodeId: %s] Created hetzner cloud node", subscriptionId, hetznerServer.id));
+            return hetznerCloudNode;
         } catch (Exception e) {
             throw new RuntimeException(String.format("[subscriptionId: %s] Error creating hetzner cloud node", subscriptionId), e);
         }       

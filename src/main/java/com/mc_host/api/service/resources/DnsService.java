@@ -5,7 +5,7 @@ import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
 import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
-import com.mc_host.api.model.resource.hetzner.HetznerNode;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNodeInterface;
 import com.mc_host.api.repository.GameServerRepository;
 import org.springframework.stereotype.Service;
 
@@ -30,24 +30,24 @@ public class DnsService {
         this.gameServerRepository = gameServerRepository;
     }
 
-    public DnsARecord createARecord(HetznerNode hetznerNode) {
-        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS A record", hetznerNode.subscriptionId()));
+    public DnsARecord createARecord(HetznerNodeInterface hetznerNode, String subscriptionId) {
+        LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Creating DNS A record", hetznerNode.hetznerNodeId()));
         try {
             String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getDomain());
             String recordName = UUID.randomUUID().toString().replace("-", "");
             DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(zoneId, recordName, hetznerNode.ipv4(), false);
             DnsARecord dnsARecord = new DnsARecord(
-                hetznerNode.subscriptionId(), 
+                subscriptionId,
                 dnsARecordResponse.id(), 
                 zoneId, 
                 applicationConfiguration.getDomain(), 
                 dnsARecordResponse.name(), 
                 dnsARecordResponse.content()
             );
-            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Created DNS A record", hetznerNode.subscriptionId()));
+            LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Created DNS A record", hetznerNode.hetznerNodeId()));
             return dnsARecord;
         } catch (Exception e) {
-            throw new RuntimeException(String.format("[subscriptionId: %s] Error Creating DNS A record", hetznerNode.subscriptionId()), e);
+            throw new RuntimeException(String.format("[hetznerNodeId: %s] Error Creating DNS A record", hetznerNode.hetznerNodeId()), e);
         }
     }
 

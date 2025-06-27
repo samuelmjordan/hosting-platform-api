@@ -9,7 +9,7 @@ import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.GameServerSpecRepository;
-import com.mc_host.api.repository.NodeRepository;
+import com.mc_host.api.repository.NodeAccessoryRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.PterodactylService;
@@ -23,7 +23,7 @@ public class PterodactylServerStep extends AbstractStep {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PlanRepository planRepository;
-    private final NodeRepository nodeRepository;
+    private final NodeAccessoryRepository nodeAccessoryRepository;
     private final GameServerRepository gameServerRepository;
     private final GameServerSpecRepository gameServerSpecRepository;
 	private final PterodactylService pterodactylService;
@@ -41,7 +41,7 @@ public class PterodactylServerStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException(String.format("Couldn't find subscription: %s", context.getSubscriptionId())));
         String specificationId = planRepository.selectSpecificationId(priceId)
             .orElseThrow(() -> new IllegalStateException(String.format("No specification could be found for price: %s", priceId)));
-        PterodactylAllocation allocationAttributes = nodeRepository.selectPterodactylAllocation(context.getNewAllocationId())
+        PterodactylAllocation allocationAttributes = nodeAccessoryRepository.selectPterodactylAllocation(context.getNewAllocationId())
             .orElseThrow(() -> new IllegalStateException("Pterodactyl allocation not found: " + context.getNewAllocationId()));
         ServerSpecification serverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
             .orElseThrow(() -> new IllegalStateException("Specification not found:" + specificationId));
@@ -64,7 +64,7 @@ public class PterodactylServerStep extends AbstractStep {
 
         pterodactylService.destroyServer(pterodactylServer.pterodactylServerId());
 
-        return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_ALLOCATION);
+        return transitionService.persistAndProgress(transitionedContext, StepType.ASSIGN_PTERODACTYL_ALLOCATION);
     }
 
 }
