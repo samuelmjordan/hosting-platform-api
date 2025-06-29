@@ -9,7 +9,7 @@ public enum StepType {
 
     //Cloud node prep
     ALLOCATE_CLOUD_NODE,
-    A_RECORD,
+    NODE_A_RECORD,
     PTERODACTYL_NODE,
     CONFIGURE_NODE,
     CREATE_PTERODACTYL_ALLOCATION,

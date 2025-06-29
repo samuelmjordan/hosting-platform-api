@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class ARecordStep extends AbstractStep {
+public class NodeARecordStep extends AbstractStep {
 
     private final NodeRepository nodeRepository;
     private final NodeAccessoryRepository nodeAccessoryRepository;
@@ -23,7 +23,7 @@ public class ARecordStep extends AbstractStep {
 
     @Override
     public StepType getType() {
-        return StepType.A_RECORD;
+        return StepType.NODE_A_RECORD;
     }
 
     @Override

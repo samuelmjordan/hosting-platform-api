@@ -11,17 +11,12 @@ import com.mc_host.api.repository.NodeAccessoryRepository;
 import com.mc_host.api.repository.NodeRepository;
 import com.mc_host.api.service.resources.DnsService;
 import lombok.RequiredArgsConstructor;
-import net.datafaker.Faker;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class CNameRecordStep extends AbstractStep {
-    private static final Faker FAKER = new Faker();
 
     private final NodeRepository nodeRepository;
     private final NodeAccessoryRepository nodeAccessoryRepository;
@@ -44,7 +39,7 @@ public class CNameRecordStep extends AbstractStep {
 
         DnsARecord dnsARecord = nodeAccessoryRepository.selectDnsARecord(context.getNewARecordId())
             .orElseThrow(() -> new IllegalStateException("DNS A record not found: " + context.getNewARecordId()));
-        DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord, generateDomain());
+        DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord);
 
         Context transitionedContext = context.withNewCNameRecordId(dnsCNameRecord.cNameRecordId());
         gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
@@ -82,23 +77,6 @@ public class CNameRecordStep extends AbstractStep {
         }
 
         return transitionService.persistAndProgress(transitionedContext, StepType.PTERODACTYL_SERVER);
-    }
-
-    private String generateDomain() {
-        String subdomain;
-        do {
-            subdomain = Stream.of(
-                    FAKER.color().name(),
-                    FAKER.animal().name(),
-                    FAKER.word().verb(),
-                    String.valueOf(FAKER.number().numberBetween(10000, 99999)))
-                .map(s -> s.replaceAll("\\s+", ""))
-                .collect(Collectors.joining("-"))
-                .toLowerCase();
-        } while (
-            subdomain.length() > 32 ||
-            gameServerRepository.domainExists(subdomain));
-        return subdomain;
     }
 
 }

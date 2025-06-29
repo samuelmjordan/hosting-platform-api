@@ -67,7 +67,7 @@ public class AllocateCloudNodeStep extends AbstractStep {
         ));
         Context transitionedContext = context.withNewNodeId(hetznerCloudNode.hetznerNodeId());
 
-        return transitionService.persistAndProgress(transitionedContext, StepType.A_RECORD);
+        return transitionService.persistAndProgress(transitionedContext, StepType.NODE_A_RECORD);
     }
 
     @Override

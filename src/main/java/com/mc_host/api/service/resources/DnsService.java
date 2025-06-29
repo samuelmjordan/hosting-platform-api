@@ -7,28 +7,30 @@ import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.resource.hetzner.node.HetznerNodeInterface;
 import com.mc_host.api.repository.GameServerRepository;
+import lombok.RequiredArgsConstructor;
+import net.datafaker.Faker;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
+@RequiredArgsConstructor
 public class DnsService {
     private static final Logger LOGGER = Logger.getLogger(DnsService.class.getName());
+    private static final Faker FAKER = new Faker();
 
     private final ApplicationConfiguration applicationConfiguration;
     private final CloudflareClient cloudflareClient;
     private final GameServerRepository gameServerRepository;
-    public DnsService(
-        CloudflareClient cloudflareClient,
-        ApplicationConfiguration applicationConfiguration,
-        GameServerRepository gameServerRepository
-    ) {
-        this.cloudflareClient = cloudflareClient;
-        this.applicationConfiguration = applicationConfiguration;
-        this.gameServerRepository = gameServerRepository;
-    }
 
     public DnsARecord createARecord(HetznerNodeInterface hetznerNode, String subscriptionId) {
         LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Creating DNS A record", hetznerNode.hetznerNodeId()));
@@ -61,12 +63,12 @@ public class DnsService {
         }
     }
 
-    public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {
+    public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
             DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
-                dnsARecord.zoneId(), 
-                subdomain, 
+                dnsARecord.zoneId(),
+                readableSubdomain(),
                 dnsARecord.recordName(),
                 false
             );
@@ -145,10 +147,46 @@ public class DnsService {
         }
     }
 
-    public void deleteCNameRecordWithGameServerId(String gameServerId) {
-        DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(gameServerId)
-            .orElseThrow(() -> new IllegalStateException(String.format("[gameServerId: %s] No DNS C NAME record associated with game server", gameServerId)));
-        deleteCNameRecord(dnsCNameRecord);
+    private String readableSubdomain() {
+        String subdomain;
+        do {
+            subdomain = Stream.of(
+                    FAKER.color().name(),
+                    FAKER.animal().name(),
+                    FAKER.word().verb(),
+                    String.valueOf(FAKER.number().numberBetween(10000, 99999)))
+                .map(s -> s.replaceAll("\\s+", ""))
+                .collect(Collectors.joining("-"))
+                .toLowerCase();
+        } while (
+            subdomain.length() > 32 ||
+                gameServerRepository.domainExists(subdomain));
+        return subdomain;
     }
+
+    public static String serverPortToSubdomainMapping(String serverId, int port) throws NoSuchAlgorithmException, InvalidKeyException {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec keySpec = new SecretKeySpec(serverId.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(keySpec);
+
+            byte[] hash = mac.doFinal(String.valueOf(port).getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new RuntimeException("hmac failed", e);
+        }
+    }
+
     
 }

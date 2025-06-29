@@ -82,7 +82,7 @@ public class PterodactylNodeStep extends AbstractStep {
 
         pterodactylService.destroyNode(pterodactylNode.pterodactylNodeId());
 
-        return transitionService.persistAndProgress(transitionedContext, StepType.A_RECORD);
+        return transitionService.persistAndProgress(transitionedContext, StepType.NODE_A_RECORD);
     }
 
 }
