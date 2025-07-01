@@ -15,7 +15,6 @@ public class EggService implements EggController {
 	@Override
 	public ResponseEntity<List<EggDefinition>> getEggs() {
 		List<EggDefinition> eggs = Arrays.stream(Egg.values()).map(Egg::getDefinition).toList();
-		System.out.println(eggs.size());
 		return ResponseEntity.ok(eggs);
 	}
 }
