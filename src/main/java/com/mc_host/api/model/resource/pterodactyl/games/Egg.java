@@ -25,9 +25,9 @@ public enum Egg {
     @EggConfig(filename = "bungeecord.json", id = 4)
     BUNGEECORD,
     @EggConfig(filename = "forge.json", id = 5)
-    FORGE,
-    @EggConfig(filename = "modpack.json", id = 6)
-    MODPACK;
+    FORGE;
+    //@EggConfig(filename = "modpack.json", id = 15)
+    //MODPACK;
 
     private static final Map<Egg, EggDefinition> definitionCache = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -88,7 +88,6 @@ public enum Egg {
     @SuppressWarnings("unchecked")
     private EggDefinition buildEgg(EggConfig annotation, Map<String, Object> eggJson) {
         Map<String, String> dockerImagesMap = (Map<String, String>) eggJson.get("docker_images");
-        List<String> dockerImages = dockerImagesMap != null ? List.copyOf(dockerImagesMap.values()) : List.of();
         String startup = (String) eggJson.get("startup");
 
         List<Map<String, Object>> variablesJson = (List<Map<String, Object>>) eggJson.get("variables");
@@ -103,7 +102,7 @@ public enum Egg {
             this,
             (String) eggJson.get("name"),
             (String) eggJson.get("description"),
-            dockerImages,
+            dockerImagesMap,
             startup,
             variables
         );
