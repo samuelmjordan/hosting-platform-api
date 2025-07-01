@@ -14,25 +14,25 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("api")
+@RequestMapping("api/user")
 public interface UserController {
 
-    @GetMapping("user/currency")
+    @GetMapping("currency")
     public ResponseEntity<AcceptedCurrency> getUserCurrency(
         @CurrentUser String userId
     );
 
-    @GetMapping("user/invoice")
+    @GetMapping("invoice")
     public ResponseEntity<List<CustomerInvoice>> getUserInvoices(
         @CurrentUser String userId
     );
 
-    @GetMapping("user/payment-method")
+    @GetMapping("payment-method")
     public ResponseEntity<List<PaymentMethodResponse>> getUserPaymentMethods(
         @CurrentUser String userId
     );
 
-    @GetMapping("user/subscription")
+    @GetMapping("subscription")
     public ResponseEntity<List<ServerSubscriptionResponse>> getUserServerSubscriptions(
         @CurrentUser String userId
     );
