@@ -20,10 +20,9 @@ import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.DnsService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Invoice;
-import com.stripe.model.InvoiceCollection;
 import com.stripe.model.InvoiceLineItem;
 import com.stripe.model.Subscription;
-import com.stripe.param.InvoiceListParams;
+import com.stripe.param.InvoiceCreateParams;
 import com.stripe.param.InvoiceUpcomingParams;
 import com.stripe.param.SubscriptionUpdateParams;
 import lombok.RequiredArgsConstructor;
@@ -145,59 +144,33 @@ public class SubscriptionActionsService implements SubscriptionActionsController
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                 .addItem(
                     SubscriptionUpdateParams.Item.builder()
-                        .setId(subscription.getItems().getData().get(0).getId())
+                        .setId(subscription.getItems().getData().getFirst().getId())
                         .setPrice(newPriceId)
                         .build()
                 )
                 .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
                 .build();
+            subscription.update(params);
 
-            Subscription updatedSubscription = subscription.update(params);
+            Invoice invoice = Invoice.create(
+                InvoiceCreateParams.builder()
+                    .setCustomer(subscription.getCustomer())
+                    .setSubscription(subscription.getId())
+                    .setAutoAdvance(true)
+                    .build()
+            );
+            invoice.pay();
 
-            // FIXED: Find the actual proration invoice instead of assuming latest
-            Invoice prorationInvoice = findProrationInvoice(subscriptionId);
-
-            if (prorationInvoice != null) {
-                UpgradeConfirmationResponse response = new UpgradeConfirmationResponse(
-                    prorationInvoice.getAmountDue(),
-                    newPrice.minorAmount(),
-                    newPrice.currency(),
-                    prorationInvoice.getId()
-                );
-                return ResponseEntity.ok(response);
-            } else {
-                // fallback to latest invoice if no proration invoice found
-                String latestInvoiceId = updatedSubscription.getLatestInvoice();
-                Invoice invoice = Invoice.retrieve(latestInvoiceId);
-
-                UpgradeConfirmationResponse response = new UpgradeConfirmationResponse(
-                    invoice.getAmountDue(),
-                    newPrice.minorAmount(),
-                    newPrice.currency(),
-                    invoice.getId()
-                );
-                return ResponseEntity.ok(response);
-            }
+            UpgradeConfirmationResponse response = new UpgradeConfirmationResponse(
+                invoice.getAmountDue(),
+                newPrice.minorAmount(),
+                newPrice.currency(),
+                invoice.getId()
+            );
+            return ResponseEntity.ok(response);
         } catch (StripeException e) {
             throw new RuntimeException("rip subscription update: " + subscriptionId, e);
         }
-    }
-
-    private Invoice findProrationInvoice(String subscriptionId) throws StripeException {
-        InvoiceListParams listParams = InvoiceListParams.builder()
-            .setSubscription(subscriptionId)
-            .setLimit(10L)
-            .build();
-
-        InvoiceCollection invoices = Invoice.list(listParams);
-
-        for (Invoice invoice : invoices.getData()) {
-            if ("subscription_update".equals(invoice.getBillingReason())) {
-                return invoice;
-            }
-        }
-
-        return null;
     }
 
     @Override
