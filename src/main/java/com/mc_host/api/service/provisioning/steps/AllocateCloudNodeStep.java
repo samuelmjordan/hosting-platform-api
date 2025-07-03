@@ -5,6 +5,7 @@ import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.provisioning.StepTransition;
 import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.hetzner.HetznerCloudProduct;
+import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.hetzner.node.HetznerClaim;
 import com.mc_host.api.model.resource.hetzner.node.HetznerCloudNode;
 import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
@@ -15,8 +16,13 @@ import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.HetznerService;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.logging.Level;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -52,8 +58,36 @@ public class AllocateCloudNodeStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException(String.format("Couldn't find subscription: %s", context.getSubscriptionId())));
         String specificationId = planRepository.selectSpecificationId(priceId)
             .orElseThrow(() -> new IllegalStateException(String.format("No specification could be found for price: %s", priceId)));
-        HetznerCloudProduct hetznerSpecification = HetznerCloudProduct.fromSpecificationId(specificationId);
-        HetznerCloudNode hetznerCloudNode = hetznerService.createCloudNode(context.getSubscriptionId(), hetznerSpecification);
+
+        //Sometimes hetzner api 412s
+        //We try all equivalent available resources to try and avoid this
+        List<Pair<HetznerRegion, HetznerCloudProduct>> regionProductMatrix = Stream.of(HetznerRegion.values())
+            .flatMap(region -> Stream.of(HetznerCloudProduct.values())
+                .filter(product -> product.getSpecificationId().equals(specificationId))
+                .map(product -> Pair.of(region, product))
+            )
+            .toList();
+
+        HetznerCloudNode hetznerCloudNode = null;
+        for (Pair<HetznerRegion, HetznerCloudProduct> regionProductPair : regionProductMatrix) {
+            try {
+                hetznerCloudNode = hetznerService.createCloudNode(
+                    context.getSubscriptionId(),
+                    regionProductPair.getRight(),
+                    regionProductPair.getLeft());
+                break;
+            } catch (Exception e) {
+                LOGGER.log(
+                    Level.SEVERE,
+                    "Error provisioning hetzner cloud node for subscription %s".formatted(context.getSubscriptionId()),
+                    e
+                );
+            }
+        }
+
+        if (hetznerCloudNode == null) {
+            throw new RuntimeException("FATAL: Error provisioning hetzner cloud node for subscription %s".formatted(context.getSubscriptionId()));
+        }
 
         Long specRam = gameServerSpecRepository.selectSpecification(specificationId)
             .map(ServerSpecification::ram_gb)

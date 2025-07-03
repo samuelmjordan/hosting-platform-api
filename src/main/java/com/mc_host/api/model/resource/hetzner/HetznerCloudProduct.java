@@ -5,8 +5,16 @@ import lombok.Getter;
 @Getter
 public enum HetznerCloudProduct {
     CAX11("7bf955c1-8072-4812-87fc-a096af2485bf"),
+    CX22("7bf955c1-8072-4812-87fc-a096af2485bf"),
+    CPX21("7bf955c1-8072-4812-87fc-a096af2485bf"),
+
     CAX21("14f90ac7-7c0f-4cf9-97c9-fb69edb5f823"),
-    CAX31("0433bed8-6964-40ce-8d70-478be68251b2");
+    CX32("14f90ac7-7c0f-4cf9-97c9-fb69edb5f823"),
+    CPX31("14f90ac7-7c0f-4cf9-97c9-fb69edb5f823"),
+
+    CAX31("0433bed8-6964-40ce-8d70-478be68251b2"),
+    CX42("0433bed8-6964-40ce-8d70-478be68251b2"),
+    CPX41("0433bed8-6964-40ce-8d70-478be68251b2");
 
     private final String specificationId;
 
@@ -17,13 +25,6 @@ public enum HetznerCloudProduct {
     @Override
     public String toString() {
         return this.name().toLowerCase();
-    }
-
-    public static HetznerCloudProduct fromSpecificationId(String specificationId) {
-        for (HetznerCloudProduct spec: HetznerCloudProduct.values()) {
-            if (spec.getSpecificationId().equals(specificationId)) return spec;
-        }
-        throw new IllegalStateException("No hetzner cloud spec matches this id: " + specificationId);
     }
 
     public static HetznerCloudProduct lookup(String string)  {
