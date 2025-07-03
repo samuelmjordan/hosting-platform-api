@@ -9,6 +9,8 @@ import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
 import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
+import com.mc_host.api.model.subscription.request.UpgradeConfirmationResponse;
+import com.mc_host.api.model.subscription.request.UpgradePreviewResponse;
 import com.mc_host.api.queue.JobScheduler;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.PlanRepository;
@@ -17,14 +19,21 @@ import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.DnsService;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Invoice;
+import com.stripe.model.InvoiceCollection;
+import com.stripe.model.InvoiceLineItem;
 import com.stripe.model.Subscription;
+import com.stripe.param.InvoiceListParams;
+import com.stripe.param.InvoiceUpcomingParams;
 import com.stripe.param.SubscriptionUpdateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,18 +62,78 @@ public class SubscriptionActionsService implements SubscriptionActionsController
     }
 
     @Override
-    public ResponseEntity<Void> updateSubscriptionSpecification(
+    public ResponseEntity<UpgradePreviewResponse> previewSubscriptionSpecification(
+        String subscriptionId,
+        UpdateSpecificationRequest specificationRequest
+    ) {
+        try {
+            String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
+                .map(ContentSubscription::priceId)
+                .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
+            ContentPrice oldPrice = priceRepository.selectPrice(oldPriceId)
+                .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
+
+            String newPriceId = planRepository.selectPriceId(specificationRequest.specificationId(), oldPrice.currency())
+                .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency %s", specificationRequest.specificationId(), oldPrice.currency())));
+            ContentPrice newPrice = priceRepository.selectPrice(newPriceId)
+                .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
+
+            if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            Subscription subscription = Subscription.retrieve(subscriptionId);
+            String subscriptionItemId = subscription.getItems().getData().get(0).getId();
+
+            InvoiceUpcomingParams previewParams = InvoiceUpcomingParams.builder()
+                .setSubscription(subscriptionId)
+                .addSubscriptionItem(
+                    InvoiceUpcomingParams.SubscriptionItem.builder()
+                        .setId(subscriptionItemId)
+                        .setPrice(newPriceId)
+                        .build()
+                )
+                .setSubscriptionProrationBehavior(InvoiceUpcomingParams.SubscriptionProrationBehavior.CREATE_PRORATIONS)
+                .setSubscriptionProrationDate(Instant.now().getEpochSecond())
+                .build();
+
+            Invoice previewInvoice = Invoice.upcoming(previewParams);
+            Long invoiceMinorAmount = previewInvoice.getLines().getData().stream()
+                .map(InvoiceLineItem::getAmount)
+                .limit(2)
+                .reduce(Long::sum)
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Invoice preview unavailable for subscription %s".formatted(subscriptionId))
+                );
+
+            UpgradePreviewResponse response = new UpgradePreviewResponse(
+                invoiceMinorAmount,
+                newPrice.minorAmount(),
+                oldPrice.minorAmount(),
+                oldPrice.currency()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (StripeException e) {
+            LOGGER.log(Level.SEVERE, "stripe error during preview: " + subscriptionId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @Override
+    public ResponseEntity<UpgradeConfirmationResponse> updateSubscriptionSpecification(
         String subscriptionId,
         UpdateSpecificationRequest specificationRequest
     ) {
         String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
             .map(ContentSubscription::priceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
-        ContentPrice oldPrice =  priceRepository.selectPrice(oldPriceId)
+        ContentPrice oldPrice = priceRepository.selectPrice(oldPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
         String newPriceId = planRepository.selectPriceId(specificationRequest.specificationId(), oldPrice.currency())
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency %s", specificationRequest.specificationId(), oldPrice.currency())));
-        ContentPrice newPrice =  priceRepository.selectPrice(newPriceId)
+        ContentPrice newPrice = priceRepository.selectPrice(newPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
 
         if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
@@ -83,12 +152,52 @@ public class SubscriptionActionsService implements SubscriptionActionsController
                 .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
                 .build();
 
-            subscription.update(params);
+            Subscription updatedSubscription = subscription.update(params);
 
-            return ResponseEntity.ok().build();
+            // FIXED: Find the actual proration invoice instead of assuming latest
+            Invoice prorationInvoice = findProrationInvoice(subscriptionId);
+
+            if (prorationInvoice != null) {
+                UpgradeConfirmationResponse response = new UpgradeConfirmationResponse(
+                    prorationInvoice.getAmountDue(),
+                    newPrice.minorAmount(),
+                    newPrice.currency(),
+                    prorationInvoice.getId()
+                );
+                return ResponseEntity.ok(response);
+            } else {
+                // fallback to latest invoice if no proration invoice found
+                String latestInvoiceId = updatedSubscription.getLatestInvoice();
+                Invoice invoice = Invoice.retrieve(latestInvoiceId);
+
+                UpgradeConfirmationResponse response = new UpgradeConfirmationResponse(
+                    invoice.getAmountDue(),
+                    newPrice.minorAmount(),
+                    newPrice.currency(),
+                    invoice.getId()
+                );
+                return ResponseEntity.ok(response);
+            }
         } catch (StripeException e) {
             throw new RuntimeException("rip subscription update: " + subscriptionId, e);
         }
+    }
+
+    private Invoice findProrationInvoice(String subscriptionId) throws StripeException {
+        InvoiceListParams listParams = InvoiceListParams.builder()
+            .setSubscription(subscriptionId)
+            .setLimit(10L)
+            .build();
+
+        InvoiceCollection invoices = Invoice.list(listParams);
+
+        for (Invoice invoice : invoices.getData()) {
+            if ("subscription_update".equals(invoice.getBillingReason())) {
+                return invoice;
+            }
+        }
+
+        return null;
     }
 
     @Override
@@ -111,7 +220,7 @@ public class SubscriptionActionsService implements SubscriptionActionsController
         }
 
         DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(context.getCNameRecordId())
-            .orElseThrow(() -> new IllegalStateException("DNS CNAME record not found: " + context.getCNameRecordId()));   
+            .orElseThrow(() -> new IllegalStateException("DNS CNAME record not found: " + context.getCNameRecordId()));
         String newURL = String.join(".", address.address(), dnsCNameRecord.zoneName());
         Boolean nameTaken = gameServerRepository.isDnsCNameRecordNameTaken(newURL, dnsCNameRecord.zoneId());
         if (nameTaken) {
@@ -119,7 +228,7 @@ public class SubscriptionActionsService implements SubscriptionActionsController
                 .header("X-Reason", "URL taken")
                 .build();
         }
-   
+
         DnsCNameRecord newDnsCNameRecord = dnsService.updateCNameRecordName(dnsCNameRecord, address.address());
         gameServerRepository.updateDnsCNameRecord(newDnsCNameRecord);
 
@@ -149,5 +258,5 @@ public class SubscriptionActionsService implements SubscriptionActionsController
                 .build();
         }
     }
-    
+
 }

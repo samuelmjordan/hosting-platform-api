@@ -4,6 +4,8 @@ import com.mc_host.api.auth.ValidatedSubscription;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
 import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
+import com.mc_host.api.model.subscription.request.UpgradeConfirmationResponse;
+import com.mc_host.api.model.subscription.request.UpgradePreviewResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,8 +27,14 @@ public interface SubscriptionActionsController {
         @ValidatedSubscription String subscriptionId
     );
 
+    @PostMapping("specification/preview")
+    ResponseEntity<UpgradePreviewResponse> previewSubscriptionSpecification(
+        @ValidatedSubscription String subscriptionId,
+        @RequestBody UpdateSpecificationRequest specificationRequest
+    );
+
     @PostMapping("specification")
-    ResponseEntity<Void> updateSubscriptionSpecification(
+    ResponseEntity<UpgradeConfirmationResponse> updateSubscriptionSpecification(
         @ValidatedSubscription String subscriptionId,
         @RequestBody UpdateSpecificationRequest specificationRequest
     );
