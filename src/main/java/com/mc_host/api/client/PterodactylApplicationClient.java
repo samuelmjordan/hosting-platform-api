@@ -145,7 +145,7 @@ public class PterodactylApplicationClient extends BaseApiClient {
         return deserialize(response, PterodactylUserResponse.class);
     }
 
-    public void deleteUser(String userId) {
+    public void deleteUser(Long userId) {
         sendRequest("DELETE", "/api/application/users/" + userId);
     }
 

@@ -6,10 +6,16 @@ import com.clerk.backend_api.models.operations.GetUserResponse;
 import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.configuration.ClerkConfiguration;
+import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.user.ApplicationUser;
 import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.UserRepository;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.Subscription;
+import com.stripe.model.SubscriptionCollection;
+import com.stripe.param.SubscriptionListParams;
+import com.stripe.param.SubscriptionUpdateParams;
 import lombok.RequiredArgsConstructor;
 import net.datafaker.Faker;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -21,6 +27,7 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -207,8 +214,38 @@ public class ClerkEventProcessor {
     }
 
     private void deleteUser(String clerkId) {
-        LOGGER.info("Delete clerk user: " + clerkId);
-        // delete all accounts
+		try {
+            LOGGER.info("Delete clerk user: " + clerkId);
+            ApplicationUser user = userRepository.selectUser(clerkId)
+                .orElseThrow(() -> new IllegalStateException("Cannot find user %s: invalid delete flow".formatted(clerkId)));
+            pterodactylApplicationClient.deleteUser(user.pterodactylUserId());
+
+            SubscriptionCollection allSubs = Subscription.list(
+                SubscriptionListParams.builder()
+                    .setCustomer(user.customerId())
+                    .build()
+            );
+
+            allSubs.getData().stream()
+                .filter(sub -> !SubscriptionStatus.fromString(sub.getStatus()).isTerminated())
+                .forEach(sub -> {
+                    try {
+                        sub.cancel();
+                    } catch (StripeException e) {
+                        try {
+                            sub.update(SubscriptionUpdateParams.builder()
+                                .setCancelAtPeriodEnd(true).build());
+                        } catch (StripeException fallbackException) {
+                            LOGGER.log(Level.SEVERE, "failed to cancel subscription %s".formatted(sub.getId()), e);
+                        }
+                    }
+                });
+			Customer.retrieve(user.customerId()).delete();
+
+            userRepository.delete(clerkId);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
     }
     
 }

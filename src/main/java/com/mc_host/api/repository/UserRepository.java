@@ -46,11 +46,20 @@ public class UserRepository extends BaseRepository {
     public int updatePrimaryEmail(String primaryEmail, String clerkId) {
         return execute("""
         UPDATE user_ SET
-            primary_email = ?,
+            primary_email = ?
         WHERE clerk_id = ?
         """,
         primaryEmail,
         clerkId);
+    }
+
+    public int delete(String clerkId) {
+        return execute("""
+        UPDATE user_ SET
+            deleted_at = CURRENT_TIMESTAMP
+        WHERE clerk_id = ?
+        """,
+            clerkId);
     }
 
     public Optional<ApplicationUser> selectUser(String clerkId) {
