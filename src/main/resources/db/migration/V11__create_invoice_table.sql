@@ -2,7 +2,7 @@ CREATE TABLE invoice_ (
     -- Primary identifiers
     id BIGSERIAL PRIMARY KEY,
     invoice_id TEXT NOT NULL,
-    invoice_number TEXT NOT NULL,
+    invoice_number TEXT NOT NULL DEFAULT 'pending',
 
     -- Foreign keys
     customer_id TEXT NOT NULL,
