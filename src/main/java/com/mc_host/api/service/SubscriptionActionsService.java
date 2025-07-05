@@ -1,5 +1,6 @@
 package com.mc_host.api.service;
 
+import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.controller.api.subscriptions.SubscriptionActionsController;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
@@ -9,12 +10,10 @@ import com.mc_host.api.model.subscription.request.UpdateTitleRequest;
 import com.mc_host.api.model.subscription.request.UpgradeConfirmationResponse;
 import com.mc_host.api.model.subscription.request.UpgradePreviewResponse;
 import com.mc_host.api.queue.JobScheduler;
-import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.PriceRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
-import com.mc_host.api.service.resources.DnsService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Invoice;
 import com.stripe.model.InvoiceLineItem;
@@ -24,7 +23,6 @@ import com.stripe.param.InvoiceUpcomingParams;
 import com.stripe.param.SubscriptionUpdateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,11 +40,10 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
     private final PriceRepository priceRepository;
     private final PlanRepository planRepository;
-    private final GameServerRepository gameServerRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final ServerExecutionContextRepository serverExecutionContextRepository;
     private final JobScheduler jobScheduler;
-    private final DnsService dnsService;
+    private final ApplicationConfiguration applicationConfiguration;
 
     @Override
     public ResponseEntity<Void> cancelSubscription(String subscriptionId) {
@@ -179,17 +176,30 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
     @Override
     public ResponseEntity<Void> updateSubscriptionAddress(String subscriptionId, UpdateAddressRequest address) {
-        if (address.address() == null ||
-            !address.address().matches("^[a-z0-9]([a-z0-9-]{0,56}[a-z0-9])?$") ||
-            address.address().length() < 3) {
+        String domain = String.join(".", "",
+            applicationConfiguration.getNodePublicSubdomain(),
+            applicationConfiguration.getCloudDomain());
+        if (!address.address().endsWith(domain)) {
             return ResponseEntity.badRequest().build();
         }
 
-        if (subscriptionRepository.updateSubdomainIfAvailable(address.address(), subscriptionId) > 0) {
-            jobScheduler.scheduleSubdomainUpdate(subscriptionId);
-            return ResponseEntity.accepted().build();
+        String subdomain = address.address().substring(0, address.address().length() - domain.length());
+        if (!isValidSubdomain(subdomain)) {
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.status(HttpStatusCode.valueOf(409)).build();
+
+        if (subscriptionRepository.updateSubdomainIfAvailable(subdomain, subscriptionId) <= 0) {
+            return ResponseEntity.status(409).build();
+        }
+
+        jobScheduler.scheduleSubdomainUpdate(subscriptionId);
+        return ResponseEntity.accepted().build();
+    }
+
+    private boolean isValidSubdomain(String subdomain) {
+        return subdomain != null &&
+            subdomain.length() >= 3 &&
+            subdomain.matches("^[a-z0-9]([a-z0-9-]{0,56}[a-z0-9])?$");
     }
 
     private ResponseEntity<Void> updateCancelAtPeriodEnd(
