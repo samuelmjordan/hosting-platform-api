@@ -6,9 +6,11 @@ import com.mc_host.api.model.provisioning.StepType;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
+import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.repository.GameServerRepository;
 import com.mc_host.api.repository.NodeAccessoryRepository;
 import com.mc_host.api.repository.NodeRepository;
+import com.mc_host.api.repository.SubscriptionRepository;
 import com.mc_host.api.service.resources.DnsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class CNameRecordStep extends AbstractStep {
     private final NodeRepository nodeRepository;
     private final NodeAccessoryRepository nodeAccessoryRepository;
     private final GameServerRepository gameServerRepository;
+    private final SubscriptionRepository subscriptionRepository;
     private final DnsService dnsService;
 
     @Override
@@ -39,7 +42,10 @@ public class CNameRecordStep extends AbstractStep {
 
         DnsARecord dnsARecord = nodeAccessoryRepository.selectDnsARecord(context.getNewARecordId())
             .orElseThrow(() -> new IllegalStateException("DNS A record not found: " + context.getNewARecordId()));
-        DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord);
+        String subdomain = subscriptionRepository.selectSubscription(context.getSubscriptionId())
+            .map(ContentSubscription::subdomain)
+            .orElseThrow(() -> new IllegalStateException("Subscription not found: " + context.getSubscriptionId()));
+        DnsCNameRecord dnsCNameRecord = dnsService.createCNameRecord(dnsARecord, subdomain);
 
         Context transitionedContext = context.withNewCNameRecordId(dnsCNameRecord.cNameRecordId());
         gameServerRepository.insertDnsCNameRecord(dnsCNameRecord);
@@ -66,7 +72,7 @@ public class CNameRecordStep extends AbstractStep {
         if (context.getMode().isMigrate()) {
             DnsARecord dnsARecord = nodeAccessoryRepository.selectDnsARecord(context.getNewARecordId())
                 .orElseThrow(() -> new IllegalStateException("DNS A record not found: " + context.getNewARecordId()));
-            DnsCNameRecord newDnsCNameRecord = dnsService.updateCNameRecord(dnsARecord, dnsCNameRecord);
+            DnsCNameRecord newDnsCNameRecord = dnsService.redirectCNameRecord(dnsARecord, dnsCNameRecord);
 
             gameServerRepository.updateDnsCNameRecord(newDnsCNameRecord);
         } else {

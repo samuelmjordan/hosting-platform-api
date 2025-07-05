@@ -2,7 +2,6 @@ package com.mc_host.api.repository;
 
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
-import com.mc_host.api.model.subscription.MarketingRegion;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +30,7 @@ public class SubscriptionRepository extends BaseRepository {
                 current_period_end,
                 current_period_start,
                 cancel_at_period_end,
-                initial_region)
+                subdomain)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             ps -> setSubscriptionParams(ps, sub));
@@ -46,7 +45,7 @@ public class SubscriptionRepository extends BaseRepository {
                 current_period_end = ?,
                 current_period_start = ?,
                 cancel_at_period_end = ?,
-                initial_region = ?
+                subdomain = ?
             WHERE subscription_id = ?
             """, ps -> {
             setSubscriptionParams(ps, sub);
@@ -64,7 +63,7 @@ public class SubscriptionRepository extends BaseRepository {
                 current_period_end,
                 current_period_start,
                 cancel_at_period_end,
-                initial_region)
+                subdomain)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (subscription_id) DO UPDATE SET
                 customer_id = EXCLUDED.customer_id,
@@ -73,7 +72,7 @@ public class SubscriptionRepository extends BaseRepository {
                 current_period_end = EXCLUDED.current_period_end,
                 current_period_start = EXCLUDED.current_period_start,
                 cancel_at_period_end = EXCLUDED.cancel_at_period_end,
-                initial_region = EXCLUDED.initial_region
+                subdomain = EXCLUDED.subdomain
             """,
             ps -> setSubscriptionParams(ps, sub)
         );
@@ -92,7 +91,7 @@ public class SubscriptionRepository extends BaseRepository {
                 current_period_end,
                 current_period_start,
                 cancel_at_period_end,
-                initial_region
+                subdomain
             FROM subscription_ 
             WHERE customer_id = ?
             ORDER BY status_, current_period_start DESC
@@ -108,7 +107,7 @@ public class SubscriptionRepository extends BaseRepository {
                 current_period_end,
                 current_period_start,
                 cancel_at_period_end,
-                initial_region
+                subdomain
             FROM subscription_
             WHERE subscription_id = ?
             """,
@@ -146,6 +145,14 @@ public class SubscriptionRepository extends BaseRepository {
         );
     }
 
+    public Boolean domainExists(String subdomain) {
+        return selectOne("SELECT 1 FROM subscription_ WHERE ? = subdomain",
+            (rs, rowNum) -> true, subdomain)
+            .isPresent();
+    }
+
+
+
     private void setSubscriptionParams(PreparedStatement ps, ContentSubscription sub) throws SQLException {
         ps.setString(1, sub.subscriptionId());
         ps.setString(2, sub.customerId());
@@ -156,7 +163,7 @@ public class SubscriptionRepository extends BaseRepository {
         ps.setTimestamp(6, Timestamp.from(sub.currentPeriodStart()),
                 Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
         ps.setBoolean(7, sub.cancelAtPeriodEnd());
-        ps.setString(8, sub.initialRegion().name());
+        ps.setString(8, sub.subdomain());
     }
 
     private ContentSubscription mapSubscription(ResultSet rs, int rowNum) throws SQLException {
@@ -170,6 +177,6 @@ public class SubscriptionRepository extends BaseRepository {
             rs.getTimestamp("current_period_start",
                     Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC))).toInstant(),
             rs.getBoolean("cancel_at_period_end"),
-            MarketingRegion.valueOf(rs.getString("initial_region")));
+            rs.getString("subdomain"));
     }
 }

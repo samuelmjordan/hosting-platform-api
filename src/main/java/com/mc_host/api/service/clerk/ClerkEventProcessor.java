@@ -10,6 +10,7 @@ import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.user.ApplicationUser;
 import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.UserRepository;
+import com.mc_host.api.service.FakerService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.Subscription;
@@ -17,27 +18,23 @@ import com.stripe.model.SubscriptionCollection;
 import com.stripe.param.SubscriptionListParams;
 import com.stripe.param.SubscriptionUpdateParams;
 import lombok.RequiredArgsConstructor;
-import net.datafaker.Faker;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class ClerkEventProcessor {
     private static final Logger LOGGER = Logger.getLogger(ClerkEventProcessor.class.getName());
-    private static final Faker FAKER = new Faker();
 
+    private final FakerService fakerService;
     private final UserRepository userRepository;
     private final ClerkConfiguration clerkConfiguration;
     private final ApplicationConfiguration applicationConfiguration;
@@ -110,9 +107,9 @@ public class ClerkEventProcessor {
 
             String customerId = createNewStripeCustomer(clerkId, primaryEmail);
 
-            String pterodactylUsername = generateUsername();
-            String pterodactylPassword = generatePassword();
-            String pterodactylDummyEmail = clerkId + "@" + applicationConfiguration.getDomain();
+            String pterodactylUsername = fakerService.generateUsername();
+            String pterodactylPassword = fakerService.generatePassword();
+            String pterodactylDummyEmail = clerkId + "@" + applicationConfiguration.getCloudDomain();
             Long pterodactylUserId = createNewPterodactylUser(
                 clerkId, pterodactylDummyEmail, pterodactylUsername, pterodactylPassword);
 
@@ -157,32 +154,6 @@ public class ClerkEventProcessor {
             .orElseThrow(() -> new RuntimeException("Primary email address not found in list of user emails"));
     }
 
-    private String generateUsername() {
-        String username;
-		do {
-			username = Stream.of(
-                    FAKER.word().adjective(),
-                    FAKER.color().name(),
-                    FAKER.animal().name(),
-                    FAKER.word().verb(),
-                    String.valueOf(FAKER.number().numberBetween(10, 99)))
-                .reduce(String::concat).get()
-                .replace(" ", "")
-                .toLowerCase();
-		} while (userRepository.usernameExists(username));
-        return username;
-    }
-
-    private String generatePassword() {
-        SecureRandom random = new SecureRandom();
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=?";
-
-        return random.ints(24, 0, chars.length())
-            .mapToObj(chars::charAt)
-            .map(Object::toString)
-            .collect(Collectors.joining());
-    }
-
     private String createNewStripeCustomer(String clerkId, String primaryEmail) {
         try {
             Map<String, Object> customerParams = Map.of(
@@ -202,8 +173,8 @@ public class ClerkEventProcessor {
                 new PterodactylApplicationClient.PterodactylCreateUserRequest(
                     email,
                     username,
-                    FAKER.name().firstName(),
-                    FAKER.name().lastName(),
+                    fakerService.generateFirstname(),
+                    fakerService.generateLastname(),
                     "en",
                     password
             )).attributes();

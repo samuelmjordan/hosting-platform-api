@@ -1,14 +1,15 @@
 package com.mc_host.api.configuration;
 
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-
-import lombok.Data;
 
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "application")
 public class ApplicationConfiguration {
     private String scheme;
-    private String domain;
+    private String cloudDomain;
+    private String nodePublicSubdomain;
+    private String nodePrivateSubdomain;
 }

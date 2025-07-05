@@ -16,7 +16,7 @@ CREATE TABLE subscription_ (
     cancel_at_period_end BOOLEAN NOT NULL,
 
     -- Initial metadata
-    initial_region TEXT NOT NULL,
+    subdomain TEXT NOT NULL,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -5,12 +5,11 @@ import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
-import com.mc_host.api.model.subscription.MarketingRegion;
 import com.mc_host.api.queue.JobScheduler;
 import com.mc_host.api.queue.processor.JobProcessor;
-import com.mc_host.api.repository.PlanRepository;
 import com.mc_host.api.repository.ServerExecutionContextRepository;
 import com.mc_host.api.repository.SubscriptionRepository;
+import com.mc_host.api.service.FakerService;
 import com.mc_host.api.util.PersistenceContext;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
@@ -29,9 +28,9 @@ public class CustomerSubscriptionSyncJobProcessor implements JobProcessor {
 	private static final Logger LOGGER = Logger.getLogger(CustomerSubscriptionSyncJobProcessor.class.getName());
 
 	private final JobScheduler jobScheduler;
+	private final FakerService fakerService;
 	private final SubscriptionRepository subscriptionRepository;
 	private final ServerExecutionContextRepository serverExecutionContextRepository;
-	private final PlanRepository planRepository;
 	private final PersistenceContext persistenceContext;
 
 	@Override
@@ -49,7 +48,7 @@ public class CustomerSubscriptionSyncJobProcessor implements JobProcessor {
 	public void process(String customerId) {
 		try {
 			List<ContentSubscription> stripeSubscriptions = Subscription.list(Map.of("customer", customerId, "status", "all")).getData().stream()
-				.map(subscription -> stripeSubscriptionToEntity(subscription, customerId)).toList();
+				.map(subscription -> stripeSubscriptionToNewEntity(subscription, customerId)).toList();
 
 			stripeSubscriptions.forEach(subscription -> persistenceContext.inTransaction(() -> {
 				// update subscription details, and add an execution context if subscription is new
@@ -77,7 +76,7 @@ public class CustomerSubscriptionSyncJobProcessor implements JobProcessor {
 		}
 	}
 
-	private ContentSubscription stripeSubscriptionToEntity(Subscription subscription, String customerId) {
+	private ContentSubscription stripeSubscriptionToNewEntity(Subscription subscription, String customerId) {
 		return new ContentSubscription(
 			subscription.getId(),
 			customerId,
@@ -86,7 +85,7 @@ public class CustomerSubscriptionSyncJobProcessor implements JobProcessor {
 			Instant.ofEpochMilli(subscription.getCurrentPeriodEnd()),
 			Instant.ofEpochMilli(subscription.getCurrentPeriodStart()),
 			subscription.getCancelAtPeriodEnd(),
-			MarketingRegion.WEST_EUROPE
+			fakerService.generateSubdomain()
 		);
 	}
 }

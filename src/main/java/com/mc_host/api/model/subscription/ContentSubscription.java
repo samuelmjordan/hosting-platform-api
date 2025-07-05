@@ -1,8 +1,8 @@
 package com.mc_host.api.model.subscription;
 
-import java.time.Instant;
-
 import com.mc_host.api.model.stripe.SubscriptionStatus;
+
+import java.time.Instant;
 
 public record ContentSubscription(
     String subscriptionId,
@@ -12,15 +12,7 @@ public record ContentSubscription(
     Instant currentPeriodEnd,
     Instant currentPeriodStart,
     Boolean cancelAtPeriodEnd,
-    MarketingRegion initialRegion
+    String subdomain
 ) {
-    public Boolean isAlike(ContentSubscription newSubscription) {
-        if (newSubscription == null) {
-            return false;
-        }
-        if (this.subscriptionId().equals(newSubscription.subscriptionId())) {
-            return true;
-        }
-        return false;
-    }
+
 }

@@ -6,9 +6,7 @@ import com.mc_host.api.configuration.ApplicationConfiguration;
 import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.resource.hetzner.node.HetznerNodeInterface;
-import com.mc_host.api.repository.GameServerRepository;
 import lombok.RequiredArgsConstructor;
-import net.datafaker.Faker;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
@@ -19,30 +17,29 @@ import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class DnsService {
     private static final Logger LOGGER = Logger.getLogger(DnsService.class.getName());
-    private static final Faker FAKER = new Faker();
 
     private final ApplicationConfiguration applicationConfiguration;
     private final CloudflareClient cloudflareClient;
-    private final GameServerRepository gameServerRepository;
 
     public DnsARecord createARecord(HetznerNodeInterface hetznerNode, String subscriptionId) {
         LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Creating DNS A record", hetznerNode.hetznerNodeId()));
         try {
-            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getDomain());
-            String recordName = UUID.randomUUID().toString().replace("-", "");
+            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getCloudDomain());
+            String recordName = String.join(".",
+                UUID.randomUUID().toString().replace("-", ""),
+                applicationConfiguration.getNodePrivateSubdomain()
+            );
             DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(zoneId, recordName, hetznerNode.ipv4(), false);
             DnsARecord dnsARecord = new DnsARecord(
                 subscriptionId,
                 dnsARecordResponse.id(), 
                 zoneId, 
-                applicationConfiguration.getDomain(), 
+                applicationConfiguration.getCloudDomain(),
                 dnsARecordResponse.name(), 
                 dnsARecordResponse.content()
             );
@@ -63,12 +60,16 @@ public class DnsService {
         }
     }
 
-    public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord) {
+    public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
+            String fullSubdomain = String.join(".",
+                subdomain,
+                applicationConfiguration.getNodePublicSubdomain()
+            );
             DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
                 dnsARecord.zoneId(),
-                readableSubdomain(),
+                fullSubdomain,
                 dnsARecord.recordName(),
                 false
             );
@@ -87,7 +88,7 @@ public class DnsService {
         }
     }
 
-    public DnsCNameRecord updateCNameRecord(DnsARecord dnsARecord, DnsCNameRecord dnsCNameRecord) {
+    public DnsCNameRecord redirectCNameRecord(DnsARecord dnsARecord, DnsCNameRecord dnsCNameRecord) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
             DNSRecordResponse dnsCCNameRecordResponse = cloudflareClient.updateCNameRecord(
@@ -115,10 +116,14 @@ public class DnsService {
     public DnsCNameRecord updateCNameRecordName(DnsCNameRecord dnsCNameRecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsCNameRecord.subscriptionId()));
         try {
+            String fullSubdomain = String.join(".",
+                subdomain,
+                applicationConfiguration.getNodePublicSubdomain()
+            );
             DNSRecordResponse dnsCNameRecordResponse = cloudflareClient.updateCNameRecord(
                 dnsCNameRecord.zoneId(), 
                 dnsCNameRecord.cNameRecordId(),
-                subdomain,
+                fullSubdomain,
                 dnsCNameRecord.content(),
                 false
             );
@@ -147,23 +152,6 @@ public class DnsService {
         }
     }
 
-    private String readableSubdomain() {
-        String subdomain;
-        do {
-            subdomain = Stream.of(
-                    FAKER.color().name(),
-                    FAKER.animal().name(),
-                    FAKER.word().verb(),
-                    String.valueOf(FAKER.number().numberBetween(10000, 99999)))
-                .map(s -> s.replaceAll("\\s+", ""))
-                .collect(Collectors.joining("-"))
-                .toLowerCase();
-        } while (
-            subdomain.length() > 32 ||
-                gameServerRepository.domainExists(subdomain));
-        return subdomain;
-    }
-
     public static String serverPortToSubdomainMapping(String serverId, int port) throws NoSuchAlgorithmException, InvalidKeyException {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
@@ -188,5 +176,4 @@ public class DnsService {
         }
     }
 
-    
 }

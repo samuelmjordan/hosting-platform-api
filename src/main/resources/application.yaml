@@ -37,7 +37,9 @@ logging:
 
 application:
   scheme: https
-  domain: samuelmjordan.dev
+  node-public-subdomain: node
+  node-private-subdomain: infra
+  cloud-domain: samuelmjordan.dev
 
 cors:
   allowed-origins:

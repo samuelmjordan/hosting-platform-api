@@ -50,12 +50,6 @@ public class GameServerRepository extends BaseRepository {
         );
     }
 
-    public Boolean domainExists(String subdomain) {
-        return selectOne("SELECT 1 FROM dns_c_name_record_ WHERE concat(?, '.', zone_name) = record_name",
-            (rs, rowNum) -> true, subdomain)
-            .isPresent();
-    }
-
     public int deletePterodactylServer(Long serverId) {
         return execute("DELETE FROM pterodactyl_server_ WHERE pterodactyl_server_id = ?", serverId);
     }
