@@ -2,9 +2,6 @@ package com.mc_host.api.service;
 
 import com.mc_host.api.controller.api.subscriptions.SubscriptionActionsController;
 import com.mc_host.api.model.plan.ContentPrice;
-import com.mc_host.api.model.provisioning.Context;
-import com.mc_host.api.model.provisioning.Status;
-import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.stripe.request.UpdateSpecificationRequest;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import com.mc_host.api.model.subscription.request.UpdateAddressRequest;
@@ -27,6 +24,7 @@ import com.stripe.param.InvoiceUpcomingParams;
 import com.stripe.param.SubscriptionUpdateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -181,35 +179,17 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
     @Override
     public ResponseEntity<Void> updateSubscriptionAddress(String subscriptionId, UpdateAddressRequest address) {
-        // TODO: this is shite
-        // Should probably be queue-able. Should also add the address to the context, currently its tied to the cname which can disappear!
-        // Or maybe the cname should be tied directly to the subscription? i guess it doesn't need to be taken down.
-        Context context = serverExecutionContextRepository.selectSubscription(subscriptionId)
-            .orElseThrow(() -> new IllegalStateException("No context found for subscription " + subscriptionId));
-        if (context.getStatus().equals(Status.IN_PROGRESS)) {
-            return ResponseEntity.status(409)
-                .header("X-Reason", "Server currently provisioning")
-                .build();
+        if (address.address() == null ||
+            !address.address().matches("^[a-z0-9]([a-z0-9-]{0,56}[a-z0-9])?$") ||
+            address.address().length() < 3) {
+            return ResponseEntity.badRequest().build();
         }
 
-        DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(context.getCNameRecordId())
-            .orElseThrow(() -> new IllegalStateException("DNS CNAME record not found: " + context.getCNameRecordId()));
-        String newURL = String.join(".", address.address(), dnsCNameRecord.zoneName());
-        Boolean nameTaken = gameServerRepository.isDnsCNameRecordNameTaken(newURL, dnsCNameRecord.zoneId());
-        if (nameTaken) {
-            return ResponseEntity.status(409)
-                .header("X-Reason", "URL taken")
-                .build();
+        if (subscriptionRepository.updateSubdomainIfAvailable(address.address(), subscriptionId) > 0) {
+            jobScheduler.scheduleSubdomainUpdate(subscriptionId);
+            return ResponseEntity.accepted().build();
         }
-
-        DnsCNameRecord newDnsCNameRecord = dnsService.updateCNameRecordName(dnsCNameRecord, address.address());
-        gameServerRepository.updateDnsCNameRecord(newDnsCNameRecord);
-
-        String customerId = subscriptionRepository.selectSubscription(subscriptionId)
-            .map(ContentSubscription::customerId)
-            .orElseThrow(() -> new IllegalStateException("No subscription found " + subscriptionId));
-        jobScheduler.scheduleCustomerSubscriptionSync(customerId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.status(HttpStatusCode.valueOf(409)).build();
     }
 
     private ResponseEntity<Void> updateCancelAtPeriodEnd(

@@ -46,6 +46,15 @@ public class JobScheduler {
 		scheduleSubscriptionSync(subscriptionId, 0);
 	}
 
+	public void scheduleSubdomainUpdate(String subscriptionId, Integer delaySeconds) {
+		schedule(JobType.SUBSCRIPTION_SUBDOMAIN_UPDATE, subscriptionId, delaySeconds);
+	}
+
+	public void scheduleSubdomainUpdate(String subscriptionId) {
+		scheduleSubdomainUpdate(subscriptionId, 0);
+	}
+
+
 	public void schedulePaymentMethodSync(String customerId, Integer delaySeconds) {
 		schedule(JobType.CUSTOMER_PAYMENT_METHOD_SYNC, customerId, delaySeconds);
 	}

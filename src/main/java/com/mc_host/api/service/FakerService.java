@@ -64,7 +64,7 @@ public class FakerService {
 				.collect(Collectors.joining("-"))
 				.toLowerCase();
 		} while (
-			subdomain.length() >= 28 ||
+			subdomain.length() >= 58 ||
 				subscriptionRepository.domainExists(subdomain));
 		return subdomain;
 	}

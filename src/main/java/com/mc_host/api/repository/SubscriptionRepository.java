@@ -151,6 +151,28 @@ public class SubscriptionRepository extends BaseRepository {
             .isPresent();
     }
 
+    public int updateSubdomain(String subscriptionId) {
+        return execute("""
+            UPDATE subscription_
+            SET subdomain = ?
+            WHERE subscription_id = ?
+            """,
+            subscriptionId
+        );
+    }
+
+    public int updateSubdomainIfAvailable(String newSubdomain, String subscriptionId) {
+        return execute("""
+        UPDATE subscription_
+        SET subdomain = ?
+        WHERE subscription_id = ?
+        AND NOT EXISTS (SELECT 1 FROM subscription_ WHERE subdomain = ?)
+        """,
+            newSubdomain,
+            subscriptionId,
+            newSubdomain);
+    }
+
 
 
     private void setSubscriptionParams(PreparedStatement ps, ContentSubscription sub) throws SQLException {
