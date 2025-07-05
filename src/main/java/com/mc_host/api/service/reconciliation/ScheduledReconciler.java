@@ -1,16 +1,15 @@
 package com.mc_host.api.service.reconciliation;
 
-import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.model.queue.JobType;
+import com.mc_host.api.model.resource.ResourceType;
 import com.mc_host.api.queue.JobScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
 
 import java.util.logging.Logger;
 
-@Service
-@Controller
+//TODO: rn the a record reconciler is nuking my github pages setup. maybe dont do that.
+
+//@Service
 public class ScheduledReconciler {
     private static final Logger LOGGER = Logger.getLogger(ScheduledReconciler.class.getName());
 
