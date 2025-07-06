@@ -2,7 +2,7 @@ package com.mc_host.api.service.panel;
 
 import com.mc_host.api.controller.api.subscriptions.panel.SftpController;
 import com.mc_host.api.model.provisioning.Context;
-import com.mc_host.api.model.resource.dns.DnsARecord;
+import com.mc_host.api.model.resource.dns.DnsCNameRecord;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylServer;
 import com.mc_host.api.model.user.ApplicationUser;
 import com.mc_host.api.repository.GameServerRepository;
@@ -35,9 +35,9 @@ public class SftpService implements SftpController {
 		String serverUid = gameServerRepository.selectPterodactylServer(context.getPterodactylServerId())
 			.map(PterodactylServer::pterodactylServerUid)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "No server found for subscription %s".formatted(subscriptionId)));
-		String url = nodeAccessoryRepository.selectDnsARecord(context.getARecordId())
-			.map(DnsARecord::recordName)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "No A record found for subscription %s".formatted(subscriptionId)));
+		String url = gameServerRepository.selectDnsCNameRecord(context.getCNameRecordId())
+			.map(DnsCNameRecord::recordName)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatusCode.valueOf(404), "No C Name record found for subscription %s".formatted(subscriptionId)));
 		return ResponseEntity.ok(new CredentialsResponse(
 			"sftp://" + url,
 			String.join(".", user.pterodactylUsername(), serverUid.split("-")[0]),

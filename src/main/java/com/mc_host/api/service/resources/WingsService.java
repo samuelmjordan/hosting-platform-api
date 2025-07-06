@@ -76,7 +76,7 @@ public class WingsService {
                 throw new RuntimeException("Authentication failed after attempting key auth");
             }
             
-            LOGGER.log(Level.INFO, "Successfully authenticated");
+            LOGGER.log(Level.FINE, "Successfully authenticated");
 
             String yamlConfig;
             try {
@@ -120,6 +120,7 @@ public class WingsService {
                             cmd.getExitStatus(), command, output, error
                         ));
                     }
+                    LOGGER.log(Level.FINE, "Executed command for %s: %s".formatted(dnsARecord.recordName(), command));
                 }
             }
 
