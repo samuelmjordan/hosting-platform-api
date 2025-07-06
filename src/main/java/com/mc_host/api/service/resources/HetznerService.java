@@ -6,6 +6,7 @@ import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse;
 import com.mc_host.api.model.resource.hetzner.HetznerServerResponse.Server;
 import com.mc_host.api.model.resource.hetzner.node.HetznerCloudNode;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -13,15 +14,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Service
+@RequiredArgsConstructor
 public class HetznerService {
     private static final Logger LOGGER = Logger.getLogger(HetznerService.class.getName());
 
     private final HetznerCloudClient hetznerClient;
-    public HetznerService(
-        HetznerCloudClient hetznerClient
-    ) {
-        this.hetznerClient = hetznerClient;
-    }
 
     public HetznerCloudNode createCloudNode(String subscriptionId, HetznerCloudProduct hetznerCloudProduct, HetznerRegion hetznerRegion) {
         try {
