@@ -176,9 +176,7 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
     @Override
     public ResponseEntity<Void> updateSubscriptionAddress(String subscriptionId, UpdateAddressRequest address) {
-        String domain = String.join(".", "",
-            applicationConfiguration.getNodePublicSubdomain(),
-            applicationConfiguration.getCloudDomain());
+        String domain = String.join(".", applicationConfiguration.getNodePublicSuffix(), applicationConfiguration.getCloudDomain());
         if (!address.address().endsWith(domain)) {
             return ResponseEntity.badRequest().build();
         }

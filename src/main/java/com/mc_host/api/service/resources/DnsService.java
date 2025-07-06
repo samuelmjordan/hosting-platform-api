@@ -30,11 +30,13 @@ public class DnsService {
         LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Creating DNS A record", hetznerNode.hetznerNodeId()));
         try {
             String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getCloudDomain());
-            String recordName = String.join(".",
-                UUID.randomUUID().toString().replace("-", ""),
-                applicationConfiguration.getNodePrivateSubdomain()
+            String recordName = UUID.randomUUID().toString().replace("-", "") + applicationConfiguration.getNodePrivateSuffix();
+            DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(
+                zoneId,
+                recordName,
+                hetznerNode.ipv4(),
+                true
             );
-            DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(zoneId, recordName, hetznerNode.ipv4(), false);
             DnsARecord dnsARecord = new DnsARecord(
                 subscriptionId,
                 dnsARecordResponse.id(), 
@@ -63,15 +65,12 @@ public class DnsService {
     public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
-            String fullSubdomain = String.join(".",
-                subdomain,
-                applicationConfiguration.getNodePublicSubdomain()
-            );
+            String fullSubdomain = subdomain + applicationConfiguration.getNodePublicSuffix();
             DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
                 dnsARecord.zoneId(),
                 fullSubdomain,
                 dnsARecord.recordName(),
-                false
+                true
             );
             DnsCNameRecord dnsCNameRecord = new DnsCNameRecord(
                 dnsARecord.subscriptionId(), 
@@ -96,7 +95,7 @@ public class DnsService {
                 dnsCNameRecord.cNameRecordId(),
                 dnsCNameRecord.recordName(),
                 dnsARecord.recordName(),
-                false
+                true
             );
             DnsCNameRecord newDnsCNameRecord = new DnsCNameRecord(
                 dnsARecord.subscriptionId(), 
@@ -116,16 +115,13 @@ public class DnsService {
     public DnsCNameRecord updateCNameRecordName(DnsCNameRecord dnsCNameRecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsCNameRecord.subscriptionId()));
         try {
-            String fullSubdomain = String.join(".",
-                subdomain,
-                applicationConfiguration.getNodePublicSubdomain()
-            );
+            String fullSubdomain = subdomain + applicationConfiguration.getNodePublicSuffix();
             DNSRecordResponse dnsCNameRecordResponse = cloudflareClient.updateCNameRecord(
                 dnsCNameRecord.zoneId(), 
                 dnsCNameRecord.cNameRecordId(),
                 fullSubdomain,
                 dnsCNameRecord.content(),
-                false
+                true
             );
             DnsCNameRecord newDnsCNameRecord = new DnsCNameRecord(
                 dnsCNameRecord.subscriptionId(), 

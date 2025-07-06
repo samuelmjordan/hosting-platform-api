@@ -37,8 +37,8 @@ logging:
 
 application:
   scheme: https
-  node-public-subdomain: node
-  node-private-subdomain: infra
+  node-public-suffix: -node
+  node-private-suffix: -infra
   cloud-domain: samuelmjordan.dev
 
 cors:
@@ -49,6 +49,8 @@ cors:
 cloudflare:
   api-base: "https://api.cloudflare.com/client/v4"
   api-token: ${CLOUDFLARE_SECRET_KEY}
+  origin-cert: ${CLOUDFLARE_ORIGIN_CERTIFICATE}
+  private-key: ${CLOUDFLARE_CERTIFICATE_PRIVATE_KEY}
 
 pterodactyl:
   api-base: ${PANEL_HOST}

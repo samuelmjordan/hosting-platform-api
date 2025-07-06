@@ -38,10 +38,9 @@ public class PterodactylNodeStep extends AbstractStep {
     @Transactional
     public StepTransition create(Context context) {
         //Skip for dedicated resources
-        Boolean dedicated = nodeRepository.selectHetznerNode(context.getNewNodeId())
-            .map(HetznerNode::dedicated)
+        HetznerNode hetznerNode = nodeRepository.selectHetznerNode(context.getNewNodeId())
             .orElseThrow(() -> new IllegalStateException(String.format("Node %s not found", context.getNewNodeId())));
-        if (dedicated) {
+        if (hetznerNode.dedicated()) {
             LOGGER.warning("%s step is illegal for dedicated resources. Skipping. subId: %s".formatted(getType(), context.getSubscriptionId()));
             return transitionService.persistAndProgress(context, StepType.ASSIGN_PTERODACTYL_ALLOCATION);
         }
@@ -55,7 +54,7 @@ public class PterodactylNodeStep extends AbstractStep {
             .orElseThrow(() -> new IllegalStateException("DNS A Record not found:" + context.getNewARecordId()));
         ServerSpecification serverSpecification = gameServerSpecRepository.selectSpecification(specificationId)
             .orElseThrow(() -> new IllegalStateException("Specification not found:" + specificationId));
-        PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord, serverSpecification);
+        PterodactylNode pterodactylNode = pterodactylService.createNode(dnsARecord, serverSpecification, hetznerNode.hetznerRegion());
 
         Context transitionedContext = context.withNewPterodactylNodeId(pterodactylNode.pterodactylNodeId());
         nodeAccessoryRepository.insertPterodactylNode(pterodactylNode);

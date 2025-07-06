@@ -43,11 +43,15 @@ public class PterodactylService {
         this.wingsService = wingsService;
     }
 
-    public PterodactylNode createNode(DnsARecord dnsARecord, ServerSpecification serverSpecification) {
+    public PterodactylNode createNode(
+        DnsARecord dnsARecord,
+        ServerSpecification serverSpecification,
+        HetznerRegion region
+    ) {
         var nodeRequest = PterodactylCreateNodeRequest.builder()
             .name(UUID.randomUUID().toString())
             .description(dnsARecord.subscriptionId())
-            .locationId(HetznerRegion.NBG1.getPterodactylLocationId())
+            .locationId(region.getPterodactylLocationId())
             .public_(true)
             .fqdn(dnsARecord.recordName())
             .scheme("https")
@@ -58,7 +62,7 @@ public class PterodactylService {
             .diskOverallocate(0)
             .uploadSize(1024)
             .daemonSftp(2022)
-            .daemonListen(8080)
+            .daemonListen(443)
             .build();
             
         var nodeResponse = appClient.createNode(nodeRequest);
