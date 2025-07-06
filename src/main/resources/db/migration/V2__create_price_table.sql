@@ -17,8 +17,7 @@ CREATE TABLE price_ (
     last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     -- Constraints
-    CONSTRAINT prices_price_id_unique UNIQUE (price_id),
-    CONSTRAINT valid_currencies CHECK (jsonb_object_keys(minor_amounts) <@ ARRAY['USD', 'EUR', 'GBP']::text[])
+    CONSTRAINT prices_price_id_unique UNIQUE (price_id)
 );
 
 -- Indexes for performance

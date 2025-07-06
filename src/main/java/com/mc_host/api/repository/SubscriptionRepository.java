@@ -1,5 +1,6 @@
 package com.mc_host.api.repository;
 
+import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.SubscriptionStatus;
 import com.mc_host.api.model.subscription.ContentSubscription;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,39 +21,6 @@ public class SubscriptionRepository extends BaseRepository {
 
     public SubscriptionRepository(JdbcTemplate jdbc) { super(jdbc); }
 
-    public void insertSubscription(ContentSubscription sub) {
-        upsert("""
-            INSERT INTO subscription_ (
-                subscription_id,
-                customer_id,
-                status_,
-                price_id,
-                current_period_end,
-                current_period_start,
-                cancel_at_period_end,
-                subdomain)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            ps -> setSubscriptionParams(ps, sub));
-    }
-
-    public void updateSubscription(ContentSubscription sub) {
-        upsert("""
-            UPDATE subscription_ SET
-                customer_id = ?,
-                status_ = ?,
-                price_id = ?,
-                current_period_end = ?,
-                current_period_start = ?,
-                cancel_at_period_end = ?,
-                subdomain = ?
-            WHERE subscription_id = ?
-            """, ps -> {
-            setSubscriptionParams(ps, sub);
-            ps.setString(8, sub.subscriptionId());
-        });
-    }
-
     public void upsertSubscription(ContentSubscription sub) {
         upsert("""
             INSERT INTO subscription_ (
@@ -60,15 +28,17 @@ public class SubscriptionRepository extends BaseRepository {
                 customer_id,
                 status_,
                 price_id,
+                currency,
                 current_period_end,
                 current_period_start,
                 cancel_at_period_end,
                 subdomain)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (subscription_id) DO UPDATE SET
                 customer_id = EXCLUDED.customer_id,
                 status_ = EXCLUDED.status_,
                 price_id = EXCLUDED.price_id,
+                currency = EXCLUDED.currency,
                 current_period_end = EXCLUDED.current_period_end,
                 current_period_start = EXCLUDED.current_period_start,
                 cancel_at_period_end = EXCLUDED.cancel_at_period_end,
@@ -78,21 +48,18 @@ public class SubscriptionRepository extends BaseRepository {
         );
     }
 
-    public void deleteSubscription(String subId) {
-        execute("DELETE FROM subscription_ WHERE subscription_id = ?", subId);
-    }
-
     public List<ContentSubscription> selectSubscriptionsByCustomerId(String customerId) {
         return selectMany("""
             SELECT subscription_id,
                 customer_id,
                 status_,
                 price_id,
+                currency,
                 current_period_end,
                 current_period_start,
                 cancel_at_period_end,
                 subdomain
-            FROM subscription_ 
+            FROM subscription_
             WHERE customer_id = ?
             ORDER BY status_, current_period_start DESC
             """, this::mapSubscription, customerId);
@@ -104,6 +71,7 @@ public class SubscriptionRepository extends BaseRepository {
                 customer_id,
                 status_,
                 price_id,
+                currency,
                 current_period_end,
                 current_period_start,
                 cancel_at_period_end,
@@ -132,9 +100,8 @@ public class SubscriptionRepository extends BaseRepository {
     public int updateUserCurrencyFromSubscription(String customerId) {
         return execute("""
             UPDATE user_ SET currency = COALESCE(
-                (SELECT price_.currency
+                (SELECT currency
                 FROM subscription_
-                JOIN price_ ON subscription_.price_id = price_.price_id
                 WHERE subscription_.customer_id = ? AND subscription_.status_ = 'active'
                 LIMIT 1),
                 'XXX')
@@ -180,12 +147,13 @@ public class SubscriptionRepository extends BaseRepository {
         ps.setString(2, sub.customerId());
         ps.setString(3, sub.status().toString());
         ps.setString(4, sub.priceId());
-        ps.setTimestamp(5, Timestamp.from(sub.currentPeriodEnd()),
+        ps.setString(5, sub.currency().name());
+        ps.setTimestamp(6, Timestamp.from(sub.currentPeriodEnd()),
                 Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
-        ps.setTimestamp(6, Timestamp.from(sub.currentPeriodStart()),
+        ps.setTimestamp(7, Timestamp.from(sub.currentPeriodStart()),
                 Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC)));
-        ps.setBoolean(7, sub.cancelAtPeriodEnd());
-        ps.setString(8, sub.subdomain());
+        ps.setBoolean(8, sub.cancelAtPeriodEnd());
+        ps.setString(9, sub.subdomain());
     }
 
     private ContentSubscription mapSubscription(ResultSet rs, int rowNum) throws SQLException {
@@ -194,6 +162,7 @@ public class SubscriptionRepository extends BaseRepository {
             rs.getString("customer_id"),
             SubscriptionStatus.fromString(rs.getString("status_")),
             rs.getString("price_id"),
+            AcceptedCurrency.fromCode(rs.getString("currency")),
             rs.getTimestamp("current_period_end",
                     Calendar.getInstance(TimeZone.getTimeZone(ZoneOffset.UTC))).toInstant(),
             rs.getTimestamp("current_period_start",

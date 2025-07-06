@@ -1,5 +1,6 @@
 package com.mc_host.api.service.processor;
 
+import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.provisioning.Context;
 import com.mc_host.api.model.queue.Job;
 import com.mc_host.api.model.queue.JobType;
@@ -82,6 +83,7 @@ public class CustomerSubscriptionSyncJobProcessor implements JobProcessor {
 			customerId,
 			SubscriptionStatus.fromString(subscription.getStatus()),
 			subscription.getItems().getData().getFirst().getPrice().getId(),
+			AcceptedCurrency.fromCode(subscription.getCurrency()),
 			Instant.ofEpochMilli(subscription.getCurrentPeriodEnd()),
 			Instant.ofEpochMilli(subscription.getCurrentPeriodStart()),
 			subscription.getCancelAtPeriodEnd(),

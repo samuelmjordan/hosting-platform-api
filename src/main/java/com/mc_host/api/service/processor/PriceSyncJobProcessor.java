@@ -100,7 +100,7 @@ public class PriceSyncJobProcessor implements JobProcessor {
 			productId,
 			price.getActive(),
 			price.getCurrencyOptions().entrySet().stream().collect(Collectors.toMap(
-				entry -> AcceptedCurrency.valueOf(entry.getKey()),
+				entry -> AcceptedCurrency.fromCode(entry.getKey()),
 				entry -> entry.getValue().getUnitAmount()
 			))
 		);

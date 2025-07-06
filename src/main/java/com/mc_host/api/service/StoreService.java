@@ -51,6 +51,7 @@ public class StoreService implements StoreController {
 			SessionCreateParams checkoutParams = SessionCreateParams.builder()
 				.setMode(SessionCreateParams.Mode.SUBSCRIPTION)
 				.setCustomer(customerId)
+				.setCurrency(request.currency().name())
 				.setSuccessUrl(request.success())
 				.setCancelUrl(request.cancel())
 				.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()

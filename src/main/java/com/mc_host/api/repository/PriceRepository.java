@@ -62,7 +62,7 @@ public class PriceRepository extends BaseRepository {
                 minor_amounts
             FROM price_
             WHERE product_id = ?
-            ORDER BY active, currency, minor_amount DESC
+            ORDER BY active DESC
             """, this::mapPrice, productId);
     }
 

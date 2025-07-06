@@ -183,17 +183,3 @@ payment:
           label: "ending in"
           display_type: "masked"
           order: 3
-      sepa:
-        country:
-          label: ""
-          display_type: "country_flag"
-          order: 1
-        bank_name:
-          label: "bank"
-          display_type: "text"
-          order: 2
-        last_four:
-          label: "ending in"
-          display_type: "masked"
-          order: 3
-  

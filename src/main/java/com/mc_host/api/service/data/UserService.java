@@ -185,8 +185,8 @@ public class UserService implements UserController {
             subscription.currentPeriodEnd(),
             subscription.currentPeriodStart(),
             subscription.cancelAtPeriodEnd(),
-            price.currency(),
-            price.minorAmount()
+            subscription.currency(),
+            price.minorAmounts().get(subscription.currency())
         );
     }
     

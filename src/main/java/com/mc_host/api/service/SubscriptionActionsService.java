@@ -61,9 +61,9 @@ public class SubscriptionActionsService implements SubscriptionActionsController
         UpdateSpecificationRequest specificationRequest
     ) {
         try {
-            String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
-                .map(ContentSubscription::priceId)
+            ContentSubscription subscription = subscriptionRepository.selectSubscription(subscriptionId)
                 .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
+            String oldPriceId = subscription.priceId();
             ContentPrice oldPrice = priceRepository.selectPrice(oldPriceId)
                 .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
             String newPriceId = planRepository.selectPriceIdFromSpecId(specificationRequest.specificationId())
@@ -71,20 +71,20 @@ public class SubscriptionActionsService implements SubscriptionActionsController
             ContentPrice newPrice = priceRepository.selectPrice(newPriceId)
                 .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
 
-            if (!oldPrice.minorAmounts().containsKey(specificationRequest.currency()) ||
-                !newPrice.minorAmounts().containsKey(specificationRequest.currency())
+            if (!oldPrice.minorAmounts().containsKey(subscription.currency()) ||
+                !newPrice.minorAmounts().containsKey(subscription.currency())
             ) {
                 return ResponseEntity.notFound().build();
             }
 
-            if (oldPrice.minorAmounts().get(specificationRequest.currency()) >=
-                newPrice.minorAmounts().get(specificationRequest.currency())
+            if (oldPrice.minorAmounts().get(subscription.currency()) >=
+                newPrice.minorAmounts().get(subscription.currency())
             ) {
                 return ResponseEntity.badRequest().build();
             }
 
-            Subscription subscription = Subscription.retrieve(subscriptionId);
-            String subscriptionItemId = subscription.getItems().getData().get(0).getId();
+            Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
+            String subscriptionItemId = stripeSubscription.getItems().getData().get(0).getId();
 
             InvoiceUpcomingParams previewParams = InvoiceUpcomingParams.builder()
                 .setSubscription(subscriptionId)
@@ -110,9 +110,9 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
             UpgradePreviewResponse response = new UpgradePreviewResponse(
                 invoiceMinorAmount,
-                newPrice.minorAmounts().get(specificationRequest.currency()),
-                oldPrice.minorAmounts().get(specificationRequest.currency()),
-                specificationRequest.currency()
+                newPrice.minorAmounts().get(subscription.currency()),
+                oldPrice.minorAmounts().get(subscription.currency()),
+                subscription.currency()
             );
 
             return ResponseEntity.ok(response);
@@ -127,9 +127,9 @@ public class SubscriptionActionsService implements SubscriptionActionsController
         String subscriptionId,
         UpdateSpecificationRequest specificationRequest
     ) {
-        String oldPriceId = subscriptionRepository.selectSubscription(subscriptionId)
-            .map(ContentSubscription::priceId)
+        ContentSubscription subscription = subscriptionRepository.selectSubscription(subscriptionId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
+        String oldPriceId = subscription.priceId();
         ContentPrice oldPrice = priceRepository.selectPrice(oldPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
         String newPriceId = planRepository.selectPriceIdFromSpecId(specificationRequest.specificationId())
@@ -137,35 +137,35 @@ public class SubscriptionActionsService implements SubscriptionActionsController
         ContentPrice newPrice = priceRepository.selectPrice(newPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
 
-        if (!oldPrice.minorAmounts().containsKey(specificationRequest.currency()) ||
-            !newPrice.minorAmounts().containsKey(specificationRequest.currency())
+        if (!oldPrice.minorAmounts().containsKey(subscription.currency()) ||
+            !newPrice.minorAmounts().containsKey(subscription.currency())
         ) {
             return ResponseEntity.notFound().build();
         }
 
-        if (oldPrice.minorAmounts().get(specificationRequest.currency()) >=
-            newPrice.minorAmounts().get(specificationRequest.currency())
+        if (oldPrice.minorAmounts().get(subscription.currency()) >=
+            newPrice.minorAmounts().get(subscription.currency())
         ) {
             return ResponseEntity.badRequest().build();
         }
 
         try {
-            Subscription subscription = Subscription.retrieve(subscriptionId);
+            Subscription stripeSubscription = Subscription.retrieve(subscriptionId);
             SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                 .addItem(
                     SubscriptionUpdateParams.Item.builder()
-                        .setId(subscription.getItems().getData().getFirst().getId())
+                        .setId(stripeSubscription.getItems().getData().getFirst().getId())
                         .setPrice(newPriceId)
                         .build()
                 )
                 .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
                 .build();
-            subscription.update(params);
+            stripeSubscription.update(params);
 
             Invoice invoice = Invoice.create(
                 InvoiceCreateParams.builder()
-                    .setCustomer(subscription.getCustomer())
-                    .setSubscription(subscription.getId())
+                    .setCustomer(stripeSubscription.getCustomer())
+                    .setSubscription(stripeSubscription.getId())
                     .setAutoAdvance(true)
                     .build()
             );
@@ -173,8 +173,8 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
             UpgradeConfirmationResponse response = new UpgradeConfirmationResponse(
                 invoice.getAmountDue(),
-                newPrice.minorAmounts().get(specificationRequest.currency()),
-                specificationRequest.currency(),
+                newPrice.minorAmounts().get(subscription.currency()),
+                subscription.currency(),
                 invoice.getId()
             );
             return ResponseEntity.ok(response);
