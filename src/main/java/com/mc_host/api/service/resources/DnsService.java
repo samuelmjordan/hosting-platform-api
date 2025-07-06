@@ -70,7 +70,7 @@ public class DnsService {
                 dnsARecord.zoneId(),
                 fullSubdomain,
                 dnsARecord.recordName(),
-                true
+                false
             );
             DnsCNameRecord dnsCNameRecord = new DnsCNameRecord(
                 dnsARecord.subscriptionId(), 
@@ -95,7 +95,7 @@ public class DnsService {
                 dnsCNameRecord.cNameRecordId(),
                 dnsCNameRecord.recordName(),
                 dnsARecord.recordName(),
-                true
+                false
             );
             DnsCNameRecord newDnsCNameRecord = new DnsCNameRecord(
                 dnsARecord.subscriptionId(), 
@@ -121,7 +121,7 @@ public class DnsService {
                 dnsCNameRecord.cNameRecordId(),
                 fullSubdomain,
                 dnsCNameRecord.content(),
-                true
+                false
             );
             DnsCNameRecord newDnsCNameRecord = new DnsCNameRecord(
                 dnsCNameRecord.subscriptionId(), 

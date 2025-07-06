@@ -9,6 +9,7 @@ CREATE TABLE subscription_ (
     -- Subscription details
     status_ TEXT NOT NULL,
     price_id TEXT NOT NULL,
+    currency TEXT NOT NULL,
     
     -- Period tracking
     current_period_start TIMESTAMP NOT NULL,

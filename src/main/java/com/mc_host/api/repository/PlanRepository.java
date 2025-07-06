@@ -1,5 +1,7 @@
 package com.mc_host.api.repository;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import com.mc_host.api.model.plan.Plan;
@@ -10,10 +12,15 @@ import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PlanRepository extends BaseRepository {
+private static final ObjectMapper objectMapper = new ObjectMapper();
+private static final TypeReference<Map<String, Long>> CURRENCY_MAP_TYPE =
+    new TypeReference<Map<String, Long>>() {};
 
     public PlanRepository(JdbcTemplate jdbc) { super(jdbc); }
 
@@ -23,11 +30,13 @@ public class PlanRepository extends BaseRepository {
                 price_.price_id,
                 price_.product_id,
                 price_.active,
-                price_.currency,
-                price_.minor_amount,
+                price_.minor_amounts,
                 jss_.specification_id,
-                jss_.title, jss_.caption,
-                jss_.ram_gb, jss_.vcpu, jss_.ssd_gb
+                jss_.title,
+                jss_.caption,
+                jss_.ram_gb,
+                jss_.vcpu,
+                jss_.ssd_gb
             FROM plan_
             JOIN price_ ON price_.price_id = plan_.price_id
             JOIN game_server_specification_ jss_ ON jss_.specification_id = plan_.specification_id
@@ -39,12 +48,11 @@ public class PlanRepository extends BaseRepository {
                 (rs, rowNum) -> rs.getString("specification_id"), priceId);
     }
 
-    public Optional<String> selectPriceId(String specId, AcceptedCurrency currency) {
+    public Optional<String> selectPriceIdFromSpecId(String specId) {
         return selectOne("""
-            SELECT price_.price_id FROM plan_
-            JOIN price_ ON price_.price_id = plan_.price_id
-            WHERE plan_.specification_id = ? AND price_.currency = ?
-            """, (rs, rowNum) -> rs.getString("price_id"), specId, currency.name());
+            SELECT price_id FROM plan_
+            WHERE specification_id = ?
+            """, (rs, rowNum) -> rs.getString("price_id"), specId);
     }
 
     public Optional<String> selectPlanIdFromPriceId(String priceId) {
@@ -53,19 +61,30 @@ public class PlanRepository extends BaseRepository {
     }
 
     private Plan mapPlan(ResultSet rs, int rowNum) throws SQLException {
-        return new Plan(
-            new ServerSpecification(
-                rs.getString("specification_id"),
-                rs.getString("title"),
-                rs.getString("caption"),
-                Integer.valueOf(rs.getString("ram_gb")),
-                Integer.valueOf(rs.getString("vcpu")),
-                Integer.valueOf(rs.getString("ssd_gb"))),
-            new ContentPrice(
-                rs.getString("price_id"),
-                rs.getString("product_id"),
-                rs.getBoolean("active"),
-                AcceptedCurrency.fromCode(rs.getString("currency")),
-                rs.getLong("minor_amount")));
+        try {
+            String jsonbString = rs.getString("minor_amounts");
+            Map<String, Long> rawAmounts = objectMapper.readValue(jsonbString, CURRENCY_MAP_TYPE);
+            Map<AcceptedCurrency, Long> minorAmounts = rawAmounts.entrySet().stream()
+                .collect(Collectors.toMap(
+                    entry -> AcceptedCurrency.fromCode(entry.getKey()),
+                    Map.Entry::getValue
+                ));
+
+            return new Plan(
+                new ServerSpecification(
+                    rs.getString("specification_id"),
+                    rs.getString("title"),
+                    rs.getString("caption"),
+                    Integer.valueOf(rs.getString("ram_gb")),
+                    Integer.valueOf(rs.getString("vcpu")),
+                    Integer.valueOf(rs.getString("ssd_gb"))),
+                new ContentPrice(
+                    rs.getString("price_id"),
+                    rs.getString("product_id"),
+                    rs.getBoolean("active"),
+                    minorAmounts));
+        } catch (Exception e) {
+            throw new SQLException("failed to parse minor_amounts jsonb", e);
+        }
     }
 }

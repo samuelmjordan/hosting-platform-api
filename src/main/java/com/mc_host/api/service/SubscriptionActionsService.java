@@ -66,13 +66,20 @@ public class SubscriptionActionsService implements SubscriptionActionsController
                 .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
             ContentPrice oldPrice = priceRepository.selectPrice(oldPriceId)
                 .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
-
-            String newPriceId = planRepository.selectPriceId(specificationRequest.specificationId(), oldPrice.currency())
-                .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency %s", specificationRequest.specificationId(), oldPrice.currency())));
+            String newPriceId = planRepository.selectPriceIdFromSpecId(specificationRequest.specificationId())
+                .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency", specificationRequest.specificationId())));
             ContentPrice newPrice = priceRepository.selectPrice(newPriceId)
                 .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
 
-            if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
+            if (!oldPrice.minorAmounts().containsKey(specificationRequest.currency()) ||
+                !newPrice.minorAmounts().containsKey(specificationRequest.currency())
+            ) {
+                return ResponseEntity.notFound().build();
+            }
+
+            if (oldPrice.minorAmounts().get(specificationRequest.currency()) >=
+                newPrice.minorAmounts().get(specificationRequest.currency())
+            ) {
                 return ResponseEntity.badRequest().build();
             }
 
@@ -103,9 +110,9 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
             UpgradePreviewResponse response = new UpgradePreviewResponse(
                 invoiceMinorAmount,
-                newPrice.minorAmount(),
-                oldPrice.minorAmount(),
-                oldPrice.currency()
+                newPrice.minorAmounts().get(specificationRequest.currency()),
+                oldPrice.minorAmounts().get(specificationRequest.currency()),
+                specificationRequest.currency()
             );
 
             return ResponseEntity.ok(response);
@@ -125,12 +132,20 @@ public class SubscriptionActionsService implements SubscriptionActionsController
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find subscription %s", subscriptionId)));
         ContentPrice oldPrice = priceRepository.selectPrice(oldPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", oldPriceId)));
-        String newPriceId = planRepository.selectPriceId(specificationRequest.specificationId(), oldPrice.currency())
-            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency %s", specificationRequest.specificationId(), oldPrice.currency())));
+        String newPriceId = planRepository.selectPriceIdFromSpecId(specificationRequest.specificationId())
+            .orElseThrow(() -> new IllegalStateException(String.format("Cannot find a plan with specification %s and currency", specificationRequest.specificationId())));
         ContentPrice newPrice = priceRepository.selectPrice(newPriceId)
             .orElseThrow(() -> new IllegalStateException(String.format("Cannot find price %s", newPriceId)));
 
-        if (oldPrice.minorAmount() >= newPrice.minorAmount()) {
+        if (!oldPrice.minorAmounts().containsKey(specificationRequest.currency()) ||
+            !newPrice.minorAmounts().containsKey(specificationRequest.currency())
+        ) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (oldPrice.minorAmounts().get(specificationRequest.currency()) >=
+            newPrice.minorAmounts().get(specificationRequest.currency())
+        ) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -158,8 +173,8 @@ public class SubscriptionActionsService implements SubscriptionActionsController
 
             UpgradeConfirmationResponse response = new UpgradeConfirmationResponse(
                 invoice.getAmountDue(),
-                newPrice.minorAmount(),
-                newPrice.currency(),
+                newPrice.minorAmounts().get(specificationRequest.currency()),
+                specificationRequest.currency(),
                 invoice.getId()
             );
             return ResponseEntity.ok(response);

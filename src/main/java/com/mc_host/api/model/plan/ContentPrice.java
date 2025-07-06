@@ -1,11 +1,12 @@
 package com.mc_host.api.model.plan;
 
+import java.util.Map;
+
 public record ContentPrice(
     String priceId,
     String productId,
     Boolean active,
-    AcceptedCurrency currency,
-    Long minorAmount
+    Map<AcceptedCurrency, Long> minorAmounts
 ) {
 
     public Boolean isAlike(ContentPrice newPrice) {

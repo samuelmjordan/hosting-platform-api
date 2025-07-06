@@ -1,5 +1,8 @@
 package com.mc_host.api.repository;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.plan.ContentPrice;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -8,35 +11,42 @@ import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PriceRepository extends BaseRepository {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final TypeReference<Map<String, Long>> CURRENCY_MAP_TYPE =
+        new TypeReference<Map<String, Long>>() {};
 
     public PriceRepository(JdbcTemplate jdbc) { super(jdbc); }
 
     public void insertPrice(ContentPrice price) {
-        upsert("""
+        try {
+            String minorAmountsJson = objectMapper.writeValueAsString(price.minorAmounts());
+
+            upsert("""
             INSERT INTO price_ (
                 price_id,
                 product_id,
                 active,
-                currency,
-                minor_amount)
-            VALUES (?, ?, ?, ?, ?)
+                minor_amounts)
+            VALUES (?, ?, ?, ?::jsonb)
             ON CONFLICT (price_id) DO UPDATE SET
-                price_id = EXCLUDED.price_id,
                 product_id = EXCLUDED.product_id,
                 active = EXCLUDED.active,
-                currency = EXCLUDED.currency,
-                minor_amount = EXCLUDED.minor_amount
+                minor_amounts = EXCLUDED.minor_amounts
             """, ps -> {
-            ps.setString(1, price.priceId());
-            ps.setString(2, price.productId());
-            ps.setBoolean(3, price.active());
-            ps.setString(4, price.currency().name());
-            ps.setLong(5, price.minorAmount());
-        });
+                ps.setString(1, price.priceId());
+                ps.setString(2, price.productId());
+                ps.setBoolean(3, price.active());
+                ps.setString(4, minorAmountsJson);
+            });
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("failed to serialize minor_amounts", e);
+        }
     }
 
     public void deleteProductPrice(String priceId, String productId) {
@@ -49,8 +59,7 @@ public class PriceRepository extends BaseRepository {
                 price_id,
                 product_id,
                 active,
-                currency,
-                minor_amount
+                minor_amounts
             FROM price_
             WHERE product_id = ?
             ORDER BY active, currency, minor_amount DESC
@@ -63,8 +72,7 @@ public class PriceRepository extends BaseRepository {
                 price_id,
                 product_id,
                 active,
-                currency,
-                minor_amount
+                minor_amounts
             FROM price_
             WHERE price_id = ?
             """, this::mapPrice, priceId);
@@ -76,11 +84,22 @@ public class PriceRepository extends BaseRepository {
     }
 
     private ContentPrice mapPrice(ResultSet rs, int rowNum) throws SQLException {
-        return new ContentPrice(
+        try {
+            String jsonbString = rs.getString("minor_amounts");
+            Map<String, Long> rawAmounts = objectMapper.readValue(jsonbString, CURRENCY_MAP_TYPE);
+            Map<AcceptedCurrency, Long> minorAmounts = rawAmounts.entrySet().stream()
+                .collect(Collectors.toMap(
+                    entry -> AcceptedCurrency.fromCode(entry.getKey()),
+                    Map.Entry::getValue
+                ));
+
+            return new ContentPrice(
                 rs.getString("price_id"),
                 rs.getString("product_id"),
                 rs.getBoolean("active"),
-                AcceptedCurrency.fromCode(rs.getString("currency")),
-                rs.getLong("minor_amount"));
+                minorAmounts);
+        } catch (Exception e) {
+            throw new SQLException("failed to parse minor_amounts jsonb", e);
+        }
     }
 }

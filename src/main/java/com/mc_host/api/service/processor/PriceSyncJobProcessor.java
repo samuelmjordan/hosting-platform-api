@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -43,6 +44,7 @@ public class PriceSyncJobProcessor implements JobProcessor {
 		try {
 			PriceListParams priceListParams = PriceListParams.builder()
 				.setProduct(productId)
+				.addExpand("data.currency_options")
 				.build();
 			List<ContentPrice> stripePrices = Price.list(priceListParams).getData().stream()
 				.map(price -> stripePriceToEntity(price, productId))
@@ -97,8 +99,10 @@ public class PriceSyncJobProcessor implements JobProcessor {
 			price.getId(),
 			productId,
 			price.getActive(),
-			AcceptedCurrency.fromCode(price.getCurrency()),
-			price.getUnitAmount()
+			price.getCurrencyOptions().entrySet().stream().collect(Collectors.toMap(
+				entry -> AcceptedCurrency.valueOf(entry.getKey()),
+				entry -> entry.getValue().getUnitAmount()
+			))
 		);
 	}
 }
