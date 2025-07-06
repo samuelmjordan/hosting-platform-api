@@ -1,9 +1,16 @@
 package com.mc_host.api.service.resources;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mc_host.api.configuration.CloudflareConfiguration;
+import com.mc_host.api.configuration.SshConfiguration;
+import com.mc_host.api.model.resource.dns.DnsARecord;
+import lombok.RequiredArgsConstructor;
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,45 +20,37 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.configuration.SshConfiguration;
-import com.mc_host.api.exceptions.resources.SshException;
-import com.mc_host.api.model.resource.DnsARecord;
-
 @Service
+@RequiredArgsConstructor
 public class WingsService {
     private static final Logger LOGGER = Logger.getLogger(WingsService.class.getName());
     private static final String USERNAME = "root";
     private static final int PORT = 22;
     private static final int TIMEOUT = 300;
-    private static final int DELAY = 3000;
+    private static final int DELAY = 500;
 
     private final SshConfiguration sshConfiguration;
+    private final CloudflareConfiguration cloudflareConfiguration;
     private final ObjectMapper objectMapper;
     private final ObjectMapper yamlMapper;
 
-    WingsService(
-        SshConfiguration sshConfiguration,
-        ObjectMapper objectMapper,
-        ObjectMapper yamlMapper
-    ) {
-        this.sshConfiguration = sshConfiguration;
-        this.objectMapper = objectMapper;
-        this.yamlMapper = yamlMapper;
-    }
-
     public void setupWings(DnsARecord dnsARecord, String jsonConfig) {
         try (SSHClient ssh = new SSHClient()) {
-            String privateKey = sshConfiguration.getPrivateKey()
+            String sshPrivateKey = sshConfiguration.getPrivateKey()
+                .replace("\\n", "\n")
+                .replace("\r", "")
+                .trim();
+            String originCertificate = cloudflareConfiguration.getOriginCert()
+                .replace("\\n", "\n")
+                .replace("\r", "")
+                .trim();
+            String certPrivateKey = cloudflareConfiguration.getPrivateKey()
                 .replace("\\n", "\n")
                 .replace("\r", "")
                 .trim();
             
             Path keyPath = Files.createTempFile("ssh-key", null);
-            Files.write(keyPath, privateKey.getBytes(), StandardOpenOption.WRITE);
+            Files.write(keyPath, sshPrivateKey.getBytes(), StandardOpenOption.WRITE);
             
             int retries = 0;
             int delay = DELAY;
@@ -66,7 +65,8 @@ public class WingsService {
                     Thread.sleep(delay);
                     delay *= 1.2;
                     retries++;
-                    if (retries >= 3) {
+                    if (retries >= 15) {
+                        LOGGER.severe("Failed to authenticate server %s".formatted(dnsARecord.aRecordId()));
                         throw e;
                     }
                 }
@@ -76,7 +76,7 @@ public class WingsService {
                 throw new RuntimeException("Authentication failed after attempting key auth");
             }
             
-            LOGGER.log(Level.INFO, "Successfully authenticated");
+            LOGGER.log(Level.FINE, "Successfully authenticated");
 
             String yamlConfig;
             try {
@@ -90,8 +90,10 @@ public class WingsService {
             String escapedConfig = yamlConfig.replace("'", "'\\''");
 
             String[] commands = {
-                "apt-get update && apt-get install -y certbot",
-                "certbot certonly --standalone --non-interactive --agree-tos --email samuelmjordandev@gmail.com -d " + dnsARecord.recordName(),
+                "apt-get update",
+                "mkdir -p /etc/letsencrypt/live/%s".formatted(dnsARecord.recordName()),
+                "echo '%s' > /etc/letsencrypt/live/%s/fullchain.pem".formatted(originCertificate, dnsARecord.recordName()),
+                "echo '%s' > /etc/letsencrypt/live/%s/privkey.pem".formatted(certPrivateKey, dnsARecord.recordName()),
                 "curl -sSL https://get.docker.com/ | CHANNEL=stable bash",
                 "apt install -y tar unzip make gcc g++ python3",
                 "mkdir -p /etc/pterodactyl",
@@ -118,6 +120,7 @@ public class WingsService {
                             cmd.getExitStatus(), command, output, error
                         ));
                     }
+                    LOGGER.log(Level.FINE, "Executed command for %s: %s".formatted(dnsARecord.recordName(), command));
                 }
             }
 
@@ -134,7 +137,7 @@ public class WingsService {
             }
 
         } catch (Exception e) {
-            throw new SshException(String.format("[aRecordId: %s] Failed to setup Wings", dnsARecord.aRecordId()), e);
+            throw new RuntimeException(String.format("[aRecordId: %s] Failed to setup Wings", dnsARecord.aRecordId()), e);
         }
     }
 }

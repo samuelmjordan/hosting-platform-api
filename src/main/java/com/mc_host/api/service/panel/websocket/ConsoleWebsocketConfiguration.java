@@ -20,7 +20,7 @@ public class ConsoleWebsocketConfiguration implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
-        registry.addHandler(pterodactylProxyHandler, "/ws/user/{userId}/subscription/{subscriptionId}")
+        registry.addHandler(pterodactylProxyHandler, "/ws/user/subscription/{subscriptionId}")
             .setAllowedOrigins("*");
     }
 }

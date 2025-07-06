@@ -1,18 +1,14 @@
 spring:
   application:
     name: api
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-      username: 
-      password: ${REDIS_PASSWORD}
-      timeout: 2000
   datasource:
     url: "jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}"
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 15
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -34,13 +30,16 @@ management:
 
 logging:
   level:
-    com:
-      mc_host:
-        api: INFO
+    root: INFO
+    org:
+      springframework:
+        web: INFO
 
 application:
   scheme: https
-  domain: samuelmjordan.dev
+  node-public-suffix: -node
+  node-private-suffix: -infra
+  cloud-domain: samuelmjordan.dev
 
 cors:
   allowed-origins:
@@ -50,11 +49,16 @@ cors:
 cloudflare:
   api-base: "https://api.cloudflare.com/client/v4"
   api-token: ${CLOUDFLARE_SECRET_KEY}
+  origin-cert: ${CLOUDFLARE_ORIGIN_CERTIFICATE}
+  private-key: ${CLOUDFLARE_CERTIFICATE_PRIVATE_KEY}
 
 pterodactyl:
   api-base: ${PANEL_HOST}
   api-token: ${PANEL_SECRET_KEY}
   client-api-token: ${PANEL_ADMIN_CLIENT_SECRET_KEY}
+  admin-user: ${PANEL_ADMIN_USER}
+  admin-password: ${PANEL_ADMIN_PASSWORD}
+  password-key: ${PANEL_PASSWORD_KEY}
 
 hetzner:
   cloud:
@@ -179,17 +183,3 @@ payment:
           label: "ending in"
           display_type: "masked"
           order: 3
-      sepa:
-        country:
-          label: ""
-          display_type: "country_flag"
-          order: 1
-        bank_name:
-          label: "bank"
-          display_type: "text"
-          order: 2
-        last_four:
-          label: "ending in"
-          display_type: "masked"
-          order: 3
-  

@@ -1,40 +1,30 @@
 package com.mc_host.api.service.clerk;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mc_host.api.configuration.ClerkConfiguration;
+import com.mc_host.api.controller.webhook.ClerkWebhookController;
+import com.mc_host.api.model.user.ClerkUserEvent;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mc_host.api.configuration.ClerkConfiguration;
-import com.mc_host.api.controller.ClerkResource;
-import com.mc_host.api.model.user.ClerkUserEvent;
-
 @Service
-public class ClerkService implements ClerkResource {
+@RequiredArgsConstructor
+public class ClerkService implements ClerkWebhookController {
     private static final Logger LOGGER = Logger.getLogger(ClerkService.class.getName());
 
     private final ClerkConfiguration clerkConfiguration;
     private final ClerkEventProcessor clerkEventProcessor;
     private final Executor virtualThreadExecutor;
-
-    public ClerkService(
-        ClerkConfiguration clerkConfiguration,
-        ClerkEventProcessor clerkEventProcessor,
-        Executor virtualThreadExecutor
-    ) {
-        this.clerkConfiguration = clerkConfiguration;
-        this.clerkEventProcessor = clerkEventProcessor;
-        this.virtualThreadExecutor = virtualThreadExecutor;
-    }
 
     @Override
     public ResponseEntity<String> handleClerkWebhook(String payload, String svixId, String svixTimestamp, String svixSignature) {

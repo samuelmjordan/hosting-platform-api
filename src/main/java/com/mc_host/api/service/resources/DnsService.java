@@ -1,55 +1,54 @@
 package com.mc_host.api.service.resources;
 
+import com.mc_host.api.client.CloudflareClient;
+import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
+import com.mc_host.api.configuration.ApplicationConfiguration;
+import com.mc_host.api.model.resource.dns.DnsARecord;
+import com.mc_host.api.model.resource.dns.DnsCNameRecord;
+import com.mc_host.api.model.resource.hetzner.node.HetznerNodeInterface;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.springframework.stereotype.Service;
-
-import com.mc_host.api.client.CloudflareClient;
-import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
-import com.mc_host.api.configuration.ApplicationConfiguration;
-import com.mc_host.api.exceptions.resources.CloudflareException;
-import com.mc_host.api.model.resource.DnsARecord;
-import com.mc_host.api.model.resource.DnsCNameRecord;
-import com.mc_host.api.model.resource.hetzner.HetznerNode;
-import com.mc_host.api.repository.GameServerRepository;
-
 @Service
+@RequiredArgsConstructor
 public class DnsService {
     private static final Logger LOGGER = Logger.getLogger(DnsService.class.getName());
 
     private final ApplicationConfiguration applicationConfiguration;
     private final CloudflareClient cloudflareClient;
-    private final GameServerRepository gameServerRepository;
-    public DnsService(
-        CloudflareClient cloudflareClient,
-        ApplicationConfiguration applicationConfiguration,
-        GameServerRepository gameServerRepository
-    ) {
-        this.cloudflareClient = cloudflareClient;
-        this.applicationConfiguration = applicationConfiguration;
-        this.gameServerRepository = gameServerRepository;
-    }
 
-    public DnsARecord createARecord(HetznerNode hetznerNode) {
-        LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS A record", hetznerNode.subscriptionId()));
+    public DnsARecord createARecord(HetznerNodeInterface hetznerNode, String subscriptionId) {
+        LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Creating DNS A record", hetznerNode.hetznerNodeId()));
         try {
-            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getDomain());
-            String recordName = UUID.randomUUID().toString().replace("-", "");
-            DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(zoneId, recordName, hetznerNode.ipv4(), false);
+            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getCloudDomain());
+            String recordName = UUID.randomUUID().toString().replace("-", "") + applicationConfiguration.getNodePrivateSuffix();
+            DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(
+                zoneId,
+                recordName,
+                hetznerNode.ipv4(),
+                true
+            );
             DnsARecord dnsARecord = new DnsARecord(
-                hetznerNode.subscriptionId(), 
+                subscriptionId,
                 dnsARecordResponse.id(), 
                 zoneId, 
-                applicationConfiguration.getDomain(), 
+                applicationConfiguration.getCloudDomain(),
                 dnsARecordResponse.name(), 
                 dnsARecordResponse.content()
             );
-            LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Created DNS A record", hetznerNode.subscriptionId()));
+            LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Created DNS A record", hetznerNode.hetznerNodeId()));
             return dnsARecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error Creating DNS A record", hetznerNode.subscriptionId()), e);
+            throw new RuntimeException(String.format("[hetznerNodeId: %s] Error Creating DNS A record", hetznerNode.hetznerNodeId()), e);
         }
     }
 
@@ -59,16 +58,17 @@ public class DnsService {
             cloudflareClient.deleteDNSRecord(dnsARecord.zoneId(), dnsARecord.aRecordId());
             LOGGER.log(Level.INFO, String.format("[aRecordId: %s] Deleted DNS A record", dnsARecord.aRecordId()));
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[aRecordId: %s] Error deleting DNS A record", dnsARecord.aRecordId()), e);
+            throw new RuntimeException(String.format("[aRecordId: %s] Error deleting DNS A record", dnsARecord.aRecordId()), e);
         }
     }
 
     public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
+            String fullSubdomain = subdomain + applicationConfiguration.getNodePublicSuffix();
             DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
-                dnsARecord.zoneId(), 
-                subdomain, 
+                dnsARecord.zoneId(),
+                fullSubdomain,
                 dnsARecord.recordName(),
                 false
             );
@@ -83,11 +83,11 @@ public class DnsService {
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Created DNS C NAME record", dnsARecord.subscriptionId()));
             return dnsCNameRecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error creating DNS C NAME record", dnsARecord.subscriptionId()), e);
+            throw new RuntimeException(String.format("[subscriptionId: %s] Error creating DNS C NAME record", dnsARecord.subscriptionId()), e);
         }
     }
 
-    public DnsCNameRecord updateCNameRecord(DnsARecord dnsARecord, DnsCNameRecord dnsCNameRecord) {
+    public DnsCNameRecord redirectCNameRecord(DnsARecord dnsARecord, DnsCNameRecord dnsCNameRecord) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
             DNSRecordResponse dnsCCNameRecordResponse = cloudflareClient.updateCNameRecord(
@@ -108,17 +108,18 @@ public class DnsService {
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updated DNS C NAME record", dnsARecord.subscriptionId()));
             return newDnsCNameRecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsARecord.subscriptionId()), e);
+            throw new RuntimeException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsARecord.subscriptionId()), e);
         }
     }
 
     public DnsCNameRecord updateCNameRecordName(DnsCNameRecord dnsCNameRecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsCNameRecord.subscriptionId()));
         try {
+            String fullSubdomain = subdomain + applicationConfiguration.getNodePublicSuffix();
             DNSRecordResponse dnsCNameRecordResponse = cloudflareClient.updateCNameRecord(
                 dnsCNameRecord.zoneId(), 
                 dnsCNameRecord.cNameRecordId(),
-                subdomain,
+                fullSubdomain,
                 dnsCNameRecord.content(),
                 false
             );
@@ -133,7 +134,7 @@ public class DnsService {
             LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updated DNS C NAME record", dnsCNameRecord.subscriptionId()));
             return newDnsCNameRecord;
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsCNameRecord.subscriptionId()), e);
+            throw new RuntimeException(String.format("[subscriptionId: %s] Error updating DNS C NAME record", dnsCNameRecord.subscriptionId()), e);
         }
     }
 
@@ -143,14 +144,32 @@ public class DnsService {
             cloudflareClient.deleteDNSRecord(dnsCNameRecord.zoneId(), dnsCNameRecord.cNameRecordId());
             LOGGER.log(Level.INFO, String.format("[cNameRecordId: %s] Deleted DNS C NAME record", dnsCNameRecord.cNameRecordId()));
         } catch (Exception e) {
-            throw new CloudflareException(String.format("[cNameRecordId: %s] Error deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()), e);
+            throw new RuntimeException(String.format("[cNameRecordId: %s] Error deleting DNS C NAME record", dnsCNameRecord.cNameRecordId()), e);
         }
     }
 
-    public void deleteCNameRecordWithGameServerId(String gameServerId) {
-        DnsCNameRecord dnsCNameRecord = gameServerRepository.selectDnsCNameRecord(gameServerId)
-            .orElseThrow(() -> new IllegalStateException(String.format("[gameServerId: %s] No DNS C NAME record associated with game server", gameServerId)));
-        deleteCNameRecord(dnsCNameRecord);
+    public static String serverPortToSubdomainMapping(String serverId, int port) throws NoSuchAlgorithmException, InvalidKeyException {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec keySpec = new SecretKeySpec(serverId.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(keySpec);
+
+            byte[] hash = mac.doFinal(String.valueOf(port).getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new RuntimeException("hmac failed", e);
+        }
     }
-    
+
 }

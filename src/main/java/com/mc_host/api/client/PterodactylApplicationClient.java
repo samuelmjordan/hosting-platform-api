@@ -1,16 +1,15 @@
 package com.mc_host.api.client;
 
-import java.net.http.HttpClient;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
 import com.mc_host.api.model.resource.pterodactyl.request.PterodactylCreateNodeRequest;
 import com.mc_host.api.model.resource.pterodactyl.response.PaginatedResponse;
 import com.mc_host.api.model.resource.pterodactyl.response.PterodactylNodeResponse;
+import org.springframework.stereotype.Service;
+
+import java.net.http.HttpClient;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class PterodactylApplicationClient extends BaseApiClient {
@@ -37,7 +36,7 @@ public class PterodactylApplicationClient extends BaseApiClient {
     }
 
     // SERVERS
-    public PterodactylServerResponse getServer(String serverId) {
+    public PterodactylServerResponse getServer(Long serverId) {
         var response = sendRequest("GET", "/api/application/servers/" + serverId);
         return deserialize(response, PterodactylServerResponse.class);
     }
@@ -124,11 +123,43 @@ public class PterodactylApplicationClient extends BaseApiClient {
         sendRequest("DELETE", "/api/application/nodes/" + nodeId + "/allocations/" + allocationId);
     }
 
+    // USERS
+    public PterodactylUserResponse getUser(String userId) {
+        var response = sendRequest("GET", "/api/application/users/" + userId);
+        return deserialize(response, PterodactylUserResponse.class);
+    }
+
+    public List<PterodactylUserResponse> getAllUsers() {
+        var response = sendRequest("GET", "/api/application/users");
+        var paginated = deserializePaginated(response, PterodactylUserResponse.class);
+        return paginated.data();
+    }
+
+    public PterodactylUserResponse createUser(PterodactylCreateUserRequest userDetails) {
+        var response = sendRequest("POST", "/api/application/users", userDetails);
+        return deserialize(response, PterodactylUserResponse.class);
+    }
+
+    public PterodactylUserResponse updateUser(String userId, PterodactylUpdateUserRequest userDetails) {
+        var response = sendRequest("PATCH", "/api/application/users/" + userId, userDetails);
+        return deserialize(response, PterodactylUserResponse.class);
+    }
+
+    public void deleteUser(Long userId) {
+        sendRequest("DELETE", "/api/application/users/" + userId);
+    }
+
     public List<AllocationResponse> getUnassignedAllocations(Long nodeId) {
         var allocations = getNodeAllocations(nodeId);
         return allocations.stream()
             .filter(a -> !a.attributes().assigned())
             .toList();
+    }
+
+    //STARTUP
+    public PterodactylServerResponse updateServerStartup(Long serverId, PterodactylUpdateStartupRequest startupDetails) {
+        var response = sendRequest("PATCH", "/api/application/servers/" + serverId + "/startup", startupDetails);
+        return deserialize(response, PterodactylServerResponse.class);
     }
 
     private <T> T deserialize(String json, Class<T> clazz) {
@@ -159,14 +190,90 @@ public class PterodactylApplicationClient extends BaseApiClient {
         Long node_id
     ) {}
 
+    public record PterodactylUpdateStartupRequest(
+        String startup,
+        Map<String, String> environment,
+        Long egg,
+        String image,
+        Boolean skip_scripts
+    ) {}
+
     public record PterodactylServerResponse(ServerAttributes attributes) {}
+
     public record ServerAttributes(
-        Long id, 
+        Long id,
+        String external_id,
+        String uuid,
+        String identifier,
         String name,
         String description,
-        String uuid,
-        boolean suspended,
-        LimitsObject limits
+        Boolean suspended,
+        LimitsObject limits,
+        FeatureLimitsObject feature_limits,
+        Long user,
+        Long node,
+        Long allocation,
+        Long nest,
+        Long egg,
+        ContainerObject container,
+        String updated_at,
+        String created_at
     ) {}
-    public record LimitsObject(int memory, int disk, int cpu) {}
+
+    public record LimitsObject(
+        Integer memory,
+        Integer swap,
+        Integer disk,
+        Integer io,
+        Integer cpu,
+        Integer threads
+    ) {}
+
+    public record FeatureLimitsObject(
+        Integer databases,
+        Integer allocations,
+        Integer backups
+    ) {}
+
+    public record ContainerObject(
+        String startup_command,
+        String image,
+        Boolean installed,
+        Map<String, String> environment
+    ) {}
+
+    public record PterodactylUserResponse(UserAttributes attributes) {}
+
+    public record UserAttributes(
+        Long id,
+        String external_id,
+        String uuid,
+        String username,
+        String email,
+        String first_name,
+        String last_name,
+        String language,
+        Boolean root_admin,
+        Boolean twofa, // the api calls it "2fa" but java identifiers can't start with numbers
+        String created_at,
+        String updated_at
+    ) {}
+
+    public record PterodactylCreateUserRequest(
+        String email,
+        String username,
+        String first_name,
+        String last_name,
+        String language,
+        String password
+    ) {}
+
+    public record PterodactylUpdateUserRequest(
+        String email,
+        String username,
+        String first_name,
+        String last_name,
+        String language,
+        String password
+    ) {}
 }

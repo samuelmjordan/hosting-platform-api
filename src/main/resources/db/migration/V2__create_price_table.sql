@@ -9,9 +9,8 @@ CREATE TABLE price_ (
     -- Archival details
     active BOOLEAN NOT NULL,
 
-    -- Currencies
-    currency TEXT NOT NULL,
-    minor_amount BIGINT NOT NULL,
+    -- Currencies as jsonb
+    minor_amounts JSONB NOT NULL,
 
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -24,6 +23,7 @@ CREATE TABLE price_ (
 -- Indexes for performance
 CREATE INDEX idx_price_price_id ON price_ (price_id);
 CREATE INDEX idx_price_product_id ON price_ (product_id);
+CREATE INDEX idx_price_currencies ON price_ USING gin (minor_amounts);
 
 CREATE TRIGGER update_prices_last_updated
     BEFORE UPDATE ON price_

@@ -1,5 +1,8 @@
 package com.mc_host.api.model.stripe;
 
+import lombok.Getter;
+
+@Getter
 public enum SubscriptionStatus {
     ACTIVE("active"),
     TRIALING("trialing"),

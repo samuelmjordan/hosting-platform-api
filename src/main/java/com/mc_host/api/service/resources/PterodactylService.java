@@ -1,19 +1,11 @@
 package com.mc_host.api.service.resources;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.client.PterodactylApplicationClient;
 import com.mc_host.api.client.PterodactylUserClient;
 import com.mc_host.api.client.PterodactylUserClient.ServerResourcesResponse;
 import com.mc_host.api.client.PterodactylUserClient.ServerStatus;
-import com.mc_host.api.client.PterodactylUserClient.WebsocketCredentialsResponse;
-import com.mc_host.api.model.resource.DnsARecord;
+import com.mc_host.api.model.plan.ServerSpecification;
+import com.mc_host.api.model.resource.dns.DnsARecord;
 import com.mc_host.api.model.resource.hetzner.HetznerRegion;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.PterodactylAllocation;
@@ -24,6 +16,14 @@ import com.mc_host.api.model.resource.pterodactyl.games.Nest;
 import com.mc_host.api.model.resource.pterodactyl.panel.PterodactylServerResources;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.model.resource.pterodactyl.request.PterodactylCreateNodeRequest;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 @Service
 public class PterodactylService {
@@ -43,22 +43,26 @@ public class PterodactylService {
         this.wingsService = wingsService;
     }
 
-    public PterodactylNode createNode(DnsARecord dnsARecord) {   
+    public PterodactylNode createNode(
+        DnsARecord dnsARecord,
+        ServerSpecification serverSpecification,
+        HetznerRegion region
+    ) {
         var nodeRequest = PterodactylCreateNodeRequest.builder()
             .name(UUID.randomUUID().toString())
             .description(dnsARecord.subscriptionId())
-            .locationId(HetznerRegion.NBG1.getPterodactylLocationId())
+            .locationId(region.getPterodactylLocationId())
             .public_(true)
             .fqdn(dnsARecord.recordName())
             .scheme("https")
             .behindProxy(false)
-            .memory(1024)
+            .memory(serverSpecification.ram_gb() * 1024 - 512)
             .memoryOverallocate(0)
-            .disk(50000)
+            .disk(serverSpecification.ssd_gb() * 1024)
             .diskOverallocate(0)
-            .uploadSize(100)
+            .uploadSize(1024)
             .daemonSftp(2022)
-            .daemonListen(8080)
+            .daemonListen(443)
             .build();
             
         var nodeResponse = appClient.createNode(nodeRequest);
@@ -67,14 +71,14 @@ public class PterodactylService {
             nodeResponse.attributes().id()
         );
         
-        LOGGER.info("[aRecordId: %s] [nodeId: %s] created pterodactyl node".formatted(
+        LOGGER.info("[aRecordId: %s] [hetznerNodeId: %s] created pterodactyl node".formatted(
             dnsARecord.aRecordId(), nodeResponse.attributes().id()));
         return node;
     }
 
     public void destroyNode(Long nodeId) {
         appClient.deleteNode(nodeId);
-        LOGGER.info("[nodeId: %s] deleted pterodactyl node".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] deleted pterodactyl node".formatted(nodeId));
     }
 
     public void configureNode(Long nodeId, DnsARecord dnsARecord) {
@@ -85,18 +89,23 @@ public class PterodactylService {
 
     private String getNodeConfig(Long nodeId) {
         var config = appClient.getNodeConfiguration(nodeId);
-        LOGGER.info("[nodeId: %s] fetched wings config".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] fetched wings config".formatted(nodeId));
         return config;
     }
 
     public void createAllocation(Long nodeId, String ipv4, Integer port) {
         appClient.createMultipleAllocations(nodeId, ipv4, List.of(port), "Minecraft");
-        LOGGER.info("[nodeId: %s] created allocation".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] created allocation".formatted(nodeId));
+    }
+
+    public void createDefaultAllocationRange(Long nodeId, String ipv4) {
+        appClient.createMultipleAllocations(nodeId, ipv4, IntStream.range(30000, 31001).boxed().toList(), "Minecraft");
+        LOGGER.info("[hetznerNodeId: %s] created allocation".formatted(nodeId));
     }
 
     public PterodactylAllocation getAllocation(String subscriptionId, Long nodeId) {
         var unassigned = appClient.getUnassignedAllocations(nodeId);
-        LOGGER.info("[nodeId: %s] fetched allocation".formatted(nodeId));
+        LOGGER.info("[hetznerNodeId: %s] fetched allocation".formatted(nodeId));
         
         var attrs = unassigned.get(0).attributes();
         return new PterodactylAllocation(
@@ -108,11 +117,11 @@ public class PterodactylService {
         );
     }
 
-    public PterodactylServer createServer(String subscriptionId, PterodactylAllocation allocation) {
+    public PterodactylServer createServer(String subscriptionId, PterodactylAllocation allocation, ServerSpecification serverSpecification, String serverKey) {
         var serverDetails = Map.ofEntries(
             Map.entry("name", "Minecraft - " + subscriptionId),
             Map.entry("user", 1),
-            Map.entry("egg", Egg.VANILLA_MINECRAFT.getId()),
+            Map.entry("egg", Egg.VANILLA.getDefinition().id()),
             Map.entry("docker_image", "ghcr.io/pterodactyl/yolks:java_21"),
             Map.entry("startup", "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar"),
             Map.entry("environment", Map.of(
@@ -120,15 +129,14 @@ public class PterodactylService {
                 "VANILLA_VERSION", "latest",
                 "BUILD_TYPE", "vanilla",
                 "GAMEMODE", "survival",
-                "DIFFICULTY", "normal",
-                "MAX_PLAYERS", "20"
+                "DIFFICULTY", "normal"
             )),
             Map.entry("limits", Map.of(
-                "memory", 3584,
+                "memory", serverSpecification.ram_gb() * 1024 - 512,
                 "swap", 0,
-                "disk", 15000,
+                "disk", serverSpecification.ssd_gb() * 1024,
                 "io", 500,
-                "cpu", 150
+                "cpu", serverSpecification.vcpu() * 100 * 0.9
             )),
             Map.entry("feature_limits", Map.of(
                 "databases", 1,
@@ -146,7 +154,8 @@ public class PterodactylService {
             subscriptionId, 
             response.attributes().uuid(),
             response.attributes().id(), 
-            allocation.allocationId()
+            allocation.allocationId(),
+            serverKey
         );
         
         LOGGER.info("[subscriptionId: %s] [serverId: %s] created pterodactyl server".formatted(
@@ -203,15 +212,27 @@ public class PterodactylService {
         appClient.reinstallServer(serverId);
     }
 
+    public void createSftpSubsuser(String email, String serverUid) {
+        userClient.createUser(serverUid, email, List.of(
+            "file.archive",
+            "file.delete",
+            "file.update",
+            "file.read-content",
+            "file.read",
+            "file.create",
+            "file.sftp"
+        ));
+    }
+
     public void startNewPterodactylServer(PterodactylServer server) {
         var serverId = server.pterodactylServerId();
         var serverUid = server.pterodactylServerUid();
 
-        waitForServerAccessible(serverUid, serverId, Duration.ofMinutes(3));
+        waitForServerAccessible(serverUid, Duration.ofMinutes(3));
         startAndWaitForServer(serverUid, serverId, Duration.ofMinutes(10));
     }
 
-    private void waitForServerAccessible(String serverUid, Long serverId, Duration timeout) {
+    public void waitForServerAccessible(String serverUid, Duration timeout) {
         var interval = Duration.ofSeconds(5);
         var timePassed = Duration.ZERO;
         
@@ -226,7 +247,7 @@ public class PterodactylService {
             } catch (Exception e) {
                 if (timePassed.compareTo(timeout) >= 0) {
                     throw new RuntimeException("couldn't obtain status of pterodactyl server %s after %s"
-                        .formatted(serverId, timeout));
+                        .formatted(serverUid, timeout));
                 }
             }
         }

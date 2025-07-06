@@ -1,42 +1,30 @@
 package com.mc_host.api.service.reconciliation;
 
+import com.mc_host.api.model.queue.JobType;
+import com.mc_host.api.model.resource.ResourceType;
+import com.mc_host.api.queue.JobScheduler;
+import org.springframework.scheduling.annotation.Scheduled;
+
 import java.util.logging.Logger;
 
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
+//TODO: rn the a record reconciler is nuking my github pages setup. maybe dont do that.
 
-import com.mc_host.api.model.cache.Queue;
-import com.mc_host.api.model.resource.ResourceType;
-import com.mc_host.api.util.Cache;
-import com.mc_host.api.util.Task;
-
-@Service
-@Controller
+//@Service
 public class ScheduledReconciler {
     private static final Logger LOGGER = Logger.getLogger(ScheduledReconciler.class.getName());
-    private static final Queue QUEUE = Queue.RESOURCE_RECONCILE;
 
-    private final Cache cacheService;
+    private final JobScheduler jobScheduler;
 
     public ScheduledReconciler(
-        Cache cacheService
+        JobScheduler jobScheduler
     ) {
-        this.cacheService = cacheService;
+        this.jobScheduler = jobScheduler;
     }
 
-    @Scheduled(cron = "0 0 11,18 * * ?", zone = "UTC")
-    @GetMapping("/hetzner")
+    @Scheduled(fixedDelay = 1000*60*60)
     public void reconcileAllResources() {
         for (ResourceType resourceType : ResourceType.values()) {
-            Task.alwaysAttempt(
-                String.format("Resource reconciliation for type %S", resourceType), 
-                ()  -> {
-                    cacheService.queueLeftPush(QUEUE, resourceType.name());
-                    LOGGER.info(String.format("Pushed resource type %s for reconciliation", resourceType));
-                }
-            );
+            jobScheduler.schedule(JobType.RECONCILE_RESOURCE_TYPE, resourceType.name());
         }
     }
     

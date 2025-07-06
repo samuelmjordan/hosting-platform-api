@@ -1,20 +1,25 @@
 package com.mc_host.api.client;
 
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.configuration.PterodactylConfiguration;
-import com.mc_host.api.controller.panel.FileController.*;
+import com.mc_host.api.controller.api.subscriptions.panel.FileController.RenameItem;
 import com.mc_host.api.model.resource.pterodactyl.PowerState;
 import com.mc_host.api.model.resource.pterodactyl.file.FileObject;
 import com.mc_host.api.model.resource.pterodactyl.file.SignedUrl;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class PterodactylUserClient extends BaseApiClient {
@@ -94,6 +99,45 @@ public class PterodactylUserClient extends BaseApiClient {
         return deserialize(response, SignedUrl.class);
     }
 
+    public void uploadFile(String serverUid, MultipartFile file) throws IOException, InterruptedException {
+        // Get the signed upload URL
+        var signedUrl = getFileUploadLink(serverUid);
+
+        // Create multipart request to forward to Pterodactyl
+        var httpClient = HttpClient.newHttpClient();
+
+        // Build multipart body
+        var boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+        var bodyBuilder = new StringBuilder();
+
+        bodyBuilder.append("--").append(boundary).append("\r\n");
+        bodyBuilder.append("Content-Disposition: form-data; name=\"files\"; filename=\"")
+            .append(file.getOriginalFilename()).append("\"\r\n");
+        bodyBuilder.append("Content-Type: ").append(file.getContentType()).append("\r\n\r\n");
+
+        var fileBytes = file.getBytes();
+        var endBoundary = "\r\n--" + boundary + "--\r\n";
+
+        // Combine parts
+        var bodyBytes = new ByteArrayOutputStream();
+        bodyBytes.write(bodyBuilder.toString().getBytes(StandardCharsets.UTF_8));
+        bodyBytes.write(fileBytes);
+        bodyBytes.write(endBoundary.getBytes(StandardCharsets.UTF_8));
+
+        // Forward to Pterodactyl
+        var request = HttpRequest.newBuilder()
+            .uri(URI.create(signedUrl.attributes().url()))
+            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .POST(HttpRequest.BodyPublishers.ofByteArray(bodyBytes.toByteArray()))
+            .build();
+
+        var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() >= 400) {
+            throw new RuntimeException("Upload failed: " + response.statusCode());
+        }
+    }
+
     public void renameFiles(String serverUid, String root, List<RenameItem> files) {
         var payload = Map.of("root", root, "files", files);
         sendRequest("PUT", "/api/client/servers/" + serverUid + "/files/rename", payload);
@@ -134,6 +178,71 @@ public class PterodactylUserClient extends BaseApiClient {
         return URLEncoder.encode(file, StandardCharsets.UTF_8);
     }
 
+    // BACKUP MANAGEMENT
+    public BackupListResponse listBackups(String serverUid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/backups");
+        return deserialize(response, BackupListResponse.class);
+    }
+
+    public BackupResponse createBackup(String serverUid, String name) {
+        var payload = name != null ? Map.of("name", name) : Map.of();
+        var response = sendRequest("POST", "/api/client/servers/" + serverUid + "/backups", payload);
+        return deserialize(response, BackupResponse.class);
+    }
+
+    public BackupResponse createBackup(String serverUid) {
+        return createBackup(serverUid, null);
+    }
+
+    public BackupResponse getBackupDetails(String serverUid, String backupUuid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/backups/" + backupUuid);
+        return deserialize(response, BackupResponse.class);
+    }
+
+    public SignedUrl getBackupDownloadLink(String serverUid, String backupUuid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/backups/" + backupUuid + "/download");
+        return deserialize(response, SignedUrl.class);
+    }
+
+    public void restoreBackup(String serverUid, String backupUuid) {
+        var payload = Map.of("truncate", false);
+        sendRequest("POST", "/api/client/servers/" + serverUid + "/backups/" + backupUuid + "/restore", payload);
+    }
+
+    public void deleteBackup(String serverUuid, String backupUuid) {
+        sendRequest("DELETE", "/api/client/servers/" + serverUuid + "/backups/" + backupUuid);
+    }
+
+    // USER MANAGEMENT
+    public UserListResponse listUsers(String serverUid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/users");
+        return deserialize(response, UserListResponse.class);
+    }
+
+    public UserResponse createUser(String serverUid, String email, List<String> permissions) {
+        var payload = Map.of(
+            "email", email,
+            "permissions", permissions
+        );
+        var response = sendRequest("POST", "/api/client/servers/" + serverUid + "/users", payload);
+        return deserialize(response, UserResponse.class);
+    }
+
+    public UserResponse getUserDetails(String serverUid, String subuserUuid) {
+        var response = sendRequest("GET", "/api/client/servers/" + serverUid + "/users/" + subuserUuid);
+        return deserialize(response, UserResponse.class);
+    }
+
+    public UserResponse updateUser(String serverUid, String subuserUuid, List<String> permissions) {
+        var payload = Map.of("permissions", permissions);
+        var response = sendRequest("POST", "/api/client/servers/" + serverUid + "/users/" + subuserUuid, payload);
+        return deserialize(response, UserResponse.class);
+    }
+
+    public void deleteUser(String serverUid, String subuserUuid) {
+        sendRequest("DELETE", "/api/client/servers/" + serverUid + "/users/" + subuserUuid);
+    }
+
     private <T> T deserialize(String json, Class<T> clazz) {
         try {
             return objectMapper.readValue(json, clazz);
@@ -167,17 +276,66 @@ public class PterodactylUserClient extends BaseApiClient {
 
     public record FileListResponse(String object, List<FileObject> data) {}
 
-    public record PterodactylUserResponse(UserAttributes attributes) {}
-    public record UserAttributes(
-        Long id,
-        String email,
-        String username,
-        String first_name,
-        String last_name,
-        String language,
-        Boolean root_admin,
-        Boolean use_totp,
+    public record BackupListResponse(String object, List<BackupObject> data, BackupMeta meta) {}
+
+    public record BackupResponse(String object, BackupAttributes attributes) {}
+
+    public record BackupObject(String object, BackupAttributes attributes) {}
+
+    public record BackupAttributes(
+        String uuid,
+        String name,
+        List<String> ignored_files,
+        String sha256_hash,
+        long bytes,
         String created_at,
-        String updated_at
+        String completed_at
     ) {}
+
+    public record BackupMeta(BackupPagination pagination) {}
+
+    public record BackupPagination(
+        int total,
+        int count,
+        int per_page,
+        int current_page,
+        int total_pages,
+        Map<String, String> links
+    ) {}
+
+    public record UserListResponse(String object, List<UserObject> data) {}
+
+    public record UserResponse(String object, UserAttributes attributes) {}
+
+    public record UserObject(String object, UserAttributes attributes) {}
+
+    public record UserAttributes(
+        String uuid,
+        String username,
+        String email,
+        String image,
+        boolean tfa_enabled, // note: api returns "2fa_enabled" but java records prefer underscore
+        String created_at,
+        List<String> permissions
+    ) {
+        // constructor to handle the json field name mismatch
+        public UserAttributes(
+            String uuid,
+            String username,
+            String email,
+            String image,
+            @com.fasterxml.jackson.annotation.JsonProperty("2fa_enabled") boolean tfa_enabled,
+            String created_at,
+            List<String> permissions
+        ) {
+            this.uuid = uuid;
+            this.username = username;
+            this.email = email;
+            this.image = image;
+            this.tfa_enabled = tfa_enabled;
+            this.created_at = created_at;
+            this.permissions = permissions;
+        }
+    }
+
 }

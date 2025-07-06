@@ -1,9 +1,8 @@
 package com.mc_host.api.model.stripe.response;
 
-import java.time.Instant;
-
 import com.mc_host.api.model.plan.AcceptedCurrency;
-import com.mc_host.api.model.subscription.MarketingRegion;
+
+import java.time.Instant;
 
 public record ServerSubscriptionResponse(
     String subscriptionId,
@@ -11,7 +10,7 @@ public record ServerSubscriptionResponse(
     String specificationTitle,
     String ramGb,
     String vcpu,
-    MarketingRegion regionCode,
+	String ssdGb,
     String cnameRecordName,
     String subscriptionStatus,
     Instant currentPeriodEnd,

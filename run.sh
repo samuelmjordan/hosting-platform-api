@@ -9,27 +9,27 @@ if [ -f ".env" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
         # Strip carriage returns
         line=$(echo "$line" | tr -d '\r')
-        
+
         # Skip comments and empty lines
         if [[ $line =~ ^[[:space:]]*# ]] || [[ -z "$line" ]]; then
             continue
         fi
-        
+
         # Only process lines that contain =
         if [[ $line == *"="* ]]; then
             name="${line%%=*}"
             value="${line#*=}"
-            
+
             # Trim whitespace from name
             name=$(echo "$name" | xargs)
-            
+
             # Remove surrounding quotes
             if [[ $value =~ ^\".*\"$ ]]; then
                 value="${value:1:-1}"
             elif [[ $value =~ ^\'.*\'$ ]]; then
                 value="${value:1:-1}"
             fi
-            
+
             # Only export if name is valid
             if [[ $name =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
                 export "$name"="$value"
@@ -43,18 +43,19 @@ fi
 
 # Clean and package the application
 echo -e "\033[36mBuilding the application with Maven...\033[0m"
+mvn clean package -DskipTests
 
 # Docker up
 docker compose up -d
 
 # Start stripe webhook listener
-stripe listen --forward-to localhost:8080/api/stripe/webhook > webhook.log 2>&1 &
+stripe listen --forward-to localhost:8080/stripe/webhook > webhook.log 2>&1 &
 echo -e "\033[36mStripe Webhook listener started with pid $!...\033[0m"
 
 if [ $? -eq 0 ]; then
     # Run the application
     echo -e "\033[36mStarting the Spring Boot application...\033[0m"
-    ./mvnw spring-boot:run
+    mvn spring-boot:run
 else
     echo -e "\033[31mMaven build failed!\033[0m"
     exit 1

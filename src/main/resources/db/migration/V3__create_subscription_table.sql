@@ -9,6 +9,7 @@ CREATE TABLE subscription_ (
     -- Subscription details
     status_ TEXT NOT NULL,
     price_id TEXT NOT NULL,
+    currency TEXT NOT NULL,
     
     -- Period tracking
     current_period_start TIMESTAMP NOT NULL,
@@ -16,7 +17,7 @@ CREATE TABLE subscription_ (
     cancel_at_period_end BOOLEAN NOT NULL,
 
     -- Initial metadata
-    initial_region TEXT NOT NULL,
+    subdomain TEXT NOT NULL,
     
     -- Audit fields
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

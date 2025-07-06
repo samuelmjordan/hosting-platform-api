@@ -1,107 +1,126 @@
 package com.mc_host.api.repository;
 
-import java.util.Optional;
-
-import org.springframework.dao.DataAccessException;
+import com.mc_host.api.model.plan.AcceptedCurrency;
+import com.mc_host.api.model.user.ApplicationUser;
+import com.mc_host.api.service.EncryptionService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import com.mc_host.api.model.plan.AcceptedCurrency;
-import com.mc_host.api.model.user.ApplicationUser;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Optional;
 
 @Service
-public class UserRepository {
+public class UserRepository extends BaseRepository {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final EncryptionService encryptionService;
 
-    public UserRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public UserRepository(JdbcTemplate jdbc, EncryptionService encryptionService) {
+        super(jdbc);
+        this.encryptionService = encryptionService;
     }
 
-    public int insertUser(ApplicationUser userEntity) {
-        try {
-            return jdbcTemplate.update(
-                """
-                INSERT INTO user_ (
-                    clerk_id, 
-                    customer_id
-                )
-                VALUES (?, ?)
-                """,
-                userEntity.clerkId(),
-                userEntity.customerId()
-            );
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to save subscription to database: " + e.getMessage(), e);
-        }
-    }   
+    public int insertUser(ApplicationUser user) {
+        String encryptedPassword = encryptionService.encrypt(user.pterodactylPassword());
+
+        return execute("""
+            INSERT INTO user_ (
+                clerk_id,
+                customer_id,
+                pterodactyl_user_id,
+                pterodactyl_username,
+                pterodactyl_password,
+                primary_email,
+                dummy_email)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+            """,
+            user.clerkId(),
+            user.customerId(),
+            user.pterodactylUserId(),
+            user.pterodactylUsername(),
+            encryptedPassword,
+            user.primaryEmail(),
+            user.dummyEmail());
+    }
+
+    public int updatePrimaryEmail(String primaryEmail, String clerkId) {
+        return execute("""
+        UPDATE user_ SET
+            primary_email = ?
+        WHERE clerk_id = ?
+        """,
+        primaryEmail,
+        clerkId);
+    }
+
+    public int delete(String clerkId) {
+        return execute("""
+        UPDATE user_ SET
+            deleted_at = CURRENT_TIMESTAMP
+        WHERE clerk_id = ?
+        """,
+            clerkId);
+    }
 
     public Optional<ApplicationUser> selectUser(String clerkId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT 
+        return selectOne("""
+                SELECT
                     clerk_id,
-                    customer_id
+                    customer_id,
+                    pterodactyl_user_id,
+                    pterodactyl_username,
+                    pterodactyl_password,
+                    primary_email,
+                    dummy_email
                 FROM user_
                 WHERE clerk_id = ?
                 """,
-                (rs, rowNum) -> new ApplicationUser(
-                    rs.getString("clerk_id"),
-                    rs.getString("customer_id")
-                ),
-                clerkId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch customer ID for clerk ID: " + e.getMessage(), e);
-        }
+            this::mapUser, clerkId);
     }
 
-    public Optional<String> selectCustomerIdByClerkId(String clerkId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT customer_id
-                FROM user_
-                WHERE clerk_id = ?
-                """,
-                (rs, rowNum) -> rs.getString("customer_id"),
-                clerkId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch customer ID for clerk ID: " + e.getMessage(), e);
-        }
-    }
-
-    public Optional<String> selectClerkIdByCustomerId(String customerId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT clerk_id
+    public Optional<ApplicationUser> selectUserByCustomerId(String customerId) {
+        return selectOne("""
+                SELECT
+                    clerk_id,
+                    customer_id,
+                    pterodactyl_user_id,
+                    pterodactyl_username,
+                    pterodactyl_password,
+                    primary_email,
+                    dummy_email
                 FROM user_
                 WHERE customer_id = ?
                 """,
-                (rs, rowNum) -> rs.getString("clerk_id"),
-                customerId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch clerk ID for customer ID: " + e.getMessage(), e);
-        }
+            this::mapUser, customerId);
+    }
+
+    public boolean usernameExists(String username) {
+        return selectOne("SELECT 1 FROM user_ WHERE pterodactyl_username = ?",
+            (rs, rowNum) -> true, username)
+            .isPresent();
+    }
+
+    public Optional<String> selectCustomerIdByClerkId(String clerkId) {
+        return selectOne("SELECT customer_id FROM user_ WHERE clerk_id = ?",
+            (rs, rowNum) -> rs.getString("customer_id"), clerkId);
     }
 
     public Optional<AcceptedCurrency> selectUserCurrency(String userId) {
-        try {
-            return jdbcTemplate.query(
-                """
-                SELECT currency
-                FROM user_
-                WHERE clerk_id = ?
-                """,
-                (rs, rowNum) -> AcceptedCurrency.fromCode(rs.getString("currency")),
-                userId
-            ).stream().findFirst();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to fetch currency for user ID: " + userId, e);
-        }
+        return selectOne("SELECT currency FROM user_ WHERE clerk_id = ?",
+            (rs, rowNum) -> AcceptedCurrency.fromCode(rs.getString("currency")), userId);
+    }
+
+    private ApplicationUser mapUser(ResultSet rs, int rowNum) throws SQLException {
+        String encryptedPassword = rs.getString("pterodactyl_password");
+        String decryptedPassword = encryptionService.decrypt(encryptedPassword);
+
+        return new ApplicationUser(
+            rs.getString("clerk_id"),
+            rs.getString("customer_id"),
+            rs.getLong("pterodactyl_user_id"),
+            rs.getString("pterodactyl_username"),
+            decryptedPassword,
+            rs.getString("primary_email"),
+            rs.getString("dummy_email"));
     }
 }

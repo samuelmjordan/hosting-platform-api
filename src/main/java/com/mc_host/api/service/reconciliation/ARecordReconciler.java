@@ -1,18 +1,15 @@
 package com.mc_host.api.service.reconciliation;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.springframework.stereotype.Service;
-
 import com.mc_host.api.client.CloudflareClient;
 import com.mc_host.api.client.CloudflareClient.DNSRecordResponse;
 import com.mc_host.api.model.resource.ResourceType;
-import com.mc_host.api.repository.NodeRepository;
-import com.mc_host.api.util.Task;
+import com.mc_host.api.repository.NodeAccessoryRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 @Service
@@ -20,14 +17,14 @@ public class ARecordReconciler implements ResourceReconciler {
     private static final Logger LOGGER = Logger.getLogger(ARecordReconciler.class.getName());
 
     private final CloudflareClient cloudflareClient;
-    private final NodeRepository nodeRepository;
+    private final NodeAccessoryRepository nodeAccessoryRepository;
 
     ARecordReconciler(
         CloudflareClient cloudflareClient,
-        NodeRepository nodeRepository
+        NodeAccessoryRepository nodeAccessoryRepository
     ) {
         this.cloudflareClient = cloudflareClient;
-        this.nodeRepository = nodeRepository;
+        this.nodeAccessoryRepository = nodeAccessoryRepository;
     }
 
     @Override
@@ -37,29 +34,26 @@ public class ARecordReconciler implements ResourceReconciler {
 
     @Override
     public void reconcile() {
-        LOGGER.log(Level.INFO, String.format("Reconciling a records with db"));
+        LOGGER.log(Level.FINE, "Reconciling a records with db");
         try {
             List<DnsARecordZone> actualARecords = fetchActualResources();
             List<DnsARecordZone> expectedARecords = fetchExpectedResources();
             List<DnsARecordZone> aRecordsToDestroy = actualARecords.stream()
                 .filter(aRecordZone -> expectedARecords.stream().noneMatch(aRecordZone::alike))
                 .toList();
+
+            if (aRecordsToDestroy.isEmpty()) return;
+
             LOGGER.log(Level.INFO, String.format("Found %s a records to destroy", aRecordsToDestroy.size()));
 
-            if (aRecordsToDestroy.size() == 0) return;
-
-            List<CompletableFuture<Void>> deleteTasks = aRecordsToDestroy.stream()
-                .map(aRecordZone -> Task.alwaysAttempt(
-                    "Delete a record " + aRecordZone,
-                    () -> {
-                        cloudflareClient.deleteDNSRecord(aRecordZone.zoneId(), aRecordZone.aRecordId());
-                    }
-                )).toList();
-
-            Task.awaitCompletion(deleteTasks);
-            LOGGER.log(Level.INFO, "Executed a record reconciliation");
+            aRecordsToDestroy.forEach(record -> {
+                try {
+                    cloudflareClient.deleteDNSRecord(record.zoneId, record.aRecordId);
+                } catch (Exception e) {
+                    LOGGER.warning("Exception caught destroying a records %s: %s".formatted(record.aRecordId, e));
+                }
+            });
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed a record reconciliation", e);
             throw new RuntimeException("Failed a record reconciliation", e);
         }
     }
@@ -80,7 +74,7 @@ public class ARecordReconciler implements ResourceReconciler {
     }
 
     private List<DnsARecordZone> fetchExpectedResources() {
-        return nodeRepository.selectAllARecordIds().stream()
+        return nodeAccessoryRepository.selectAllARecordIds().stream()
             .map(record -> new DnsARecordZone(
                 record.aRecordId(),
                 record.zoneId()

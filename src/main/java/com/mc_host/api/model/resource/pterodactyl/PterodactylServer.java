@@ -4,5 +4,6 @@ public record PterodactylServer(
     String subscriptionId,
     String pterodactylServerUid,
     Long pterodactylServerId,
-    Long allocationId
+    Long allocationId,
+	String serverKey
 ) {}

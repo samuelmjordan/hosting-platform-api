@@ -1,13 +1,13 @@
 package com.mc_host.api.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.logging.Logger;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public abstract class BaseApiClient {
     private static final Logger LOGGER = Logger.getLogger(BaseApiClient.class.getName());
