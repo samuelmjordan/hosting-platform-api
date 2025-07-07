@@ -1,7 +1,6 @@
 package com.mc_host.api.service;
 
 import com.mc_host.api.controller.api.StoreController;
-import com.mc_host.api.model.plan.AcceptedCurrency;
 import com.mc_host.api.model.stripe.request.CheckoutRequest;
 import com.mc_host.api.model.user.ClerkUserEvent;
 import com.mc_host.api.repository.GameServerSpecRepository;
@@ -41,13 +40,6 @@ public class StoreService implements StoreController {
 
 			String customerId = getOrCreateCustomerId(clerkId);
 
-			String priceId = getPriceInCorrectCurrency(request.priceId(), clerkId);
-			if (!priceId.equals(request.priceId())) {
-				LOGGER.log(Level.WARNING,
-					String.format("User attempted checkout with wrong currency. userId: %s  priceID: %s",
-						clerkId, request.priceId()));
-			}
-
 			SessionCreateParams checkoutParams = SessionCreateParams.builder()
 				.setMode(SessionCreateParams.Mode.SUBSCRIPTION)
 				.setCustomer(customerId)
@@ -57,7 +49,7 @@ public class StoreService implements StoreController {
 				.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
 					.build())
 				.addLineItem(SessionCreateParams.LineItem.builder()
-					.setPrice(priceId)
+					.setPrice(request.priceId())
 					.setQuantity(1L)
 					.build())
 				.build();
@@ -76,15 +68,6 @@ public class StoreService implements StoreController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				.body("An unexpected error occurred");
 		}
-	}
-
-	private String getPriceInCorrectCurrency(String priceId, String userId) {
-		AcceptedCurrency currency = dataFetchingService.getUserCurrencyInner(userId);
-		if (currency.equals(AcceptedCurrency.XXX)) {
-			return priceId;
-		}
-		return gameServerSpecRepository.convertPrice(priceId, currency)
-			.orElseThrow(() -> new IllegalStateException(String.format("No alternative for priceId %s in %s", priceId, currency)));
 	}
 
 	public String getOrCreateCustomerId(String userId) {
