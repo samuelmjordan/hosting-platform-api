@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mc_host.api.controller.api.subscriptions.panel.ConsoleController;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketCredentials;
 import com.mc_host.api.model.resource.pterodactyl.panel.WebsocketEvent;
+import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+@RequiredArgsConstructor
 public class ConsoleWebSocketHandler extends TextWebSocketHandler {
     private static final Logger LOGGER = Logger.getLogger(ConsoleWebSocketHandler.class.getName());
     private static final String TOKEN_EXPIRING = "token expiring";
@@ -22,16 +24,6 @@ public class ConsoleWebSocketHandler extends TextWebSocketHandler {
     private final ConsoleController consoleController;
     private final String subscriptionId;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    
-    public ConsoleWebSocketHandler(
-        WebSocketSession browserSession, 
-        ConsoleController consoleController,
-        String subscriptionId
-    ) {
-        this.browserSession = browserSession;
-        this.consoleController = consoleController;
-        this.subscriptionId = subscriptionId;
-    }
     
     @Override
     protected void handleTextMessage(@NonNull WebSocketSession pteroSession, @NonNull TextMessage message) throws Exception {
