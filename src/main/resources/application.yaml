@@ -27,10 +27,18 @@ management:
     metrics:
       export:
         enabled: true
+sentry:
+  dsn: ${SENTRY_DSN}
+  send-default-pii: true
+  in-app-includes: com.mc_host.api
+  environment: ${ENV}
+  debug: false
 
 logging:
   level:
     root: INFO
+    io.sentry: WARN
+    io.sentry.spring: WARN
     org:
       springframework:
         web: INFO
