@@ -1,6 +1,8 @@
 package com.mc_host.api.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -54,6 +56,10 @@ public abstract class BaseApiClient {
             }).build();
             
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 409) {
+                throw new ResponseStatusException(HttpStatusCode.valueOf(409), response.body());
+            }
             
             if (response.statusCode() >= 400) {
                 throw new RuntimeException("API error: %d %s".formatted(response.statusCode(), response.body()));
