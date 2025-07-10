@@ -9,6 +9,13 @@ spring:
     hikari:
       maximum-pool-size: 30
       minimum-idle: 15
+      max-lifetime: 600000
+      connection-timeout: 20000
+      idle-timeout: 300000
+      validation-timeout: 3000
+      test-on-borrow: true
+      test-while-idle: true
+      connection-test-query: "SELECT 1"
   flyway:
     enabled: true
     locations: classpath:db/migration
