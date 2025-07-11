@@ -90,6 +90,7 @@ ssh:
 clerk:
   key: ${CLERK_SECRET_KEY}
   signing-key: ${CLERK_SECRET_SIGNING_KEY}
+  jwt-url: ${JWT_URL}
   valid-events:
     - user.created
     - user.deleted

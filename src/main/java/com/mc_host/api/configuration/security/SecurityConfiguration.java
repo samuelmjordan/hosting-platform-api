@@ -1,5 +1,7 @@
 package com.mc_host.api.configuration.security;
 
+import com.mc_host.api.configuration.ClerkConfiguration;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -10,8 +12,11 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@RequiredArgsConstructor
 @EnableWebSecurity
 public class SecurityConfiguration {
+
+	private final ClerkConfiguration clerkConfiguration;
 
 	@Bean
 	public SecurityFilterChain filterChain(
@@ -33,7 +38,7 @@ public class SecurityConfiguration {
 	@Bean
 	public JwtDecoder jwtDecoder() {
 		return NimbusJwtDecoder
-			.withJwkSetUri("https://on-grubworm-94.clerk.accounts.dev/.well-known/jwks.json")
+			.withJwkSetUri(clerkConfiguration.getJwtUrl())
 			.build();
 	}
 }
