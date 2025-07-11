@@ -1,7 +1,6 @@
 package com.mc_host.api.auth;
 
 import com.mc_host.api.repository.SubscriptionRepository;
-import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -20,7 +19,7 @@ public class ValidatedSubscriptionResolver extends AbstractAuthResolver<Validate
 	}
 
 	@Override
-	protected String doResolve(MethodParameter parameter, NativeWebRequest webRequest) {
+	protected String doResolve(NativeWebRequest webRequest) {
 		String userId = getCurrentUserId();
 		String subscriptionId = getPathVariable(webRequest, "subscriptionId");
 

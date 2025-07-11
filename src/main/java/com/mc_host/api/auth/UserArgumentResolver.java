@@ -1,6 +1,5 @@
 package com.mc_host.api.auth;
 
-import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.NativeWebRequest;
 
@@ -12,7 +11,7 @@ public class UserArgumentResolver extends AbstractAuthResolver<CurrentUser> {
 	}
 
 	@Override
-	protected String doResolve(MethodParameter parameter, NativeWebRequest webRequest) {
+	protected String doResolve(NativeWebRequest webRequest) {
 		return getCurrentUserId();
 	}
 }

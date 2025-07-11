@@ -37,10 +37,10 @@ public abstract class AbstractAuthResolver<T extends Annotation> implements Hand
 		NativeWebRequest webRequest,
 		WebDataBinderFactory binderFactory
 	) {
-		return doResolve(parameter, webRequest);
+		return doResolve(webRequest);
 	}
 
-	protected abstract String doResolve(MethodParameter parameter, NativeWebRequest webRequest);
+	protected abstract String doResolve(NativeWebRequest webRequest);
 
 	protected String getCurrentUserId() {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
