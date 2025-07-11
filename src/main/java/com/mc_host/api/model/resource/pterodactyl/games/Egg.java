@@ -25,7 +25,8 @@ public enum Egg {
     @EggConfig(filename = "bungeecord.json", id = 4)
     BUNGEECORD,
     @EggConfig(filename = "forge.json", id = 5)
-    FORGE,
+    FORGE;
+    /*
     @EggConfig(filename = "fabric.json", id = 19)
     FABRIC,
     @EggConfig(filename = "tekkit.json", id = 17)
@@ -38,6 +39,7 @@ public enum Egg {
     BEDROCK,
     @EggConfig(filename = "bedrock-ARM64.json", id = 21)
     BEDROCK_ARM64;
+    */
 
     private static final Map<Egg, EggDefinition> definitionCache = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
