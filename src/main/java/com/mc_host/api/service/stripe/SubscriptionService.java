@@ -81,8 +81,14 @@ public class SubscriptionService implements SubscriptionController {
             LOGGER.log(Level.SEVERE, String.format("Server is in an illegal state: %s", subscriptionId));
             return Optional.of(ProvisioningStatus.FAILED);
         }
+        if (context.getStatus().equals(Status.FAILED)) {
+            return Optional.of(ProvisioningStatus.FAILED);
+        }
         if (context.isCreated()) {
             return Optional.of(ProvisioningStatus.READY);
+        }
+        if (context.isDestroyed()) {
+            return Optional.of(ProvisioningStatus.INACTIVE);
         }
         if (context.getMode().equals(Mode.CREATE)) {
             return Optional.of(ProvisioningStatus.PROVISIONING);
@@ -90,14 +96,8 @@ public class SubscriptionService implements SubscriptionController {
         if (context.getMode().isMigrate()) {
             return Optional.of(ProvisioningStatus.MIGRATING);
         }
-        if (context.isDestroyed()) {
-            return Optional.of(ProvisioningStatus.INACTIVE);
-        }
         if (context.getMode().equals(Mode.DESTROY)) {
             return Optional.of(ProvisioningStatus.DESTROYING);
-        }
-        if (context.getStatus().equals(Status.FAILED)) {
-            return Optional.of(ProvisioningStatus.FAILED);
         }
         return Optional.empty();
     }

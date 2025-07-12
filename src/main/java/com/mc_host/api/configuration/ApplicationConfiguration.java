@@ -10,6 +10,5 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationConfiguration {
     private String scheme;
     private String cloudDomain;
-    private String nodePublicSuffix;
-    private String nodePrivateSuffix;
+    private String infraDomain;
 }
