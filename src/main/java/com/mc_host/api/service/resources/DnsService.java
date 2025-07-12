@@ -29,11 +29,11 @@ public class DnsService {
     public DnsARecord createARecord(HetznerNodeInterface hetznerNode, String subscriptionId) {
         LOGGER.log(Level.INFO, String.format("[hetznerNodeId: %s] Creating DNS A record", hetznerNode.hetznerNodeId()));
         try {
-            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getInfraDomain());
-            String subdomain = UUID.randomUUID().toString().replace("-", "");
+            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getCloudDomain());
+            String recordName = UUID.randomUUID().toString().replace("-", "") + applicationConfiguration.getNodePrivateSuffix();
             DNSRecordResponse dnsARecordResponse = cloudflareClient.createARecord(
                 zoneId,
-                subdomain,
+                recordName,
                 hetznerNode.ipv4(),
                 true
             );
@@ -65,9 +65,10 @@ public class DnsService {
     public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
+            String fullSubdomain = subdomain + applicationConfiguration.getNodePublicSuffix();
             DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
                 dnsARecord.zoneId(),
-                subdomain,
+                fullSubdomain,
                 dnsARecord.recordName(),
                 false
             );
@@ -114,10 +115,11 @@ public class DnsService {
     public DnsCNameRecord updateCNameRecordName(DnsCNameRecord dnsCNameRecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Updating DNS C NAME record", dnsCNameRecord.subscriptionId()));
         try {
+            String fullSubdomain = subdomain + applicationConfiguration.getNodePublicSuffix();
             DNSRecordResponse dnsCNameRecordResponse = cloudflareClient.updateCNameRecord(
                 dnsCNameRecord.zoneId(), 
                 dnsCNameRecord.cNameRecordId(),
-                subdomain,
+                fullSubdomain,
                 dnsCNameRecord.content(),
                 false
             );
