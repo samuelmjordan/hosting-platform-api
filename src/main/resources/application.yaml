@@ -52,9 +52,8 @@ logging:
 
 application:
   scheme: https
-  node-public-suffix: -node
-  node-private-suffix: -infra
-  cloud-domain: samuelmjordan.dev
+  cloud-domain: ${CLOUD_DOMAIN}
+  infra-domain: ${INFRA_DOMAIN}
 
 cors:
   allowed-origins:
