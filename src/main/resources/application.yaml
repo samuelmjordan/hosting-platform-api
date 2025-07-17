@@ -47,9 +47,9 @@ logging:
     root: INFO
     io.sentry: WARN
     io.sentry.spring: WARN
-    com.zaxxer.hikari: DEBUG
+    com.zaxxer.hikari: WARN
     org.springframework.web: INFO
-    org.springframework.jdbc: DEBUG
+    org.springframework.jdbc: WARN
 
 application:
   scheme: https
