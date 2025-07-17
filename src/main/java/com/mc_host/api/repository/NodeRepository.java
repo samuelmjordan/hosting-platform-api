@@ -9,7 +9,6 @@ import com.mc_host.api.model.resource.hetzner.node.HetznerNode;
 import com.mc_host.api.model.resource.hetzner.node.HetznerNodeInterface;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,7 +20,6 @@ public class NodeRepository extends BaseRepository {
 
     public NodeRepository(JdbcTemplate jdbc) { super(jdbc); }
 
-    @Transactional
     public int insertCloudNode(HetznerCloudNode cloudNode) {
         insertNode(cloudNode);
         return execute("""

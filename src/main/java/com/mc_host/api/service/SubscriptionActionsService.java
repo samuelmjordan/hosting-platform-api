@@ -25,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -33,7 +32,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class SubscriptionActionsService implements SubscriptionActionsController {
     private final static Logger LOGGER = Logger.getLogger(SubscriptionActionsService.class.getName());

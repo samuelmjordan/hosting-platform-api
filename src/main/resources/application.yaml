@@ -15,6 +15,7 @@ spring:
       validation-timeout: 3000
       test-on-borrow: true
       test-while-idle: true
+      leak-detection-threshold: 30000
       connection-test-query: "SELECT 1"
   flyway:
     enabled: true
@@ -46,9 +47,9 @@ logging:
     root: INFO
     io.sentry: WARN
     io.sentry.spring: WARN
-    org:
-      springframework:
-        web: INFO
+    com.zaxxer.hikari: DEBUG
+    org.springframework.web: INFO
+    org.springframework.jdbc: DEBUG
 
 application:
   scheme: https

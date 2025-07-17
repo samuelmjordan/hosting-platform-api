@@ -6,7 +6,6 @@ import com.mc_host.api.model.queue.JobType;
 import com.mc_host.api.queue.processor.JobProcessor;
 import com.mc_host.api.queue.processor.JobProcessorFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -20,7 +19,6 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 @Service
-@Transactional
 public class JobPoolService {
 	private static final Logger LOGGER = Logger.getLogger(JobPoolService.class.getName());
 
