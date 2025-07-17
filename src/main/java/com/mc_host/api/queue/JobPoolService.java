@@ -38,12 +38,12 @@ public class JobPoolService {
 		this.threadPoolExecutor = threadPoolExecutor;
 	}
 
-	public void enqueue(JobType type, String payload) {
-		enqueue(type, payload, Instant.now());
+	public Job enqueue(JobType type, String payload) {
+		return enqueue(type, payload, Instant.now());
 	}
 
-	public void enqueue(JobType type, String payload, Instant delayedUntil) {
-		enqueue(type, payload, delayedUntil, 3);
+	public Job enqueue(JobType type, String payload, Instant delayedUntil) {
+		return enqueue(type, payload, delayedUntil, 3);
 	}
 
 	public Job enqueue(JobType type, String payload, Instant delayedUntil, Integer maxRetries) {
@@ -99,7 +99,7 @@ public class JobPoolService {
 		}
 	}
 
-	private void processJob(Job job) {
+	void processJob(Job job) {
 		JobProcessor processor;
 		try {
 			processor = processorFactory.getProcessor(job.type());
