@@ -65,18 +65,17 @@ public class DnsService {
     public DnsCNameRecord createCNameRecord(DnsARecord dnsARecord, String subdomain) {
         LOGGER.log(Level.INFO, String.format("[subscriptionId: %s] Creating DNS C NAME record", dnsARecord.subscriptionId()));
         try {
-            String zoneId = cloudflareClient.getZoneId(applicationConfiguration.getCloudDomain());
             DNSRecordResponse dnsRecordResponse = cloudflareClient.createCNameRecord(
-                zoneId,
+                dnsARecord.zoneId(),
                 subdomain,
                 dnsARecord.recordName(),
                 false
             );
             DnsCNameRecord dnsCNameRecord = new DnsCNameRecord(
                 dnsARecord.subscriptionId(), 
-                dnsRecordResponse.id(),
-                zoneId,
-                applicationConfiguration.getInfraDomain(),
+                dnsRecordResponse.id(), 
+                dnsARecord.zoneId(), 
+                dnsARecord.zoneName(),
                 dnsRecordResponse.name(),
                 dnsRecordResponse.content()
             );
@@ -99,9 +98,9 @@ public class DnsService {
             );
             DnsCNameRecord newDnsCNameRecord = new DnsCNameRecord(
                 dnsARecord.subscriptionId(), 
-                dnsCCNameRecordResponse.id(),
-                dnsCNameRecord.zoneId(),
-                dnsCNameRecord.zoneName(),
+                dnsCCNameRecordResponse.id(), 
+                dnsARecord.zoneId(), 
+                dnsARecord.zoneName(),
                 dnsCCNameRecordResponse.name(),
                 dnsCCNameRecordResponse.content()
             );
