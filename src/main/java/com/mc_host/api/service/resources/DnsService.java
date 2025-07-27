@@ -76,7 +76,7 @@ public class DnsService {
                 dnsARecord.subscriptionId(), 
                 dnsRecordResponse.id(),
                 zoneId,
-                applicationConfiguration.getInfraDomain(),
+                applicationConfiguration.getCloudDomain(),
                 dnsRecordResponse.name(),
                 dnsRecordResponse.content()
             );
