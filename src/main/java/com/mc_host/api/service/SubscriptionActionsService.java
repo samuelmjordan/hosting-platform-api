@@ -194,6 +194,8 @@ public class SubscriptionActionsService implements SubscriptionActionsController
         }
 
         String subdomain = address.address().substring(0, address.address().length() - applicationConfiguration.getCloudDomain().length());
+        LOGGER.info(subdomain);
+        LOGGER.info(address.address());
         if (!isValidSubdomain(subdomain)) {
             return ResponseEntity.badRequest().build();
         }
