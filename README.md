@@ -111,7 +111,11 @@ INFRA_DOMAIN=your-infra-domain.com
    ./run.ps1
    ```
 
-3. **Access Services**
+4. **Webhooks**
+   - Try pointing your clerk webhooks at ```/clerk/webhook```. If running locally you can use cloudflare tunnels.
+   - The run script will start the stripe listener, but this still needs to be configured in stripe to point to ```/stripe/webhook```
+
+4. **Access Services**
    - API: http://localhost:8080
    - Grafana: http://localhost:3001 (admin/admin)
    - Prometheus: http://localhost:9090
@@ -146,5 +150,3 @@ The application includes comprehensive monitoring:
 - [ ] CurseForge modpack integration
 
 ---
-
-*Built with ❤️ for the Minecraft hosting community*
