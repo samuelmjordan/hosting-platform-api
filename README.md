@@ -93,29 +93,18 @@ INFRA_DOMAIN=your-infra-domain.com
 
 ### Running Locally
 
-1. **Start Dependencies**
-   ```bash
-   docker compose up postgres prometheus grafana
-   ```
-
-2. **Run Application**
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-   Or use the platform-specific scripts:
-   ```bash
-   # Linux/macOS
-   ./run.sh
-   
-   # Windows
-   ./run.ps1
-   ```
-
-4. **Webhooks**
+1. **Webhooks**
    - Try pointing your clerk webhooks at ```/clerk/webhook```. If running locally you can use cloudflare tunnels.
    - The run script will start the stripe listener, but this still needs to be configured in stripe to point to ```/stripe/webhook```
 
-4. **Access Services**
+2. **Run**
+
+Use the run script:
+```bash
+bash ./run.sh
+```
+
+3. **Access Services**
    - API: http://localhost:8080
    - Grafana: http://localhost:3001 (admin/admin)
    - Prometheus: http://localhost:9090
