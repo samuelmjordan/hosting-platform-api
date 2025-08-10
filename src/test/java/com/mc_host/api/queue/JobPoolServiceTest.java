@@ -165,14 +165,12 @@ class JobPoolServiceTest {
 	@Test
 	void processJob_shouldHandleNoProcessorFound() {
 		// given
-		Job job = createJob("job-1", JobType.CUSTOMER_SUBSCRIPTION_SYNC, "payload");
+		Job job = createJob("job-1", JobType.CUSTOMER_SUBSCRIPTION_SYNC, "payload", 2, 3);
 
 		when(processorFactory.getProcessor(job.type()))
 			.thenThrow(new IllegalArgumentException("no processor"));
 
 		// when
-		jobPoolService.processJob(job);
-		jobPoolService.processJob(job);
 		jobPoolService.processJob(job);
 
 		// then

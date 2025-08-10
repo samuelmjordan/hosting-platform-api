@@ -2,9 +2,11 @@ package com.mc_host.api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-class ApiApplicationTests {
+@ActiveProfiles("test")
+class ApiApplicationTests extends DatabaseTest {
 
 	@Test
 	void contextLoads() {

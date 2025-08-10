@@ -73,7 +73,7 @@ public class UserRepository extends BaseRepository {
                     primary_email,
                     dummy_email
                 FROM user_
-                WHERE clerk_id = ?
+                WHERE clerk_id = ? AND deleted_at IS NULL
                 """,
             this::mapUser, clerkId);
     }

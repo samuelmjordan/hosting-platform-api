@@ -1,0 +1,87 @@
+spring:
+  application:
+    name: api-test
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    clean-disabled: false
+  
+# Override all external service configurations for testing
+logging:
+  level:
+    com.mc_host.api: DEBUG
+    org.testcontainers: INFO
+    org.springframework.test: INFO
+  
+application:
+  scheme: https
+  cloud-domain: test.example.com
+  infra-domain: test-infra.example.com
+
+pterodactyl:
+  api-base: https://test-panel.example.com
+  api-token: test-token
+  client-api-token: test-client-token
+  admin-user: test-admin
+  admin-password: test-password
+  password-key: MTIzNDU2NzgxMjM0NTY3ODEyMzQ1Njc4MTIzNDU2Nzg=
+
+cloudflare:
+  api-base: https://api.cloudflare.com/client/v4
+  api-token: test-cloudflare-token
+  origin-cert: test-cert
+  private-key: test-private-key
+
+hetzner:
+  cloud:
+    api-base: https://api.hetzner.cloud/v1
+    api-token: test-hetzner-token
+  robot:
+    api-base: https://robot-ws.your-server.de
+    api-token: test-hetzner-robot-token
+
+ssh:
+  private-key: test-ssh-private-key
+  public-key: test-ssh-public-key
+
+clerk:
+  key: test-clerk-key
+  signing-key: test-clerk-signing-key
+  jwt-url: https://test-clerk.example.com
+  valid-events:
+    - user.created
+    - user.deleted
+    - user.updated
+
+stripe:
+  api-key: test-stripe-key
+  signing-key: test-stripe-signing-key
+  active-java-product-id: prod_test123
+  event-debounce-ttl-ms: 1000
+  subscription-sync-timeout-minutes: 5
+
+cors:
+  allowed-origins:
+    - http://localhost:3000
+
+sentry:
+  dsn: ""
+  enabled: false
+
+payment:
+  method:
+    display:
+      card:
+        brand:
+          label: ""
+          display_type: "brand_icon"
+          order: 1
+        last_four:
+          label: "ending in"
+          display_type: "masked"
+          order: 2
+        exp_display:
+          label: "expires"
+          display_type: "text"
+          order: 3
